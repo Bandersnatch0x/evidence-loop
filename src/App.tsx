@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { AlertTriangle, Bot, RefreshCw } from 'lucide-react'
+import { AlertTriangle, RefreshCw } from 'lucide-react'
 import type {
   Assignment,
   CohortSnapshot,
@@ -9,6 +9,7 @@ import type {
 import { AssignmentPanel } from './components/AssignmentPanel'
 import { CohortView } from './components/CohortView'
 import { EditorPanel } from './components/EditorPanel'
+import { PipelineBar } from './components/PipelineBar'
 import { ResultsPanel } from './components/ResultsPanel'
 import { MobileHeader, Sidebar, type AppView } from './components/Sidebar'
 import { TransparencyView } from './components/TransparencyView'
@@ -181,10 +182,7 @@ export function App() {
           <div className="view-loading"><span className="loading-bar" />正在读取任务与量规...</div>
         ) : activeView === 'workspace' ? (
           <div className="workspace-view">
-            <header className="workspace-bar">
-              <div><Bot size={17} /><span>Agent 就绪</span></div>
-              <p>证据驱动 · 可复现评分 · 教师可审查</p>
-            </header>
+            <PipelineBar isEvaluating={isEvaluating} trace={evaluation?.trace} />
             {error && (
               <div className="inline-error" role="alert">
                 <AlertTriangle size={16} />{error}

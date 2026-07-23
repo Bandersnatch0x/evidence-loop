@@ -23,9 +23,8 @@ export function TransparencyView() {
     <div className="page-view transparency-view">
       <header className="page-heading transparency-heading">
         <div>
-          <span className="eyebrow">可复现 Agent 架构</span>
           <h1>项目透明度</h1>
-          <p>把评分事实、知识推理和生成表达拆开，让每一步都能被检查和替换。</p>
+          <p>可复现 Agent 架构：把评分事实、知识推理和生成表达拆开，让每一步都能被检查和替换。</p>
         </div>
         <span className="open-badge"><FileCheck2 size={15} /> Evidence-first</span>
       </header>

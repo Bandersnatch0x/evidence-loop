@@ -45,9 +45,8 @@ export function CohortView({ cohort, isLoading }: CohortViewProps) {
     <div className="page-view cohort-view">
       <header className="page-heading">
         <div>
-          <span className="eyebrow">教师观察台</span>
           <h1>班级学情</h1>
-          <p>{cohort.cohortName} · 基于最近一次可验证提交生成</p>
+          <p>{cohort.cohortName} · 基于最近一次可验证提交生成 · 教师观察台</p>
         </div>
         <div className="updated-at"><Clock3 size={15} />更新于 {formatActivity(cohort.generatedAt)}</div>
       </header>

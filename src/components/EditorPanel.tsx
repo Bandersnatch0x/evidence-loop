@@ -28,8 +28,8 @@ export function EditorPanel({
     <section className="editor-panel" aria-labelledby="submission-title">
       <header className="panel-header editor-header">
         <div>
-          <span className="eyebrow">当前提交</span>
           <h2 id="submission-title">Python 解答</h2>
+          <p className="panel-subtitle">当前提交</p>
         </div>
         <label className="variant-select">
           <span className="sr-only">演示版本</span>

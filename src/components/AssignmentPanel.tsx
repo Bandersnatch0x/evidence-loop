@@ -9,7 +9,7 @@ export function AssignmentPanel({ assignment }: AssignmentPanelProps) {
   return (
     <section className="assignment-panel" aria-labelledby="assignment-title">
       <div className="assignment-heading">
-        <span className="eyebrow">{assignment.module}</span>
+        <span className="module-label">{assignment.module}</span>
         <h1 id="assignment-title">{assignment.title}</h1>
         <div className="assignment-meta">
           <span><FileCode2 size={14} /> Python</span>

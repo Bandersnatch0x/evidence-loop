@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react'
 import {
   Activity,
   ArrowUpRight,
@@ -51,8 +52,8 @@ export function ResultsPanel({
     <section className="results-panel" aria-labelledby="result-title">
       <header className="panel-header result-header">
         <div>
-          <span className="eyebrow">验证输出</span>
           <h2 id="result-title">循证评估</h2>
+          <p className="panel-subtitle">验证输出 · 证据驱动</p>
         </div>
         <span className="policy-badge"><LockKeyhole size={13} /> 确定性评分</span>
       </header>
@@ -62,9 +63,28 @@ export function ResultsPanel({
       ) : (
         <div className="result-content" aria-live="polite">
           <div className="score-block">
-            <div className={`score-ring score-${evaluation.status}`}>
-              <span>{evaluation.score}</span>
-              <small>/ 100</small>
+            <div
+              className={`score-ring score-${evaluation.status} ${
+                evaluation.status === 'completed'
+                  ? evaluation.score >= 80
+                    ? 'score-high'
+                    : evaluation.score >= 60
+                      ? 'score-mid'
+                      : 'score-low'
+                  : ''
+              }`}
+              style={
+                evaluation.status === 'completed'
+                  ? ({
+                      '--score-pct': `${Math.max(0, Math.min(100, evaluation.score))}%`
+                    } as CSSProperties)
+                  : undefined
+              }
+            >
+              <div className="score-ring-core">
+                <span>{evaluation.score}</span>
+                <small>/ 100</small>
+              </div>
             </div>
             <div className="score-summary">
               <span>第 {evaluation.attempt} 次提交</span>

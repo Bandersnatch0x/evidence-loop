@@ -44,5 +44,11 @@ npm run check
 - 赛道选择、核心 Agent 环、从零写文档
 
 ## Optional next
-1. 从 `docs/PITCH_DECK_OUTLINE.md` 出初赛 PPT/PDF
-2. 用户要求时再 git init / commit（仅本目录）
+1. 用户要求时再 git commit（仅本目录）
+2. 生产部署前替换 Python 子进程运行器为容器沙箱
+
+## UI redesign (ses_07569ffe0ffeYhFy7sNPIAoYCK)
+- PRODUCT.md / DESIGN.md / `.impeccable/*` 已就绪
+- 靛蓝纸面主题 + 浅色侧栏 + `PipelineBar` 闭环条已落地
+- `npm run check` 绿（15 tests）
+- 截图：`output/playwright/desktop-*.png`、`mobile-*.png`

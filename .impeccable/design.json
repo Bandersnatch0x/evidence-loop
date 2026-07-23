@@ -1,0 +1,227 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-07-23T00:00:00.000Z",
+  "title": "Design System: EvidenceLoop 循证实训 Agent",
+  "extensions": {
+    "colorMeta": {
+      "indigo-quiet": {
+        "role": "primary",
+        "displayName": "沉静靛蓝",
+        "canonical": "oklch(52% 0.13 252)",
+        "tonalRamp": [
+          "oklch(22% 0.07 252)",
+          "oklch(30% 0.09 252)",
+          "oklch(40% 0.115 252)",
+          "oklch(52% 0.13 252)",
+          "oklch(62% 0.12 252)",
+          "oklch(72% 0.10 252)",
+          "oklch(82% 0.07 252)",
+          "oklch(92% 0.03 252)"
+        ]
+      },
+      "indigo-deep": { "role": "primary", "displayName": "靛蓝深色", "canonical": "oklch(42% 0.12 252)" },
+      "indigo-wash": { "role": "primary", "displayName": "靛蓝浅水", "canonical": "oklch(95.5% 0.02 252)" },
+      "paper": {
+        "role": "neutral",
+        "displayName": "纸面",
+        "canonical": "oklch(98.2% 0.006 252)",
+        "tonalRamp": [
+          "oklch(28% 0.03 252)",
+          "oklch(38% 0.028 252)",
+          "oklch(48% 0.025 252)",
+          "oklch(58% 0.02 252)",
+          "oklch(68% 0.016 252)",
+          "oklch(78% 0.012 252)",
+          "oklch(88% 0.009 252)",
+          "oklch(98.2% 0.006 252)"
+        ]
+      },
+      "surface": { "role": "neutral", "displayName": "纸卡", "canonical": "oklch(100% 0 0)" },
+      "surface-sunken": { "role": "neutral", "displayName": "沉降面", "canonical": "oklch(97% 0.006 252)" },
+      "ink": { "role": "neutral", "displayName": "墨色", "canonical": "oklch(28% 0.03 252)" },
+      "ink-muted": { "role": "neutral", "displayName": "墨灰", "canonical": "oklch(48% 0.025 252)" },
+      "ink-faint": { "role": "neutral", "displayName": "墨淡", "canonical": "oklch(60% 0.02 252)" },
+      "line": { "role": "neutral", "displayName": "发丝线", "canonical": "oklch(91% 0.008 252)" },
+      "line-strong": { "role": "neutral", "displayName": "强线", "canonical": "oklch(84% 0.012 252)" },
+      "pass": {
+        "role": "semantic",
+        "displayName": "通过绿",
+        "canonical": "oklch(55% 0.13 160)",
+        "tonalRamp": [
+          "oklch(25% 0.06 160)",
+          "oklch(33% 0.085 160)",
+          "oklch(42% 0.11 160)",
+          "oklch(55% 0.13 160)",
+          "oklch(65% 0.12 160)",
+          "oklch(75% 0.10 160)",
+          "oklch(84% 0.07 160)",
+          "oklch(93% 0.035 160)"
+        ]
+      },
+      "pass-deep": { "role": "semantic", "displayName": "通过绿深", "canonical": "oklch(42% 0.11 160)" },
+      "pass-wash": { "role": "semantic", "displayName": "通过绿浅", "canonical": "oklch(95% 0.03 160)" },
+      "fail": {
+        "role": "semantic",
+        "displayName": "失败红",
+        "canonical": "oklch(55% 0.19 25)",
+        "tonalRamp": [
+          "oklch(28% 0.09 25)",
+          "oklch(36% 0.13 25)",
+          "oklch(46% 0.17 25)",
+          "oklch(55% 0.19 25)",
+          "oklch(64% 0.17 25)",
+          "oklch(73% 0.13 25)",
+          "oklch(82% 0.08 25)",
+          "oklch(92% 0.03 25)"
+        ]
+      },
+      "fail-deep": { "role": "semantic", "displayName": "失败红深", "canonical": "oklch(46% 0.17 25)" },
+      "fail-wash": { "role": "semantic", "displayName": "失败红浅", "canonical": "oklch(95.5% 0.02 25)" },
+      "warn": {
+        "role": "semantic",
+        "displayName": "警告琥珀",
+        "canonical": "oklch(62% 0.13 75)",
+        "tonalRamp": [
+          "oklch(30% 0.06 70)",
+          "oklch(38% 0.085 70)",
+          "oklch(45% 0.11 70)",
+          "oklch(62% 0.13 75)",
+          "oklch(70% 0.12 78)",
+          "oklch(78% 0.10 80)",
+          "oklch(86% 0.07 82)",
+          "oklch(94% 0.035 82)"
+        ]
+      },
+      "warn-deep": { "role": "semantic", "displayName": "琥珀深", "canonical": "oklch(45% 0.11 70)" },
+      "warn-wash": { "role": "semantic", "displayName": "琥珀浅", "canonical": "oklch(96% 0.03 80)" },
+      "code-bg": { "role": "neutral", "displayName": "代码夜色", "canonical": "oklch(24% 0.025 252)" },
+      "code-ink": { "role": "neutral", "displayName": "代码文字", "canonical": "oklch(90% 0.02 252)" }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "页面标题，每页一处。" },
+      "headline": { "displayName": "Headline", "purpose": "面板标题（任务、编辑器、评估结果）。" },
+      "title": { "displayName": "Title", "purpose": "区块小标题（评分证据、知识诊断）。" },
+      "body": { "displayName": "Body", "purpose": "正文与说明，行宽 ≤75ch。" },
+      "label": { "displayName": "Label", "purpose": "徽章、表头、元信息；sentence case，禁止 eyebrow 体。" },
+      "mono": { "displayName": "Mono", "purpose": "代码、工具名、耗时、证据 ID——一切机器产出的内容。" }
+    },
+    "shadows": [
+      { "name": "float", "value": "0 8px 24px oklch(28% 0.03 252 / 0.12)", "purpose": "浮层（移动端抽屉、下拉菜单）。使用时元素不带边框。" },
+      { "name": "primary-hover", "value": "0 6px 14px oklch(52% 0.13 252 / 0.28)", "purpose": "主按钮 hover 的品牌色光晕，配合 translateY(-1px)。" }
+    ],
+    "motion": [
+      { "name": "ease-out-expo", "value": "cubic-bezier(0.16, 1, 0.3, 1)", "purpose": "所有状态过渡的统一缓动（指数 ease-out，无回弹）。" },
+      { "name": "duration-fast", "value": "150ms", "purpose": "hover、按下等微交互。" },
+      { "name": "duration-standard", "value": "250ms", "purpose": "面板、抽屉、状态切换。" },
+      { "name": "pipeline-pulse", "value": "2s", "purpose": "闭环流程条执行中节点的脉冲外环周期。" },
+      { "name": "pipeline-cadence", "value": "620ms", "purpose": "评估运行时流程条逐步点亮的节奏（JS 驱动）。" }
+    ],
+    "breakpoints": [
+      { "name": "laptop", "value": "1260px" },
+      { "name": "tablet", "value": "980px" },
+      { "name": "phone", "value": "760px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "每屏唯一主行动（运行循证评估）。靛蓝底白字，hover 上浮带品牌光晕。",
+      "html": "<button class=\"ds-btn-primary\" type=\"button\">运行循证评估</button>",
+      "css": ".ds-btn-primary { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 10px 18px; color: var(--surface, #fff); background: var(--indigo-quiet); border: 0; border-radius: 10px; font-size: 13px; font-weight: 650; cursor: pointer; transition: transform 150ms cubic-bezier(0.16,1,0.3,1), box-shadow 150ms cubic-bezier(0.16,1,0.3,1), background 150ms; } .ds-btn-primary:hover { background: var(--indigo-deep); transform: translateY(-1px); box-shadow: 0 6px 14px oklch(52% 0.13 252 / 0.28); } .ds-btn-primary:active { transform: translateY(0); box-shadow: none; } .ds-btn-primary:focus-visible { outline: 3px solid oklch(52% 0.13 252 / 0.3); outline-offset: 2px; } .ds-btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "从属动作（重置当前版本）。纸卡底 + 强线描边，永远让位于主按钮。",
+      "html": "<button class=\"ds-btn-secondary\" type=\"button\">重置当前版本</button>",
+      "css": ".ds-btn-secondary { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 10px 16px; color: var(--ink-muted); background: var(--surface); border: 1px solid var(--line-strong); border-radius: 10px; font-size: 13px; font-weight: 600; cursor: pointer; transition: color 150ms, background 150ms, border-color 150ms; } .ds-btn-secondary:hover { color: var(--ink); background: var(--surface-sunken); } .ds-btn-secondary:focus-visible { outline: 3px solid oklch(52% 0.13 252 / 0.3); outline-offset: 2px; } .ds-btn-secondary:disabled { opacity: 0.5; cursor: not-allowed; }"
+    },
+    {
+      "name": "Nav Item (Active)",
+      "kind": "nav",
+      "refersTo": "nav-item-active",
+      "description": "侧栏导航激活态：靛蓝浅水底 + 靛蓝深字 + 字重变化，不靠颜色单独表意。",
+      "html": "<button class=\"ds-nav-item is-active\" type=\"button\"><svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M22 10v6M2 10l10-5 10 5-10 5z\"/><path d=\"M6 12v5c3 3 9 3 12 0v-5\"/></svg><span>学习工作台</span></button>",
+      "css": ".ds-nav-item { display: flex; width: 100%; align-items: center; gap: 11px; padding: 10px 12px; color: var(--ink-muted); background: transparent; border: 0; border-radius: 10px; font-size: 13px; font-weight: 550; cursor: pointer; transition: background 150ms, color 150ms; } .ds-nav-item:hover { background: var(--surface-sunken); color: var(--ink); } .ds-nav-item.is-active { background: var(--indigo-wash); color: var(--indigo-deep); font-weight: 650; } .ds-nav-item:focus-visible { outline: 3px solid oklch(52% 0.13 252 / 0.3); outline-offset: 2px; }"
+    },
+    {
+      "name": "State Chip",
+      "kind": "chip",
+      "refersTo": "chip",
+      "description": "学员/证据状态徽章：语义浅色底 + 深色字 + 图标，颜色不单独表意。",
+      "html": "<span class=\"ds-chip ds-chip-pass\"><svg width=\"13\" height=\"13\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.4\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M21.8 10A10 10 0 1 1 17 3.3\"/><path d=\"m9 11 3 3L22 4\"/></svg>进展正常</span>",
+      "css": ".ds-chip { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 999px; font-size: 11px; font-weight: 650; white-space: nowrap; } .ds-chip-pass { color: var(--pass-deep); background: var(--pass-wash); }"
+    },
+    {
+      "name": "Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "静止零阴影、1px 发丝边框的纸卡容器（The Border-Or-Shadow Rule）。",
+      "html": "<div class=\"ds-card\"><h3 class=\"ds-card-title\">评分量规</h3><p class=\"ds-card-body\">量规把运行证据映射为维度分与总分，模型不参与改分。</p></div>",
+      "css": ".ds-card { padding: 20px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; } .ds-card-title { margin: 0; color: var(--ink); font-size: 14px; font-weight: 650; } .ds-card-body { margin: 8px 0 0; color: var(--ink-muted); font-size: 13px; line-height: 1.65; }"
+    },
+    {
+      "name": "Evidence Row (Passed)",
+      "kind": "custom",
+      "refersTo": "card",
+      "description": "签名组件：评分事实的最小单元——状态图标 + 证据名 + 类型徽章 + 权重得分。",
+      "html": "<div class=\"ds-evidence is-passed\"><span class=\"ds-evidence-icon\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M21.8 10A10 10 0 1 1 17 3.3\"/><path d=\"m9 11 3 3L22 4\"/></svg></span><span class=\"ds-evidence-main\"><span class=\"ds-evidence-head\"><strong>常规求值路径</strong><em>运行测试</em></span><span class=\"ds-evidence-msg\">三组常规输入均返回期望平均值。</span></span><b class=\"ds-evidence-weight\">+20</b></div>",
+      "css": ".ds-evidence { display: grid; grid-template-columns: 20px 1fr auto; gap: 10px; align-items: flex-start; padding: 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; } .ds-evidence-icon { margin-top: 1px; color: var(--pass); } .ds-evidence-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; } .ds-evidence-head strong { color: var(--ink); font-size: 12px; font-weight: 650; } .ds-evidence-head em { padding: 2px 7px; color: var(--ink-muted); background: var(--surface-sunken); border-radius: 999px; font-size: 11px; font-style: normal; font-weight: 600; } .ds-evidence-msg { display: block; margin-top: 4px; color: var(--ink-muted); font-size: 12px; line-height: 1.55; } .ds-evidence-weight { color: var(--pass-deep); font-family: 'Cascadia Code', Consolas, monospace; font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums; }"
+    },
+    {
+      "name": "Score Ring",
+      "kind": "custom",
+      "refersTo": "card",
+      "description": "签名组件：conic-gradient 进度环，颜色由分数段决定（≥80 绿 / 60–79 琥珀 / <60 红）。",
+      "html": "<div class=\"ds-score-ring\" style=\"--pct: 80; --ring-color: var(--pass);\"><span class=\"ds-score-heart\"><b>80</b><i>/ 100</i></span></div>",
+      "css": ".ds-score-ring { display: grid; width: 82px; height: 82px; place-items: center; border-radius: 50%; background: conic-gradient(var(--ring-color) calc(var(--pct) * 1%), var(--line) 0); } .ds-score-heart { display: grid; width: 62px; height: 62px; place-content: center; text-align: center; background: var(--surface); border-radius: 50%; } .ds-score-heart b { color: var(--ink); font-size: 24px; font-weight: 750; line-height: 1; font-variant-numeric: tabular-nums; } .ds-score-heart i { margin-top: 2px; color: var(--ink-faint); font-size: 10px; font-style: normal; }"
+    },
+    {
+      "name": "Pipeline Step (Active)",
+      "kind": "custom",
+      "refersTo": "card",
+      "description": "签名组件：闭环流程条节点。执行中为靛蓝底白字 + 2s 脉冲外环。",
+      "html": "<div class=\"ds-loop-step is-active\"><span class=\"ds-loop-node\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"m4 17 6-6-6-6\"/><path d=\"M12 19h8\"/></svg></span><span class=\"ds-loop-text\"><strong>受限运行</strong><small>执行中…</small></span></div>",
+      "css": ".ds-loop-step { display: flex; align-items: center; gap: 10px; } .ds-loop-node { position: relative; display: grid; width: 32px; height: 32px; place-items: center; color: var(--surface); background: var(--indigo-quiet); border-radius: 50%; } .ds-loop-node::after { content: ''; position: absolute; inset: -4px; border: 2px solid oklch(52% 0.13 252 / 0.4); border-radius: 50%; animation: ds-loop-pulse 2s cubic-bezier(0.16,1,0.3,1) infinite; } @keyframes ds-loop-pulse { 0% { transform: scale(0.9); opacity: 1; } 100% { transform: scale(1.35); opacity: 0; } } .ds-loop-text strong { display: block; color: var(--ink); font-size: 12px; font-weight: 650; } .ds-loop-text small { display: block; margin-top: 2px; color: var(--indigo-deep); font-size: 11px; } @media (prefers-reduced-motion: reduce) { .ds-loop-node::after { animation: none; opacity: 0; } }"
+    }
+  ],
+  "narrative": {
+    "northStar": "循证实验报告（The Lab Report）",
+    "overview": "每个分数都是一份签过名的实验记录：有编号、有出处、可复核。界面是这份报告的纸面与印鉴——冷静、精确、不喧哗。学习者看到的不是\"AI 说的\"，而是\"测试跑出来的\"；每条结论旁边都站着它的证据。\n\n密度为日常实训服务：师生每天要用的工具，不是评审现场的幻灯片。信息排布紧凑而透气，视觉层级的第一位永远给证据与下一步动作，装饰为零。表达上借鉴 Khan Academy 式的清晰进度反馈——状态明确、下一步明确——但语气保持实验报告的精确，不讨好、不夸张。\n\n明确拒绝：聊天机器人式的大对话框、传统 OJ 的冰冷红黑判题、营销页的大渐变玻璃拟态、以及千篇一律的 AI 紫渐变圆角卡片。",
+    "keyCharacteristics": [
+      "证据先行：分数、证据行、诊断的层级高于一切装饰元素",
+      "五步闭环可视化：评估流程是工作台顶部的常驻核心元素，运行时逐步点亮",
+      "纸面质感：近白底 + 发丝边框，扁平为主，阴影只给真正的浮层",
+      "语义色与品牌色严格隔离：靛蓝是品牌，绿/红/黄只属于证据状态"
+    ],
+    "rules": [
+      { "name": "The Semantic Quarantine Rule（语义隔离规则）", "body": "绿/红/黄只允许出现在证据状态、得分增减、学员状态上。品牌区域（导航、按钮、流程条）出现绿色即违规——它会让\"通过\"失去意义。", "section": "colors" },
+      { "name": "The One Voice Rule（单一声音规则）", "body": "靛蓝在任何单屏占比 ≤10%。它的稀缺就是它的权威：主按钮一处、激活态一处、流程节点当前步一处。", "section": "colors" },
+      { "name": "The Eleven-Pixel Floor Rule（11px 地板规则）", "body": "任何承载信息的文字不得低于 11px（0.6875rem）。旧 UI 的 8–10px 灰字全部作废。装饰性元信息可用墨淡色，但字号不下调。", "section": "typography" },
+      { "name": "The No-Eyebrow Rule（无眉规则）", "body": "不用小号全大写追踪字距的 kicker。区块身份用词重与字号表达，不用\"ABOUT / PROCESS\"式脚手架。", "section": "typography" },
+      { "name": "The Border-Or-Shadow Rule（边框或阴影二选一规则）", "body": "静止的卡片用 1px 发丝边框，零阴影；浮层用阴影，零边框。1px 边框 + 大面积柔阴影的\"幽灵卡片\"禁止出现。", "section": "elevation" }
+    ],
+    "dos": [
+      "Do 让每个分数、每条结论旁边都能看到来源：测试/静态检查徽章、通过/失败图标、权重（证据先于表达）。",
+      "Do 用 11px 地板规则检查所有文字；用墨灰（≥4.5:1）承载次要正文。",
+      "Do 保持通过/失败/警告同时用图标 + 文字 + 颜色表达。",
+      "Do 让五步闭环条成为工作台第一视觉，运行时有生命，完成后可回看耗时。",
+      "Do 用 sentence case 的 Label 与字重层级建立区块身份。",
+      "Do 给所有交互元素清晰的 focus-visible 外环（3px 靛蓝 30% 透明）。",
+      "Do 在 prefers-reduced-motion 下关闭脉冲与点亮节奏，直接呈现状态。"
+    ],
+    "donts": [
+      "Don't 做成\"聊天机器人式 AI 助教\"——禁止大对话框 + 流式输出成为主界面（PRODUCT.md 反参考）。",
+      "Don't 做成\"冰冷的传统 OJ 判题系统\"——禁止只有红黑对错的密集表格、无下一步引导（PRODUCT.md 反参考）。",
+      "Don't 做成\"花哨的营销落地页\"——禁止大渐变背景、玻璃拟态、滚动炫技（PRODUCT.md 反参考）。",
+      "Don't 做成\"通用 AI 生成风\"——禁止紫色渐变大字、超过 16px 的卡片圆角、每段一个小号全大写 eyebrow（PRODUCT.md 反参考）。",
+      "Don't 用边框 + 大阴影叠加的幽灵卡片（The Border-Or-Shadow Rule）。",
+      "Don't 把绿/红/黄用于装饰或品牌区域（The Semantic Quarantine Rule）。",
+      "Don't 用渐变文字、左侧色条边框、手绘涂鸦 SVG、装饰性斜纹或网格背景。",
+      "Don't 让任何信息文字小于 11px，或把墨淡色用于关键内容。"
+    ]
+  }
+}

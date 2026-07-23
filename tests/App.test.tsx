@@ -99,12 +99,44 @@ const evaluation: EvaluationResult = {
   },
   trace: [
     {
-      id: 'run',
+      id: 'retrieve-assignment',
+      label: '读取任务与评分量规',
+      tool: 'assignment.retrieve',
+      status: 'completed',
+      summary: '完成',
+      durationMs: 4
+    },
+    {
+      id: 'run-submission',
       label: '在受限环境运行提交',
       tool: 'python.safe-runner',
       status: 'completed',
       summary: '完成',
       durationMs: 28
+    },
+    {
+      id: 'score-rubric',
+      label: '将运行证据映射到量规',
+      tool: 'rubric.score',
+      status: 'completed',
+      summary: '完成',
+      durationMs: 2
+    },
+    {
+      id: 'retrieve-knowledge',
+      label: '匹配薄弱概念与训练策略',
+      tool: 'knowledge.retrieve',
+      status: 'completed',
+      summary: '完成',
+      durationMs: 3
+    },
+    {
+      id: 'compose-feedback',
+      label: '生成受证据约束的反馈',
+      tool: 'feedback.compose',
+      status: 'completed',
+      summary: '完成',
+      durationMs: 6
     }
   ],
   mastery: [],
