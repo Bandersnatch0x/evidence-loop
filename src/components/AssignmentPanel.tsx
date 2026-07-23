@@ -1,5 +1,6 @@
-import { Check, Clock3, FileCode2, ShieldAlert } from 'lucide-react'
+import { BookMarked, Check, Clock3, ShieldAlert } from 'lucide-react'
 import type { Assignment } from '../../shared/contracts'
+import { questionTypeLabel, subjectLabel } from '../lib/labels'
 
 interface AssignmentPanelProps {
   assignment: Assignment
@@ -12,7 +13,10 @@ export function AssignmentPanel({ assignment }: AssignmentPanelProps) {
         <span className="module-label">{assignment.module}</span>
         <h1 id="assignment-title">{assignment.title}</h1>
         <div className="assignment-meta">
-          <span><FileCode2 size={14} /> Python</span>
+          <span>
+            <BookMarked size={14} /> {subjectLabel(assignment.language)} ·{' '}
+            {questionTypeLabel(assignment.questionType)}
+          </span>
           <span><Clock3 size={14} /> 约 {assignment.estimatedMinutes} 分钟</span>
         </div>
       </div>

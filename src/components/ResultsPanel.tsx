@@ -15,6 +15,9 @@ import type {
   EvaluationResult,
   ResultState
 } from '../../shared/contracts'
+import { evidenceKindLabel } from '../lib/labels'
+import { AdvisoryPanel } from './AdvisoryPanel'
+import { EvidenceShieldBadge } from './EvidenceShieldBadge'
 
 interface ResultsPanelProps {
   evaluation?: EvaluationResult
@@ -87,7 +90,15 @@ export function ResultsPanel({
               </div>
             </div>
             <div className="score-summary">
-              <span>第 {evaluation.attempt} 次提交</span>
+              <div className="score-summary-head">
+                <span>第 {evaluation.attempt} 次提交</span>
+                {evaluation.provenance.kind === 'evidence' && (
+                  <EvidenceShieldBadge
+                    evidenceIds={evaluation.provenance.evidenceIds}
+                    algorithm={evaluation.provenance.algorithm}
+                  />
+                )}
+              </div>
               <p>{evaluation.summary}</p>
               {evaluation.scoreDelta !== undefined && (
                 <b className={evaluation.scoreDelta >= 0 ? 'positive' : 'negative'}>
@@ -117,7 +128,7 @@ export function ResultsPanel({
                   <div>
                     <div className="evidence-heading">
                       <strong>{item.label}</strong>
-                      <span>{item.kind === 'test' ? '运行测试' : '静态检查'}</span>
+                      <span>{evidenceKindLabel(item.kind)}</span>
                       {item.visibility === 'hidden' && <LockKeyhole size={12} aria-label="隐藏测试" />}
                     </div>
                     <p>{item.message}</p>
@@ -130,6 +141,10 @@ export function ResultsPanel({
               ))}
             </div>
           </div>
+
+          {evaluation.advisory && evaluation.advisory.length > 0 && (
+            <AdvisoryPanel suggestions={evaluation.advisory} />
+          )}
 
           {evaluation.diagnoses.length > 0 && (
             <div className="result-section diagnosis-section">

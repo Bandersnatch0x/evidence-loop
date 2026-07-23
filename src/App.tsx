@@ -1,19 +1,25 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { AlertTriangle, RefreshCw } from 'lucide-react'
 import type {
   Assignment,
+  AssignmentSummary,
   CohortSnapshot,
   DemoRole,
   EvaluationHistoryItem,
-  EvaluationResult
+  EvaluationResult,
+  KnowledgePoint
 } from '../shared/contracts'
 import { AssignmentPanel } from './components/AssignmentPanel'
+import { AssignmentPicker } from './components/AssignmentPicker'
+import { CohortMasteryView } from './components/CohortMasteryView'
 import { CohortView } from './components/CohortView'
-import { EditorPanel } from './components/EditorPanel'
 import { MathProblem } from './components/MathProblem'
+import { SubmissionPanel } from './components/SubmissionPanel'
+import { MasteryView } from './components/MasteryView'
 import { OverlayLayer } from './components/OverlayLayer'
 import { PipelineBar } from './components/PipelineBar'
 import { ResultsPanel } from './components/ResultsPanel'
+import { ReviewView } from './components/ReviewView'
 import { MobileHeader, Sidebar, type AppView } from './components/Sidebar'
 import { TransparencyView } from './components/TransparencyView'
 import { VoiceCompanion } from './components/VoiceCompanion'
@@ -23,13 +29,19 @@ import {
   getActiveDemoRole,
   getAssignment,
   getCohort,
+  getKnowledgeGraph,
   listAssignments,
   listEvaluations,
   setActiveDemoRole
 } from './lib/api'
-import { readStoredDemoRole, writeStoredDemoRole } from './lib/demoRole'
+import {
+  DEMO_STUDENT_ID,
+  readStoredDemoRole,
+  writeStoredDemoRole
+} from './lib/demoRole'
 
 interface LoadedData {
+  assignments: AssignmentSummary[]
   assignment: Assignment
   history: EvaluationHistoryItem[]
   cohort?: CohortSnapshot
@@ -60,14 +72,14 @@ async function loadInitialData(role: DemoRole): Promise<LoadedData> {
   ])
 
   if (role === 'student') {
-    return { assignment, history }
+    return { assignments, assignment, history }
   }
 
   try {
     const cohort = await getCohort()
-    return { assignment, history, cohort }
+    return { assignments, assignment, history, cohort }
   } catch {
-    return { assignment, history }
+    return { assignments, assignment, history }
   }
 }
 
@@ -84,63 +96,122 @@ function ErrorState({ message, onRetry }: { message: string; onRetry: () => void
   )
 }
 
+function isTeacherOnlyView(view: AppView): boolean {
+  return view === 'cohort' || view === 'cohort-mastery'
+}
+
+function isStudentOnlyView(view: AppView): boolean {
+  return view === 'mastery' || view === 'review'
+}
+
 export function App() {
   const multimodalEnabled = isMultimodalEnabled()
   const [activeView, setActiveView] = useState<AppView>('workspace')
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+  const [voiceOpen, setVoiceOpen] = useState(false)
   const [demoRole, setDemoRole] = useState<DemoRole>(() => {
     const role = readStoredDemoRole()
     setActiveDemoRole(role)
     return role
   })
+  const [assignments, setAssignments] = useState<AssignmentSummary[]>([])
   const [assignment, setAssignment] = useState<Assignment>()
   const [history, setHistory] = useState<EvaluationHistoryItem[]>([])
   const [cohort, setCohort] = useState<CohortSnapshot>()
+  const [knowledgePoints, setKnowledgePoints] = useState<KnowledgePoint[]>([])
   const [evaluation, setEvaluation] = useState<EvaluationResult>()
   const [selectedVariantId, setSelectedVariantId] = useState('')
-  const [code, setCode] = useState('')
+  const [submission, setSubmission] = useState('')
   const [isLoading, setIsLoading] = useState(true)
+  const [isSwitching, setIsSwitching] = useState(false)
   const [isEvaluating, setIsEvaluating] = useState(false)
   const [error, setError] = useState<string>()
 
-  const load = (role: DemoRole = getActiveDemoRole()) => {
-    setIsLoading(true)
-    setError(undefined)
-    void loadInitialData(role)
-      .then((data) => {
-        const defaultVariant = data.assignment.demoVariants[0]
-        setAssignment(data.assignment)
-        setHistory(data.history)
-        setCohort(data.cohort)
-        setSelectedVariantId(defaultVariant?.id ?? '')
-        setCode(defaultVariant?.code ?? '')
-      })
-      .catch((loadError: unknown) => {
-        setError(loadError instanceof Error ? loadError.message : '未知加载错误')
-      })
-      .finally(() => setIsLoading(false))
-  }
+  const applyAssignment = useCallback((nextAssignment: Assignment) => {
+    const defaultVariant = nextAssignment.demoVariants[0]
+    setAssignment(nextAssignment)
+    setSelectedVariantId(defaultVariant?.id ?? '')
+    setSubmission(defaultVariant?.code ?? '')
+    setEvaluation(undefined)
+  }, [])
+
+  const load = useCallback(
+    (role: DemoRole = getActiveDemoRole()) => {
+      setIsLoading(true)
+      setError(undefined)
+      void loadInitialData(role)
+        .then((data) => {
+          setAssignments(data.assignments)
+          setHistory(data.history)
+          setCohort(data.cohort)
+          applyAssignment(data.assignment)
+        })
+        .catch((loadError: unknown) => {
+          setError(loadError instanceof Error ? loadError.message : '未知加载错误')
+        })
+        .finally(() => setIsLoading(false))
+    },
+    [applyAssignment]
+  )
 
   useEffect(() => {
     load(demoRole)
-  }, [demoRole])
+  }, [demoRole, load])
+
+  useEffect(() => {
+    let cancelled = false
+    void getKnowledgeGraph()
+      .then((graph) => {
+        if (!cancelled) setKnowledgePoints(graph.points)
+      })
+      .catch(() => {
+        // Mastery/review pages show their own empty/error states.
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const handleNavigate = (view: AppView) => {
+    setActiveView(view)
+  }
 
   const handleDemoRoleChange = (role: DemoRole) => {
     writeStoredDemoRole(role)
     setActiveDemoRole(role)
     setEvaluation(undefined)
     setError(undefined)
-    if (role === 'student' && activeView === 'cohort') {
+    if (role === 'student' && isTeacherOnlyView(activeView)) {
+      setActiveView('workspace')
+    }
+    if ((role === 'teacher' || role === 'admin') && isStudentOnlyView(activeView)) {
       setActiveView('workspace')
     }
     setDemoRole(role)
+  }
+
+  const handleSelectAssignment = (assignmentId: string) => {
+    if (assignmentId === assignment?.id || isSwitching || isEvaluating) return
+    setIsSwitching(true)
+    setError(undefined)
+    void Promise.all([getAssignment(assignmentId), listEvaluations(assignmentId)])
+      .then(([nextAssignment, nextHistory]) => {
+        applyAssignment(nextAssignment)
+        setHistory(nextHistory)
+      })
+      .catch((switchError: unknown) => {
+        setError(
+          switchError instanceof Error ? switchError.message : '任务切换失败，请重试'
+        )
+      })
+      .finally(() => setIsSwitching(false))
   }
 
   const handleVariantChange = (variantId: string) => {
     if (!assignment) return
     const variant = assignment.demoVariants.find((item) => item.id === variantId)
     setSelectedVariantId(variantId)
-    if (variant) setCode(variant.code)
+    if (variant) setSubmission(variant.code)
   }
 
   const handleEvaluate = async () => {
@@ -151,7 +222,7 @@ export function App() {
     try {
       const result = await evaluateCode({
         assignmentId: assignment.id,
-        code,
+        code: submission,
         previousEvaluationId: evaluation?.id ?? history[0]?.id
       })
       setEvaluation(result)
@@ -203,79 +274,140 @@ export function App() {
   const handleApplyRepair = () => {
     if (!assignment) return
     const repair = assignment.demoVariants.find((item) => item.id === 'fixed')
+      ?? assignment.demoVariants.find((item) => item.id === 'correct')
       ?? assignment.demoVariants.find((item) => item.id !== selectedVariantId)
     if (!repair) return
     setSelectedVariantId(repair.id)
-    setCode(repair.code)
+    setSubmission(repair.code)
   }
 
   if (error && !assignment && !isLoading) {
     return <ErrorState message={error} onRetry={load} />
   }
 
+  const shellClass = [
+    'app-shell',
+    multimodalEnabled && voiceOpen ? 'voice-drawer-open' : ''
+  ]
+    .filter((part) => part.length > 0)
+    .join(' ')
+
+  let mainBody: ReactNode
+  if (isLoading || !assignment) {
+    mainBody = (
+      <div className="view-loading">
+        <span className="loading-bar" />
+        正在读取任务与量规...
+      </div>
+    )
+  } else if (activeView === 'workspace') {
+    mainBody = (
+      <div className="workspace-view" data-evidence-id="demo-1">
+        <PipelineBar isEvaluating={isEvaluating} trace={evaluation?.trace} />
+        {error && (
+          <div className="inline-error" role="alert">
+            <AlertTriangle size={16} />
+            {error}
+          </div>
+        )}
+        {assignments.length > 1 && (
+          <AssignmentPicker
+            assignments={assignments}
+            activeId={assignment.id}
+            disabled={isSwitching || isEvaluating}
+            onSelect={handleSelectAssignment}
+          />
+        )}
+        <div className="workspace-grid">
+          <AssignmentPanel assignment={assignment} />
+          <SubmissionPanel
+            assignment={assignment}
+            value={submission}
+            selectedVariantId={selectedVariantId}
+            isEvaluating={isEvaluating || isSwitching}
+            onChange={setSubmission}
+            onVariantChange={handleVariantChange}
+            onEvaluate={() => void handleEvaluate()}
+          />
+          <ResultsPanel
+            evaluation={evaluation}
+            history={history}
+            onApplyRepair={handleApplyRepair}
+          />
+        </div>
+        {multimodalEnabled && (
+          <div className="math-problem-slot">
+            <MathProblem problemId="math-1" />
+          </div>
+        )}
+      </div>
+    )
+  } else if (activeView === 'mastery') {
+    mainBody =
+      demoRole === 'student' ? (
+        <MasteryView studentId={DEMO_STUDENT_ID} points={knowledgePoints} />
+      ) : (
+        <div className="view-loading role-denied" role="status">
+          <AlertTriangle size={18} />
+          掌握度画像仅对学生角色开放。请切换到学生。
+        </div>
+      )
+  } else if (activeView === 'review') {
+    mainBody =
+      demoRole === 'student' ? (
+        <ReviewView studentId={DEMO_STUDENT_ID} points={knowledgePoints} />
+      ) : (
+        <div className="view-loading role-denied" role="status">
+          <AlertTriangle size={18} />
+          今日复习仅对学生角色开放。请切换到学生。
+        </div>
+      )
+  } else if (activeView === 'cohort') {
+    mainBody =
+      demoRole === 'student' ? (
+        <div className="view-loading role-denied" role="status">
+          <AlertTriangle size={18} />
+          学生角色无法访问班级学情。请切换到教师或管理员。
+        </div>
+      ) : (
+        <CohortView cohort={cohort} isLoading={false} />
+      )
+  } else if (activeView === 'cohort-mastery') {
+    mainBody =
+      demoRole === 'student' ? (
+        <div className="view-loading role-denied" role="status">
+          <AlertTriangle size={18} />
+          班级掌握度矩阵仅对教师/管理员开放。
+        </div>
+      ) : (
+        <CohortMasteryView
+          learners={(cohort?.learners ?? []).map((learner) => ({
+            id: learner.id,
+            displayName: learner.displayName
+          }))}
+        />
+      )
+  } else {
+    mainBody = <TransparencyView />
+  }
+
   return (
-    <div className="app-shell">
+    <div className={shellClass}>
       <MobileHeader onOpen={() => setIsSidebarOpen(true)} />
       <Sidebar
         activeView={activeView}
         isOpen={isSidebarOpen}
         demoRole={demoRole}
-        onNavigate={setActiveView}
+        onNavigate={handleNavigate}
         onDemoRoleChange={handleDemoRoleChange}
         onClose={() => setIsSidebarOpen(false)}
       />
 
-      <main className="main-content">
-        {isLoading || !assignment ? (
-          <div className="view-loading"><span className="loading-bar" />正在读取任务与量规...</div>
-        ) : activeView === 'workspace' ? (
-          <div className="workspace-view" data-evidence-id="demo-1">
-            <PipelineBar isEvaluating={isEvaluating} trace={evaluation?.trace} />
-            {error && (
-              <div className="inline-error" role="alert">
-                <AlertTriangle size={16} />{error}
-              </div>
-            )}
-            <div className="workspace-grid">
-              <AssignmentPanel assignment={assignment} />
-              <EditorPanel
-                assignment={assignment}
-                code={code}
-                selectedVariantId={selectedVariantId}
-                isEvaluating={isEvaluating}
-                onCodeChange={setCode}
-                onVariantChange={handleVariantChange}
-                onEvaluate={() => void handleEvaluate()}
-              />
-              <ResultsPanel
-                evaluation={evaluation}
-                history={history}
-                onApplyRepair={handleApplyRepair}
-              />
-            </div>
-            {multimodalEnabled && (
-              <div className="math-problem-slot">
-                <MathProblem problemId="math-1" />
-              </div>
-            )}
-          </div>
-        ) : activeView === 'cohort' ? (
-          demoRole === 'student' ? (
-            <div className="view-loading role-denied" role="status">
-              <AlertTriangle size={18} />
-              学生角色无法访问班级学情。请切换到教师或管理员。
-            </div>
-          ) : (
-            <CohortView cohort={cohort} isLoading={false} />
-          )
-        ) : (
-          <TransparencyView />
-        )}
-      </main>
+      <main className="main-content">{mainBody}</main>
 
       {multimodalEnabled && (
         <>
-          <VoiceCompanion />
+          <VoiceCompanion open={voiceOpen} onOpenChange={setVoiceOpen} />
           <OverlayLayer />
         </>
       )}
