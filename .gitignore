@@ -9,3 +9,4 @@ coverage/
 .scratch/
 .dev-server.log
 .dev-server.err.log
+output/

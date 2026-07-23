@@ -10,7 +10,9 @@ Browser (React)
 Node HTTP Server
   |- EvaluationAgent
   |    |- Assignment registry
-  |    |- PythonSubprocessRunner
+  |    |- CodeRunner
+  |    |    |- PythonSubprocessRunner (default, Demo only)
+  |    |    `- DockerPythonRunner (opt-in, pooled isolation)
   |    |- Rubric scorer
   |    |- Knowledge base
   |    |- Feedback generator (local / optional LLM)
@@ -21,7 +23,7 @@ Node HTTP Server
 ## Agent 五步闭环
 
 1. `assignment.retrieve` 读取任务与量规
-2. `python.safe-runner` 受限执行提交
+2. `code.runner` 使用已配置的 Python 运行器执行提交
 3. `rubric.score` 将证据映射为分数
 4. `knowledge.retrieve` 匹配薄弱概念与干预策略
 5. `feedback.compose` 生成受证据约束的反馈
@@ -37,7 +39,8 @@ Node HTTP Server
 
 | 组件 | 作用 | 备注 |
 | --- | --- | --- |
-| Python 子进程 | 运行提交 | Demo 级隔离 |
+| Python 子进程 | 默认运行提交 | Demo 级约束，无网络隔离 |
+| Docker CLI + 容器池 | 可选运行提交 | `--network=none`、cgroups、只读根文件系统、非 root |
 | 本地知识库 | 诊断与干预模板 | 静态配置 |
 | JSON store | 评估历史 | 单进程串行写入 |
 | OpenAI-compatible API | 可选反馈 | 失败回退本地策略 |
@@ -53,10 +56,15 @@ Node HTTP Server
 
 - 开发：`npm run dev`，端口默认 `4173`
 - 生产预览：`npm run build && npm run preview`
-- 公开部署前必须替换运行器与存储
+- 默认 `PYTHON_RUNNER=subprocess`；仅适合本地受控 Demo
+- `PYTHON_RUNNER=docker`：启动时预热容器池，Docker 不可用时启动失败且不回退
+- `GET /api/health` 返回实际 runner 名称，便于部署验收
+- Docker runner 通过 CLI 调用 daemon，不在 Node 进程内引入 Docker SDK
 
 ## 已知限制
 
-- 子进程不是生产沙箱
+- 子进程不是生产沙箱，不能处理不可信公网提交
+- Docker 隔离低于微虚拟机隔离，且安全性依赖宿主 Docker daemon、内核和镜像供应链
+- 当前容器池在单个 Node 进程内管理，未实现跨实例调度、配额和租户隔离
 - JSON store 不支持多实例并发写
 - 仅覆盖一个 Python 样例任务
