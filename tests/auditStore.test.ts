@@ -1,7 +1,7 @@
 // @vitest-environment node
 
 import { afterEach, describe, expect, it } from 'vitest'
-import { AuditStore } from '../server/audit/AuditStore'
+import { AuditStore, resolveAuditHmacSecret } from '../server/audit/AuditStore'
 
 const SECRET = 'test-audit-hmac-secret'
 
@@ -209,5 +209,61 @@ describe('AuditStore', () => {
     const p99 = samples[Math.min(samples.length - 1, Math.floor(samples.length * 0.99))]
     expect(p99).toBeLessThan(20)
     expect(performance.now() - started).toBeLessThan(1_000)
+  })
+})
+
+describe('resolveAuditHmacSecret (production hardening)', () => {
+  it('returns the configured secret when set', () => {
+    const secret = resolveAuditHmacSecret({ AUDIT_HMAC_SECRET: 'real-secret' })
+    expect(secret).toBe('real-secret')
+  })
+
+  it('falls back to the demo secret outside production', () => {
+    const secret = resolveAuditHmacSecret({ NODE_ENV: 'development' })
+    expect(secret.length).toBeGreaterThan(0)
+  })
+
+  it('throws in production when AUDIT_HMAC_SECRET is missing', () => {
+    expect(() =>
+      resolveAuditHmacSecret({ NODE_ENV: 'production' })
+    ).toThrow(/AUDIT_HMAC_SECRET is required in production/)
+  })
+
+  it('throws in production when AUDIT_HMAC_SECRET is blank', () => {
+    expect(() =>
+      resolveAuditHmacSecret({ NODE_ENV: 'production', AUDIT_HMAC_SECRET: '   ' })
+    ).toThrow(/AUDIT_HMAC_SECRET is required in production/)
+  })
+})
+
+describe('tamperForTest (production backdoor guard)', () => {
+  const stores: AuditStore[] = []
+
+  afterEach(async () => {
+    await Promise.all(stores.splice(0).map((store) => store.close()))
+  })
+
+  it('refuses to run when NODE_ENV=production', async () => {
+    const previous = process.env.NODE_ENV
+    process.env.NODE_ENV = 'production'
+    try {
+      const store = new AuditStore({
+        dbPath: ':memory:',
+        hmacSecret: SECRET
+      })
+      stores.push(store)
+      store.enqueue({
+        actorRole: 'student',
+        action: 'evaluate',
+        resourceType: 'evaluation',
+        result: 'success'
+      })
+      await store.flush()
+      await expect(store.tamperForTest(1, 'result', 'forged')).rejects.toThrow(
+        /test-only helper/
+      )
+    } finally {
+      process.env.NODE_ENV = previous
+    }
   })
 })

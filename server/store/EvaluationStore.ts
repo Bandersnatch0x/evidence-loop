@@ -18,6 +18,12 @@ export interface EvaluationStore {
   list(filters?: EvaluationListFilters | string): Promise<EvaluationHistoryItem[]>
   listResults(filters?: EvaluationListFilters): Promise<EvaluationResult[]>
   latest(assignmentId: string): Promise<EvaluationResult | undefined>
+  /**
+   * Right-to-erasure (GDPR / 被遗忘权). Hard-deletes a single evaluation
+   * record. Returns true when a record was removed, false when the id was
+   * not found. Callers must enforce ownership before invoking.
+   */
+  delete(id: string): Promise<boolean>
 }
 
 /**
@@ -100,6 +106,37 @@ export class JsonEvaluationStore implements EvaluationStore {
     })
 
     return this.writeChain
+  }
+
+  /**
+   * Right-to-erasure (GDPR-style): permanently remove one evaluation record.
+   * Returns true when a record was deleted, false when the id was not found.
+   * Serialized through writeChain so it never races a concurrent save.
+   */
+  public delete(id: string): Promise<boolean> {
+    let deleted = false
+    this.writeChain = this.writeChain.then(async () => {
+      const evaluations = await this.readAll()
+      const next = evaluations.filter((item) => item.id !== id)
+      deleted = next.length !== evaluations.length
+      if (!deleted) return
+
+      if (this.memoryRecords) {
+        this.memoryRecords.splice(0, this.memoryRecords.length, ...next)
+        return
+      }
+
+      if (!this.filePath) {
+        throw new Error('Evaluation store has no writable target')
+      }
+
+      await mkdir(dirname(this.filePath), { recursive: true })
+      const temporaryPath = `${this.filePath}.tmp`
+      await writeFile(temporaryPath, JSON.stringify(next, null, 2), 'utf8')
+      await rename(temporaryPath, this.filePath)
+    })
+
+    return this.writeChain.then(() => deleted)
   }
 
   public async get(id: string): Promise<EvaluationResult | undefined> {

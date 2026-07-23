@@ -501,6 +501,53 @@ async function handleApi(
     return
   }
 
+  // Right to erasure (GDPR-style): delete a single evaluation record.
+  // Students may erase only their own; teachers/admins may erase any.
+  const evaluationDeleteMatch = requestUrl.pathname.match(
+    /^\/api\/evaluations\/([^/]+)$/
+  )
+  if (request.method === 'DELETE' && evaluationDeleteMatch?.[1]) {
+    const evaluationId = decodeURIComponent(evaluationDeleteMatch[1])
+    const existing = await store.get(evaluationId)
+
+    if (!existing) {
+      respondJson(response, 404, { error: 'Evaluation not found' })
+      return
+    }
+
+    const isOwner =
+      existing.studentId === (user.studentId ?? user.userId)
+    const isPrivileged = user.role === 'teacher' || user.role === 'admin'
+    if (!isOwner && !isPrivileged) {
+      audit.enqueue({
+        actorRole: user.role,
+        actorId: user.userId,
+        action: 'delete',
+        resourceType: 'evaluation',
+        resourceId: evaluationId,
+        studentId: existing.studentId,
+        result: 'denied'
+      })
+      respondJson(response, 403, {
+        error: 'Forbidden: cannot erase an evaluation you do not own'
+      })
+      return
+    }
+
+    const deleted = await store.delete(evaluationId)
+    audit.enqueue({
+      actorRole: user.role,
+      actorId: user.userId,
+      action: 'delete',
+      resourceType: 'evaluation',
+      resourceId: evaluationId,
+      studentId: existing.studentId,
+      result: deleted ? 'success' : 'not_found'
+    })
+    respondJson(response, deleted ? 200 : 404, { id: evaluationId, deleted })
+    return
+  }
+
   if (request.method === 'GET' && requestUrl.pathname === '/api/cohort') {
     if (user.role !== 'teacher' && user.role !== 'admin') {
       audit.enqueue({

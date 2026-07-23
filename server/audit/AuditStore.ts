@@ -120,6 +120,7 @@ export class AuditStore {
   private lastHash = GENESIS_HASH
   private lastSequence = 0
   private flushChain: Promise<void> = Promise.resolve()
+  private readonly isMemory: boolean
 
   private readonly insertStatement: Database.Statement
 
@@ -131,6 +132,7 @@ export class AuditStore {
     this.hmacSecret = options.hmacSecret
     this.flushIntervalMs = options.flushIntervalMs ?? DEFAULT_FLUSH_INTERVAL_MS
     this.flushBatchSize = options.flushBatchSize ?? DEFAULT_FLUSH_BATCH_SIZE
+    this.isMemory = options.dbPath === ':memory:'
 
     if (options.dbPath !== ':memory:') {
       mkdirSync(dirname(options.dbPath), { recursive: true })
@@ -387,12 +389,22 @@ export class AuditStore {
   /**
    * Test helper: mutate a persisted field without going through the write path.
    * Used to demonstrate chain/signature break detection.
+   *
+   * Hardened (production tech-debt): this write bypass only runs against an
+   * in-memory database outside production. A file-backed store or
+   * NODE_ENV=production rejects it, so the tamper path can never exist as a
+   * live API against a persisted audit log.
    */
   public async tamperForTest(
     sequence: number,
     field: 'result' | 'hash' | 'signature' | 'prev_hash',
     value: string
   ): Promise<void> {
+    if (process.env.NODE_ENV === 'production' || !this.isMemory) {
+      throw new Error(
+        'tamperForTest is a test-only helper; refused on a persisted or production audit store'
+      )
+    }
     await this.flush()
     const allowed = new Set(['result', 'hash', 'signature', 'prev_hash'])
     if (!allowed.has(field)) {
@@ -600,6 +612,16 @@ export function resolveAuditHmacSecret(
 ): string {
   const configured = environment.AUDIT_HMAC_SECRET?.trim()
   if (configured) return configured
-  // Demo fallback — production deployments must set AUDIT_HMAC_SECRET.
+
+  // Production must supply a real secret — a hardcoded fallback would make
+  // audit signatures forgeable and defeat the tamper-evidence guarantee.
+  if (environment.NODE_ENV === 'production') {
+    throw new Error(
+      'AUDIT_HMAC_SECRET is required in production. Refusing to start with a '
+      + 'hardcoded demo secret because it would make audit signatures forgeable.'
+    )
+  }
+
+  // Demo/dev fallback only.
   return 'evidence-loop-demo-audit-hmac-secret'
 }

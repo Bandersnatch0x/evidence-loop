@@ -173,8 +173,10 @@ const PATTERNS: ReadonlyArray<{ kind: PIIKind; regex: RegExp; group?: number }> 
       kind: 'email',
       regex: /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g
     },
-    // Student id: 20xxxxxx (8 digits, year 20xx + 4-digit serial).
-    { kind: 'student_id', regex: /(?<!\d)20\d{6}(?!\d)/g },
+    // Student id: 8–12 digit sequence (covers 8-digit 20xx serials plus
+    // longer institutional ids). Excludes 11-digit numbers starting with 1,
+    // which the phone pattern already claims (avoids double-counting).
+    { kind: 'student_id', regex: /(?<!\d)(?!1[3-9]\d{9}(?!\d))\d{8,12}(?!\d)/g },
     // Chinese name with an explicit context marker (captures name in group 1).
     {
       kind: 'chinese_name',

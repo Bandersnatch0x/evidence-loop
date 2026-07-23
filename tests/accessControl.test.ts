@@ -180,4 +180,50 @@ describe('demo access control + audit wiring', () => {
       )
     ).toBe(true)
   })
+
+  it('lets a student erase their own evaluation (right to erasure)', async () => {
+    // Seed one evaluation owned by the student.
+    const created = await fetch(`${baseUrl}/api/evaluations`, {
+      method: 'POST',
+      headers: headers('student', { 'content-type': 'application/json' }),
+      body: JSON.stringify({
+        assignmentId: 'python-average',
+        code: 'def calculate_average(scores):\n    if not scores:\n        return 0\n    return sum(scores) / len(scores)'
+      })
+    })
+    expect(created.status).toBe(201)
+    const evaluation = (await created.json()) as { id: string }
+
+    const deleted = await fetch(
+      `${baseUrl}/api/evaluations/${evaluation.id}`,
+      { method: 'DELETE', headers: headers('student') }
+    )
+    expect(deleted.status).toBe(200)
+    const body = (await deleted.json()) as { id: string; deleted: boolean }
+    expect(body).toEqual({ id: evaluation.id, deleted: true })
+
+    // Gone afterwards.
+    const gone = await fetch(
+      `${baseUrl}/api/evaluations/${evaluation.id}`,
+      { method: 'DELETE', headers: headers('student') }
+    )
+    expect(gone.status).toBe(404)
+
+    // Deletion is audited.
+    await audit.flush()
+    const records = await audit.query({ action: 'delete', limit: 20 })
+    expect(
+      records.some(
+        (row) => row.resourceId === evaluation.id && row.result === 'success'
+      )
+    ).toBe(true)
+  })
+
+  it('returns 404 when erasing an unknown evaluation', async () => {
+    const response = await fetch(
+      `${baseUrl}/api/evaluations/eval_does-not-exist`,
+      { method: 'DELETE', headers: headers('student') }
+    )
+    expect(response.status).toBe(404)
+  })
 })
