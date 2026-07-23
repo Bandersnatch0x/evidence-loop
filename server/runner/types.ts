@@ -12,6 +12,8 @@ export interface RunnerResult {
   durationMs: number
   evidence: RunnerEvidence[]
   reason?: string
+  /** Populated by container runners when a pool container id is known. */
+  containerId?: string
 }
 
 export interface RunnerRequest {
@@ -21,4 +23,7 @@ export interface RunnerRequest {
 
 export interface CodeRunner {
   run(request: RunnerRequest): Promise<RunnerResult>
+  readonly name?: string
+  warm?(): Promise<void>
+  dispose?(): Promise<void>
 }

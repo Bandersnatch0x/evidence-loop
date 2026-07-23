@@ -4,7 +4,7 @@ import type { CodeRunner, RunnerRequest, RunnerResult } from './types'
 
 const MAX_OUTPUT_BYTES = 64 * 1024
 
-const PYTHON_HARNESS = String.raw`
+export const PYTHON_HARNESS = String.raw`
 import ast
 import contextlib
 import io
@@ -169,6 +169,8 @@ interface PythonSubprocessRunnerOptions {
 }
 
 export class PythonSubprocessRunner implements CodeRunner {
+  public readonly name = 'python-subprocess'
+
   private readonly pythonBin: string
   private readonly timeoutMs: number
 
