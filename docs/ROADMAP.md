@@ -31,6 +31,17 @@
 - [x] 演示视频混剪包（开场概念 + 实机 Playwright 录屏）：[`docs/screenshots/demo-videos/`](./screenshots/demo-videos/)
 - [ ] Phase 2：canvas 手写 + 视觉 LLM（前置 ADR-0007 笔迹隐私分类）
 
+### 多学科题型引擎 + 九门学科（ADR-0008 / 工单 025–031）
+
+- [x] 题型抽象：`QuestionType` + `RunnerSpec` union + `EvidenceKind` 扩展
+- [x] `RunnerRegistry` 注册 7 种题型（choice / fill_blank / numeric / expression / chem_equation / code / essay）
+- [x] 客观题验证器：ObjectiveValidator / ExpressionValidator / ChemEquationValidator
+- [x] 作文客观维度 + AdvisoryLayer（教师终裁、不入分）
+- [x] 九门学科知识点 DAG（`data/knowledge-points.seed.json`，121 kp）
+- [x] 九门学科示例题库（`server/data/assignments.ts`：每门 ≥1 道可评分 demo）
+- [x] 端到端集成测试：`tests/multiSubjectIntegration.test.ts` + `tests/multiDisciplineScoring.test.ts`
+- [x] 合规与 CONTEXT 收尾：`docs/COMPLIANCE.md`「多学科评分能力」+ CONTEXT Active decision「已实施（7 题型 + 9 学科）」
+
 ## 决赛（9/22-9/23）
 
 1. 现场演示脚本固化（缺陷 80 → 修复 100）

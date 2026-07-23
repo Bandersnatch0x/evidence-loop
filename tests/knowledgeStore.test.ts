@@ -14,7 +14,9 @@ describe('JsonKnowledgeStore (seed file)', () => {
     const graph = await store.getGraph()
 
     expect(graph.points.length).toBeGreaterThanOrEqual(5)
-    expect(graph.points.length).toBeLessThanOrEqual(15)
+    // Upper bound relaxed for issue #029: the seed now carries the full
+    // 9-subject (junior + senior) knowledge graph (~100-150 points).
+    expect(graph.points.length).toBeLessThanOrEqual(300)
     expect(graph.edges.length).toBeGreaterThanOrEqual(3)
 
     const codePoints = graph.points.filter((point) => !point.id.startsWith('kp.math.'))

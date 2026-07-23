@@ -21,6 +21,7 @@ const assignment: Assignment = {
   title: '边界条件诊断：平均分函数',
   module: 'Python 基础 · 函数与边界',
   language: 'python',
+  questionType: 'code',
   estimatedMinutes: 12,
   status: 'ready',
   objective: '实现可靠的平均分函数。',
@@ -172,6 +173,9 @@ describe('App', () => {
       learners: []
     } satisfies CohortSnapshot)
     vi.mocked(api.evaluateCode).mockResolvedValue(evaluation)
+    vi.mocked(api.getKnowledgeGraph).mockResolvedValue({ points: [], edges: [] })
+    vi.mocked(api.listDueReviews).mockResolvedValue([])
+    vi.mocked(api.getMasteryProfile).mockResolvedValue({})
   })
 
   it('loads an assignment, evaluates code, and applies the suggested repair', async () => {
@@ -189,7 +193,7 @@ describe('App', () => {
 
     await user.click(screen.getByRole('button', { name: '应用修复示例' }))
 
-    const editor = screen.getByLabelText('Python 代码编辑器')
+    const editor = screen.getByLabelText('代码编辑器')
     await waitFor(() => {
       expect((editor as HTMLTextAreaElement).value).toContain('if not scores')
     })
@@ -258,12 +262,34 @@ describe('App', () => {
     expect(screen.queryByRole('button', { name: '按住说话' })).toBeNull()
   })
 
-  it('mounts the voice companion when the multimodal flag is on', async () => {
+  it('mounts the voice companion FAB when the multimodal flag is on', async () => {
     vi.mocked(isMultimodalEnabled).mockReturnValue(true)
     render(<App />)
 
     expect(
-      await screen.findByRole('button', { name: '按住说话' })
+      await screen.findByRole('button', { name: '打开语音辅导' })
+    ).toBeInTheDocument()
+  })
+
+  it('navigates to 今日复习 and 项目透明度 from the sidebar', async () => {
+    const user = userEvent.setup()
+    vi.mocked(api.getKnowledgeGraph).mockResolvedValue({
+      points: [],
+      edges: []
+    })
+    vi.mocked(api.listDueReviews).mockResolvedValue([])
+    render(<App />)
+
+    await screen.findByRole('heading', { name: assignment.title })
+
+    await user.click(screen.getByRole('button', { name: '今日复习' }))
+    expect(
+      await screen.findByRole('heading', { name: '今日复习' })
+    ).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: '项目透明度' }))
+    expect(
+      await screen.findByRole('heading', { name: '项目透明度' })
     ).toBeInTheDocument()
   })
 })

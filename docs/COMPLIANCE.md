@@ -30,6 +30,36 @@
 - 模型不得改分、不得捏造未产生的证据。
 - 教师视图只给干预建议，不自动写入正式成绩。
 
+## 多学科评分能力
+
+本系统按**题型**切分评分能力，不按学科切分（ADR-0008）。九门学科（语文、数学、英语、物理、化学、生物、政治、历史、地理）共用同一套 `RunnerRegistry` 验证器；学科仅作为知识点 DAG（`kp.<subject>.*`）的归属维度。
+
+### 客观题入分
+
+下列题型产出可复现 Evidence，经 Rubric 权重汇总为正式分，LLM **不得**参与分数计算：
+
+| 题型 | 验证器 | 证据种类 | 示例学科 |
+| --- | --- | --- | --- |
+| `choice` | ObjectiveValidator | `answer_match` | 数学、英语、政治、历史 |
+| `fill_blank` | ObjectiveValidator | `answer_match` | 化学、生物 |
+| `numeric` | ObjectiveValidator | `answer_match`（容差） | 物理、地理 |
+| `expression` | ExpressionValidator | `cas_check` | 数学 |
+| `chem_equation` | ChemEquationValidator | `cas_check` | 化学 |
+| `code` | Python Runner（Docker/子进程） | `test` / `static` | Python |
+
+集成守护：`tests/multiSubjectIntegration.test.ts`、`tests/multiDisciplineScoring.test.ts`。
+
+### 主观题 Advisory + 教师终裁
+
+- **作文 / 论述**（`essay`，含语文议论文、历史史料论述、政治道德论述等）：
+  - **客观维度**（字数、段落、句长、结构启发式、关键词覆盖）由 `EssayRunner` 产出 `structural_metric` / `lint_result` Evidence，**入正式分**。
+  - **主观维度**（立意、洞察、论证质量、语言表达）由 `AdvisoryService` 产出 `AdvisorySuggestion`，强制：
+    - `provenance.kind = 'llm_inference'`
+    - `requiresTeacherConfirmation = true`
+    - 类型上**无** `score` / `weight` 字段，结构上不可能折入 Rubric
+  - 教师确认后，建议才可影响 Cohort 学情指标；在此之前建议仅为辅导参考。
+- **铁律（ADR-0001 / ADR-0008）**：正式分 = 通过 Evidence 权重之和；Advisory 永不入分。
+
 ## 运行安全
 
 - 默认本地 Python 子进程带超时、输出上限与基础静态约束，但**没有内核级网络或资源隔离**，不得直接暴露给不可信公网流量。

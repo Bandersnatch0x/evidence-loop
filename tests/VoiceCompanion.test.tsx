@@ -63,8 +63,19 @@ describe('VoiceCompanion', () => {
     vi.restoreAllMocks()
   })
 
-  it('renders an idle push-to-talk button, disabled without SpeechRecognition', () => {
-    render(<VoiceCompanion />)
+  it('renders a FAB when closed and opens the drawer on click', () => {
+    const onOpenChange = vi.fn()
+    render(<VoiceCompanion open={false} onOpenChange={onOpenChange} />)
+
+    expect(screen.getByRole('button', { name: '打开语音辅导' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '按住说话' })).toBeNull()
+
+    screen.getByRole('button', { name: '打开语音辅导' }).click()
+    expect(onOpenChange).toHaveBeenCalledWith(true)
+  })
+
+  it('renders an idle push-to-talk button when open, disabled without SpeechRecognition', () => {
+    render(<VoiceCompanion open onOpenChange={vi.fn()} />)
 
     expect(screen.getByRole('button', { name: '按住说话' })).toBeDisabled()
     expect(screen.getByText('待命')).toBeInTheDocument()
@@ -73,9 +84,17 @@ describe('VoiceCompanion', () => {
 
   it('enables the button when SpeechRecognition is available', () => {
     installSpeechFakes()
-    render(<VoiceCompanion />)
+    render(<VoiceCompanion open onOpenChange={vi.fn()} />)
 
     expect(screen.getByRole('button', { name: '按住说话' })).toBeEnabled()
+  })
+
+  it('closes via the header close control', () => {
+    const onOpenChange = vi.fn()
+    render(<VoiceCompanion open onOpenChange={onOpenChange} />)
+
+    screen.getByRole('button', { name: '关闭语音辅导抽屉' }).click()
+    expect(onOpenChange).toHaveBeenCalledWith(false)
   })
 })
 

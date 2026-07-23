@@ -26,9 +26,10 @@
 - **PII 检测（Demo）**：基础正则检测（中文姓名、手机号、邮箱、学号），入库前扫描 `summary`/`rejectionReason`/`evidence[].actual` 3 个字段，检测到 PII 拒绝存储。
 
 ### 多学科扩展（#1，Phase 1 复赛/Phase 2 决赛）
+- **已实施（7 题型 + 9 学科）**：`QuestionType` 七种引擎（`choice` / `fill_blank` / `numeric` / `expression` / `chem_equation` / `code` / `essay`）经 `RunnerRegistry` 贯通；`assignments` 覆盖 math / physics / chemistry / chinese / english / biology / politics / history / geography 九门，每门至少一道可评分 demo；知识点 DAG 121 个 kp 挂载于 `data/knowledge-points.seed.json`；集成测试 `tests/multiSubjectIntegration.test.ts` + `tests/multiDisciplineScoring.test.ts` 守护评分闭环（ADR-0008）。
 - **Evidence 外延扩展**：`Evidence.type` 枚举包括 `test_case | static_check | cas_check | answer_match | lint_result | structural_metric`。CAS 校验（`simplify(step_n - step_{n+1}) == 0`）与 linter 结果同属可复现验证。
-- **多学科统一抽象**：所有学科走 `Runner + Rubric` 模式，评分闭环同构。学科差异下沉到 Runner 实现和 Evidence 子类型。
-- **作文分层**：客观证据层（40% 权重，字数/句长/语法/结构等 linter 结果）+ 主观建议层（`AdvisoryLayer`，不入分，教师终裁）。
+- **多学科统一抽象**：所有学科走 `Runner + Rubric` 模式，评分闭环同构。学科差异下沉到 Runner 实现和 Evidence 子类型；**按题型切分评分，不按学科切分**（ADR-0008）。
+- **作文分层**：客观证据层（字数/句长/语法/结构等 linter 结果入正式分）+ 主观建议层（`AdvisoryLayer`，`provenance: llm_inference`，`requiresTeacherConfirmation`，不入分，教师终裁）。历史/政治论述同构。
 - **视觉指点 Phase 1**（已实施）：DOM 标注优先，输出协议 `[HIGHLIGHT:selector][SPEAK:...][DISPLAY:...][NONE]`。语音走阿里云 NLS/火山引擎（Web Speech API 中文场景国内不可用），Web Speech 仅作兜底。核心评分闭环对 `server/multimodal/*`、`server/stt/*` 的隔离与 `MULTIMODAL_ENABLED` Feature Flag 红线由 `tests/architecture.test.ts` + `tests/multimodal-flag-smoke.test.ts` 守护（失败指向 ADR-0005）。
 - **模态级数据治理 Phase 1**（已实施，ADR-0005 §7 / 工单 021–023）：审计 `modality: text|voice`（仅元数据：时长/字数/PII 命中数，无转写原文）；`X-Modality-Mode: voice`；后端音频不落盘；前端 IndexedDB 对话 24h TTL；教师 `GET /api/cohort/multimodal-usage` 只显示次数；演示脚本见 `docs/DEMO-multimodal-*.md`。
 - **手写数学 Phase 2**：canvas 局部截图 + 视觉 LLM + stroke 数据辅助。Phase 2 上线前需新 ADR 处理笔迹隐私分类；canvas 图像 PII 检测属 Phase 2。

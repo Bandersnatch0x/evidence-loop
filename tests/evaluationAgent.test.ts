@@ -5,6 +5,7 @@ import { createAssignmentRegistry } from '../server/data/assignments'
 import { createKnowledgeBase } from '../server/data/knowledge'
 import { EvaluationAgent } from '../server/domain/EvaluationAgent'
 import { LocalFeedbackGenerator } from '../server/domain/feedback'
+import { createRunnerRegistry } from '../server/runner/RunnerRegistry'
 import type { CodeRunner, RunnerResult } from '../server/runner/types'
 
 class StubRunner implements CodeRunner {
@@ -72,7 +73,7 @@ describe('EvaluationAgent', () => {
     const agent = new EvaluationAgent({
       assignments: createAssignmentRegistry(),
       knowledge: createKnowledgeBase(),
-      runner,
+      runners: createRunnerRegistry(runner),
       feedback: new LocalFeedbackGenerator()
     })
 
@@ -118,7 +119,7 @@ describe('EvaluationAgent', () => {
     const agent = new EvaluationAgent({
       assignments: createAssignmentRegistry(),
       knowledge: createKnowledgeBase(),
-      runner,
+      runners: createRunnerRegistry(runner),
       feedback: new LocalFeedbackGenerator()
     })
 
