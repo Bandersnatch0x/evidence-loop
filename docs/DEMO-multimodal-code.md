@@ -63,3 +63,9 @@ def fib(n):
 ## 合规话术（30 秒）
 
 > 语音只读证据、不改分；原始音频流式转写不落盘；审计只记 modality 与次数元数据；对话本地 24 小时自动清空。
+
+## 视频素材
+
+- 概念开场：[`docs/screenshots/demo-videos/opener-code.webm`](./screenshots/demo-videos/opener-code.webm)
+- 实机录屏：[`docs/screenshots/demo-videos/live-code.webm`](./screenshots/demo-videos/live-code.webm)
+- 混剪说明：[`docs/screenshots/demo-videos/README.md`](./screenshots/demo-videos/README.md)

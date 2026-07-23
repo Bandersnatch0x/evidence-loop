@@ -87,3 +87,9 @@ MULTIMODAL_ENABLED=false
 - [DEMO-multimodal-code.md](./DEMO-multimodal-code.md)
 - [DEMO-multimodal-math.md](./DEMO-multimodal-math.md)
 - [DEMO-multimodal-essay.md](./DEMO-multimodal-essay.md)
+
+## 视频素材
+
+- 概念开场：[`docs/screenshots/demo-videos/opener-fallback.webm`](./screenshots/demo-videos/opener-fallback.webm)
+- 实机录屏：[`docs/screenshots/demo-videos/live-fallback.webm`](./screenshots/demo-videos/live-fallback.webm)
+- 混剪说明：[`docs/screenshots/demo-videos/README.md`](./screenshots/demo-videos/README.md)

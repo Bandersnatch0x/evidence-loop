@@ -49,3 +49,9 @@
 ## 双通道验收口令
 
 > SPEAK 给耳朵，DISPLAY 给眼睛，HIGHLIGHT 给指点——三者解耦，解析失败只丢指点不丢讲解。
+
+## 视频素材
+
+- 概念开场：[`docs/screenshots/demo-videos/opener-math.webm`](./screenshots/demo-videos/opener-math.webm)
+- 实机录屏：[`docs/screenshots/demo-videos/live-math.webm`](./screenshots/demo-videos/live-math.webm)
+- 混剪说明：[`docs/screenshots/demo-videos/README.md`](./screenshots/demo-videos/README.md)

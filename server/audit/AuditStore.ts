@@ -164,12 +164,16 @@ export class AuditStore {
         ON audit_logs (timestamp);
       CREATE INDEX IF NOT EXISTS idx_audit_actor_role
         ON audit_logs (actor_role);
+    `)
+
+    // Upgrade pre-021 databases that lack the modality column BEFORE
+    // creating the modality index (CREATE TABLE IF NOT EXISTS will not
+    // add columns to an existing table).
+    ensureModalityColumn(this.db)
+    this.db.exec(`
       CREATE INDEX IF NOT EXISTS idx_audit_modality_student
         ON audit_logs (modality, student_id, timestamp);
     `)
-
-    // Upgrade pre-021 databases that lack the modality column.
-    ensureModalityColumn(this.db)
 
     this.insertStatement = this.db.prepare(`
       INSERT INTO audit_logs (

@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <title>Opener</title>
+  <style>
+    html, body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #0f172a;
+    }
+    .stage {
+      position: fixed;
+      inset: 0;
+      overflow: hidden;
+    }
+    .stage img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transform: scale(1.08);
+      animation: ken 6s ease-out forwards;
+    }
+    .badge {
+      position: fixed;
+      left: 28px;
+      bottom: 28px;
+      padding: 10px 14px;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.72);
+      color: #e2e8f0;
+      font: 600 14px/1.2 system-ui, sans-serif;
+      letter-spacing: 0.02em;
+      backdrop-filter: blur(8px);
+    }
+    @keyframes ken {
+      from { transform: scale(1.08) translate3d(0, 0, 0); }
+      to { transform: scale(1.0) translate3d(-1.5%, -1%, 0); }
+    }
+  </style>
+</head>
+<body>
+  <div class="stage">
+    <img id="frame" alt="opener" />
+  </div>
+  <div class="badge" id="badge">概念示意 · Concept B-roll</div>
+  <script>
+    const params = new URLSearchParams(location.search)
+    const src = params.get('src') || ''
+    const label = params.get('label') || '概念示意 · Concept B-roll'
+    document.getElementById('frame').src = src
+    document.getElementById('badge').textContent = label
+  </script>
+</body>
+</html>

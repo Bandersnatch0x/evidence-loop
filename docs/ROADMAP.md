@@ -28,7 +28,7 @@
   - [docs/DEMO-multimodal-essay.md](./DEMO-multimodal-essay.md)
   - [docs/DEMO-multimodal-fallback.md](./DEMO-multimodal-fallback.md)
 - [x] 架构守护 + Feature Flag 冒烟（023）：`tests/architecture.test.ts` + `tests/multimodal-flag-smoke.test.ts`
-- [ ] 录屏 3 个 30 秒短视频（可选，评审加分）
+- [x] 演示视频混剪包（开场概念 + 实机 Playwright 录屏）：[`docs/screenshots/demo-videos/`](./screenshots/demo-videos/)
 - [ ] Phase 2：canvas 手写 + 视觉 LLM（前置 ADR-0007 笔迹隐私分类）
 
 ## 决赛（9/22-9/23）
