@@ -1,0 +1,114 @@
+[
+  {
+    "id": "math-1",
+    "title": "二次式展开入门",
+    "prompt": "解释表达式 x^2 + 3 的含义，并指出平方项。",
+    "steps": [
+      {
+        "id": "math-1-step-1",
+        "label": "原式",
+        "latex": "x^{2}+3",
+        "formula": "x^2+3",
+        "speak": "x 的平方加 3"
+      },
+      {
+        "id": "math-1-step-2",
+        "label": "平方项",
+        "latex": "x^{2}",
+        "formula": "x^2",
+        "speak": "x 的平方"
+      },
+      {
+        "id": "math-1-step-3",
+        "label": "常数项",
+        "latex": "3",
+        "formula": "3",
+        "speak": "常数 3"
+      }
+    ]
+  },
+  {
+    "id": "math-2",
+    "title": "完全平方公式",
+    "prompt": "写出 (a+b)^2 的展开式，并高亮交叉项。",
+    "steps": [
+      {
+        "id": "math-2-step-1",
+        "label": "左边",
+        "latex": "(a+b)^{2}",
+        "formula": "(a+b)^2",
+        "speak": "a 加 b 的平方"
+      },
+      {
+        "id": "math-2-step-2",
+        "label": "展开",
+        "latex": "a^{2}+2ab+b^{2}",
+        "formula": "a^2+2ab+b^2",
+        "speak": "a 的平方加 2ab 加 b 的平方"
+      },
+      {
+        "id": "math-2-step-3",
+        "label": "交叉项",
+        "latex": "2ab",
+        "formula": "2ab",
+        "speak": "2 a b"
+      }
+    ]
+  },
+  {
+    "id": "math-3",
+    "title": "分数运算",
+    "prompt": "计算 1/2 + 1/3，指出通分后的分母。",
+    "steps": [
+      {
+        "id": "math-3-step-1",
+        "label": "原式",
+        "latex": "\\dfrac{1}{2}+\\dfrac{1}{3}",
+        "formula": "1/2+1/3",
+        "speak": "二分之一加三分之一"
+      },
+      {
+        "id": "math-3-step-2",
+        "label": "通分",
+        "latex": "\\dfrac{3}{6}+\\dfrac{2}{6}",
+        "formula": "3/6+2/6",
+        "speak": "六分之三加六分之二"
+      },
+      {
+        "id": "math-3-step-3",
+        "label": "结果",
+        "latex": "\\dfrac{5}{6}",
+        "formula": "5/6",
+        "speak": "六分之五"
+      }
+    ]
+  },
+  {
+    "id": "math-4",
+    "title": "一元一次方程",
+    "prompt": "解方程 2x + 1 = 7，指出移项后的式子。",
+    "steps": [
+      {
+        "id": "math-4-step-1",
+        "label": "原方程",
+        "latex": "2x+1=7",
+        "formula": "2x+1=7",
+        "speak": "2x 加 1 等于 7"
+      },
+      {
+        "id": "math-4-step-2",
+        "label": "移项",
+        "latex": "2x=6",
+        "formula": "2x=6",
+        "speak": "2x 等于 6"
+      },
+      {
+        "id": "math-4-step-3",
+        "label": "解",
+        "latex": "x=3",
+        "formula": "x=3",
+        "speak": "x 等于 3"
+      }
+    ]
+  }
+]

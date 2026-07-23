@@ -1,0 +1,78 @@
+{
+  "points": [
+    {
+      "id": "kp.function.definition",
+      "name": "函数定义与调用",
+      "weight": 1.0
+    },
+    {
+      "id": "kp.list.iteration",
+      "name": "列表遍历",
+      "weight": 1.0
+    },
+    {
+      "id": "kp.recursion.base_case",
+      "name": "递归基例",
+      "parentId": "kp.function.definition",
+      "weight": 1.0
+    },
+    {
+      "id": "kp.recursion.step",
+      "name": "递归推进步骤",
+      "parentId": "kp.function.definition",
+      "weight": 1.0
+    },
+    {
+      "id": "kp.string.reversal",
+      "name": "字符串反转",
+      "weight": 0.8
+    },
+    {
+      "id": "kp.math.algebra.simplify",
+      "name": "代数式化简",
+      "weight": 1.0
+    },
+    {
+      "id": "kp.math.algebra.factor",
+      "name": "多项式因式分解",
+      "weight": 1.0
+    },
+    {
+      "id": "kp.math.algebra.quadratic",
+      "name": "一元二次方程求解",
+      "weight": 1.0
+    }
+  ],
+  "edges": [
+    {
+      "kpId": "kp.recursion.base_case",
+      "prereqId": "kp.function.definition",
+      "strength": 1.0
+    },
+    {
+      "kpId": "kp.recursion.step",
+      "prereqId": "kp.recursion.base_case",
+      "strength": 1.0
+    },
+    {
+      "kpId": "kp.string.reversal",
+      "prereqId": "kp.list.iteration",
+      "strength": 0.7
+    },
+    {
+      "kpId": "kp.string.reversal",
+      "prereqId": "kp.recursion.step",
+      "strength": 0.5
+    },
+    {
+      "kpId": "kp.math.algebra.factor",
+      "prereqId": "kp.math.algebra.simplify",
+      "strength": 1.0
+    },
+    {
+      "kpId": "kp.math.algebra.quadratic",
+      "prereqId": "kp.math.algebra.factor",
+      "strength": 0.9
+    }
+  ]
+}
