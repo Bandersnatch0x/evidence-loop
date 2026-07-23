@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import type {
+  AdvisorySuggestion,
   Diagnosis,
   DimensionResult,
   EvaluateRequest,
@@ -9,19 +10,27 @@ import type {
   Provenance,
   TraceStep
 } from '../../shared/contracts'
+import type { AdvisoryService } from '../advisory/AdvisoryService'
 import type {
   AssignmentRegistry,
   ExecutableAssignment
 } from '../data/assignments'
 import type { KnowledgeBase } from '../data/knowledge'
-import type { CodeRunner, RunnerResult } from '../runner/types'
+import type { RunnerRegistry } from '../runner/RunnerRegistry'
+import type { RunnerResult } from '../runner/types'
 import type { FeedbackGenerator } from './feedback'
 
 interface EvaluationAgentDependencies {
   assignments: AssignmentRegistry
   knowledge: KnowledgeBase
-  runner: CodeRunner
+  /** Routes by assignment.questionType (ADR-0008). */
+  runners: RunnerRegistry
   feedback: FeedbackGenerator
+  /**
+   * Subjective coaching for essay (ADR-0008). Optional so unit tests can omit
+   * it; production always injects AdvisoryService.
+   */
+  advisory?: AdvisoryService
 }
 
 const severityRank = { high: 0, medium: 1, low: 2 } as const
@@ -51,7 +60,13 @@ export class EvaluationAgent {
       'run-submission',
       '在受限环境运行提交',
       'python.safe-runner',
-      () => this.dependencies.runner.run({ assignment, code: request.code })
+      () =>
+        this.dependencies.runners.run({
+          assignment,
+          submission: request.code,
+          // Legacy alias kept so registry-routed code runners remain dual-readable.
+          code: request.code
+        })
     )
 
     if (runnerResult.status !== 'completed') {
@@ -102,6 +117,13 @@ export class EvaluationAgent {
         })
     )
 
+    // Essay only: subjective dimensions stay out of the score (ADR-0008).
+    const advisory = await this.maybeComposeAdvisory(
+      assignment,
+      request.code,
+      trace
+    )
+
     const evaluationId = `eval_${randomUUID()}`
     const provenance: Provenance = {
       kind: 'evidence',
@@ -123,11 +145,34 @@ export class EvaluationAgent {
       dimensions,
       diagnoses,
       intervention,
+      ...(advisory !== undefined ? { advisory } : {}),
       trace,
       mastery: this.createMastery(assignment, evidence),
       feedbackSource: feedback.source,
       provenance
     }
+  }
+
+  private async maybeComposeAdvisory(
+    assignment: ExecutableAssignment,
+    submission: string,
+    trace: TraceStep[]
+  ): Promise<AdvisorySuggestion[] | undefined> {
+    if (assignment.questionType !== 'essay') {
+      return undefined
+    }
+    const service = this.dependencies.advisory
+    if (!service) {
+      return undefined
+    }
+
+    return this.timeAsyncStep(
+      trace,
+      'compose-advisory',
+      '生成作文主观建议（不入分）',
+      'advisory.suggest',
+      () => service.suggest({ submission, assignment })
+    )
   }
 
   private mapEvidence(

@@ -1,0 +1,65 @@
+{
+  "description": "Chemical equation balancing samples for ChemEquationValidator (ticket 027).",
+  "samples": [
+    {
+      "id": "water-formation",
+      "title": "氢气燃烧生成水",
+      "expectedEquation": "2H2+O2=2H2O",
+      "balanced": [
+        "2H2+O2=2H2O",
+        "2H2 + O2 -> 2H2O",
+        "2H2+O2→2H2O"
+      ],
+      "nonSimplestEquivalent": [
+        "4H2+2O2=4H2O",
+        "6H2+3O2=6H2O"
+      ],
+      "unbalanced": [
+        "H2+O2=H2O",
+        "H2+O2=2H2O"
+      ],
+      "invalid": [
+        "2H2+O2",
+        "2H2+O2=2H2O=",
+        "???",
+        ""
+      ]
+    },
+    {
+      "id": "calcium-hydroxide",
+      "title": "带括号化学式：氢氧化钙与盐酸",
+      "expectedEquation": "Ca(OH)2+2HCl=CaCl2+2H2O",
+      "balanced": [
+        "Ca(OH)2+2HCl=CaCl2+2H2O",
+        "Ca(OH)2 + 2HCl -> CaCl2 + 2H2O"
+      ],
+      "unbalanced": [
+        "Ca(OH)2+HCl=CaCl2+H2O"
+      ]
+    },
+    {
+      "id": "iron-sulfate",
+      "title": "带括号化学式：硫酸铁与氢氧化钡",
+      "expectedEquation": "Fe2(SO4)3+3Ba(OH)2=2Fe(OH)3+3BaSO4",
+      "balanced": [
+        "Fe2(SO4)3+3Ba(OH)2=2Fe(OH)3+3BaSO4"
+      ],
+      "unbalanced": [
+        "Fe2(SO4)3+Ba(OH)2=Fe(OH)3+BaSO4"
+      ]
+    },
+    {
+      "id": "ionic-charge",
+      "title": "离子方程式电荷守恒",
+      "expectedEquation": "Fe2++2OH-=Fe(OH)2",
+      "balanced": [
+        "Fe2++2OH-=Fe(OH)2",
+        "Fe^{2+}+2OH^{-}=Fe(OH)2"
+      ],
+      "unbalanced": [
+        "Fe2++OH-=Fe(OH)2",
+        "Fe3++2OH-=Fe(OH)2"
+      ]
+    }
+  ]
+}

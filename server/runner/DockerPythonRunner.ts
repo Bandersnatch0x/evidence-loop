@@ -1,6 +1,8 @@
 import { spawn } from 'node:child_process'
 import type { ChildProcessWithoutNullStreams } from 'node:child_process'
+import { isPythonRunnerSpec } from '../data/assignments'
 import type { CodeRunner, RunnerRequest, RunnerResult } from './types'
+import { resolveSubmission } from './types'
 import { PYTHON_HARNESS } from './PythonSubprocessRunner'
 
 const MAX_OUTPUT_BYTES = 64 * 1024
@@ -230,16 +232,24 @@ export class DockerPythonRunner implements CodeRunner {
     let healthy = true
 
     try {
+      const runnerSpec = request.assignment.runner
+      if (!isPythonRunnerSpec(runnerSpec)) {
+        return this.failedResult(
+          startedAt,
+          'Docker Python runner requires a PythonRunnerSpec (questionType: code).'
+        )
+      }
+
       await this.ensurePool()
       slot = await this.acquireSlot()
 
       const command = await this.executor.execute(
         buildDockerExecArgs(slot.id),
         JSON.stringify({
-          code: request.code,
-          functionName: request.assignment.runner.functionName,
-          maxAstNodes: request.assignment.runner.maxAstNodes,
-          testCases: request.assignment.runner.testCases
+          code: resolveSubmission(request),
+          functionName: runnerSpec.functionName,
+          maxAstNodes: runnerSpec.maxAstNodes,
+          testCases: runnerSpec.testCases
         }),
         { timeoutMs: this.timeoutMs, maxOutputBytes: this.maxOutputBytes }
       )

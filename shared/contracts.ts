@@ -1,10 +1,50 @@
 export type EvaluationStatus = 'completed' | 'rejected' | 'failed'
 
-export type EvidenceKind = 'test' | 'static'
+/**
+ * Evidence atom kinds (ADR-0004 / ADR-0008).
+ * Objective question types may produce cas_check / answer_match / etc.;
+ * code remains test | static. structural_metric covers essay objective dims.
+ */
+export type EvidenceKind =
+  | 'test'
+  | 'static'
+  | 'cas_check'
+  | 'answer_match'
+  | 'lint_result'
+  | 'structural_metric'
 
 export type EvidenceVisibility = 'public' | 'hidden'
 
 export type ResultState = 'passed' | 'failed' | 'blocked'
+
+/**
+ * Subject / knowledge-graph ownership dimension (ADR-0008).
+ * Does not determine scoring logic — QuestionType does.
+ */
+export type SubjectLanguage =
+  | 'python'
+  | 'math'
+  | 'physics'
+  | 'chemistry'
+  | 'chinese'
+  | 'english'
+  | 'biology'
+  | 'politics'
+  | 'history'
+  | 'geography'
+
+/**
+ * Scoring is split by question type, not by subject (ADR-0008).
+ * Each type maps to a validator/runner; subjects share validators.
+ */
+export type QuestionType =
+  | 'choice'
+  | 'fill_blank'
+  | 'numeric'
+  | 'expression'
+  | 'chem_equation'
+  | 'code'
+  | 'essay'
 
 export interface RubricDimension {
   id: string
@@ -24,7 +64,8 @@ export interface AssignmentSummary {
   id: string
   title: string
   module: string
-  language: 'python'
+  language: SubjectLanguage
+  questionType: QuestionType
   estimatedMinutes: number
   status: 'ready' | 'coming-soon'
 }
@@ -128,6 +169,11 @@ export interface EvaluationResult {
   dimensions: DimensionResult[]
   diagnoses: Diagnosis[]
   intervention?: Intervention
+  /**
+   * Essay / subjective coaching only (ADR-0008). Never enters the score;
+   * each item is llm_inference-provenanced and teacher-gated.
+   */
+  advisory?: AdvisorySuggestion[]
   trace: TraceStep[]
   mastery: MasterySignal[]
   feedbackSource: 'local-policy' | 'llm'
@@ -281,4 +327,34 @@ export interface KpPrerequisite {
 export interface KnowledgeGraph {
   points: KnowledgePoint[]
   edges: KpPrerequisite[]
+}
+
+/**
+ * Subjective advisory suggestion (ADR-0008 §2).
+ *
+ * Produced by the AdvisoryLayer for essay / subjective dimensions that have
+ * **no reproducible evidence** (立意、洞察、论证质量、语言表达). These are
+ * deliberately NOT scores: the type carries no numeric `score`/`weight`/`earned`
+ * field, so it can never be folded into a Rubric total. Every suggestion is
+ * `llm_inference`-provenanced, requires teacher confirmation before it can
+ * influence any Cohort metric, and honours ADR-0001's evidence-first rule by
+ * staying out of the automatic score entirely.
+ */
+export interface AdvisorySuggestion {
+  id: string
+  /** The subjective dimension this advice targets (e.g. 立意 / 论证质量). */
+  dimensionLabel: string
+  /** Human-readable coaching note. This is advice, never a grade. */
+  suggestion: string
+  /**
+   * Always `llm_inference` — subjective advice is model-derived, never
+   * evidence-backed. Narrowed from Provenance so an evidence-kind tag can
+   * never be attached to advisory output.
+   */
+  provenance: Extract<Provenance, { kind: 'llm_inference' }>
+  /**
+   * Hard teacher gate. Literal `true` so the compiler forbids constructing an
+   * auto-applied advisory — nothing here enters scoring without a human.
+   */
+  requiresTeacherConfirmation: true
 }

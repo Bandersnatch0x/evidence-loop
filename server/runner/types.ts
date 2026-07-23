@@ -16,9 +16,32 @@ export interface RunnerResult {
   containerId?: string
 }
 
+/**
+ * Generic runner input for any question type.
+ *
+ * Prefer `submission` (code / LaTeX / free text). Legacy `code` is still
+ * accepted so existing runners and tests remain valid without a hard cutover.
+ * When both are set, `submission` wins.
+ */
 export interface RunnerRequest {
   assignment: ExecutableAssignment
-  code: string
+  /** Learner submission: source code, LaTeX, free text, etc. */
+  submission?: string
+  /**
+   * @deprecated Prefer `submission`. Retained as a backward-compatible alias.
+   */
+  code?: string
+}
+
+/** Resolve submission content; `submission` wins over legacy `code`. */
+export function resolveSubmission(request: RunnerRequest): string {
+  if (request.submission !== undefined) {
+    return request.submission
+  }
+  if (request.code !== undefined) {
+    return request.code
+  }
+  throw new Error('RunnerRequest requires submission (or legacy code)')
 }
 
 export interface CodeRunner {

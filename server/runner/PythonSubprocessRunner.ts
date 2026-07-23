@@ -1,6 +1,8 @@
 import { spawn } from 'node:child_process'
 import type { ChildProcessWithoutNullStreams } from 'node:child_process'
+import { isPythonRunnerSpec } from '../data/assignments'
 import type { CodeRunner, RunnerRequest, RunnerResult } from './types'
+import { resolveSubmission } from './types'
 
 const MAX_OUTPUT_BYTES = 64 * 1024
 
@@ -183,6 +185,17 @@ export class PythonSubprocessRunner implements CodeRunner {
     const startedAt = performance.now()
 
     return new Promise((resolve) => {
+      const runnerSpec = request.assignment.runner
+      if (!isPythonRunnerSpec(runnerSpec)) {
+        resolve(
+          this.failedResult(
+            startedAt,
+            'Python subprocess runner requires a PythonRunnerSpec (questionType: code).'
+          )
+        )
+        return
+      }
+
       let child: ChildProcessWithoutNullStreams
 
       try {
@@ -271,10 +284,10 @@ export class PythonSubprocessRunner implements CodeRunner {
 
       child.stdin.end(
         JSON.stringify({
-          code: request.code,
-          functionName: request.assignment.runner.functionName,
-          maxAstNodes: request.assignment.runner.maxAstNodes,
-          testCases: request.assignment.runner.testCases
+          code: resolveSubmission(request),
+          functionName: runnerSpec.functionName,
+          maxAstNodes: runnerSpec.maxAstNodes,
+          testCases: runnerSpec.testCases
         })
       )
     })

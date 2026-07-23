@@ -24,15 +24,78 @@ export interface PythonTestCase {
   expected: unknown
 }
 
+/** Code-question runner config (existing Python path). Code branch of RunnerSpec. */
 export interface PythonRunnerSpec {
   functionName: string
   maxAstNodes: number
   testCases: PythonTestCase[]
 }
 
+/** Skeleton specs for non-code question types (tickets 025+). */
+export interface ChoiceRunnerSpec {
+  readonly kind: 'choice'
+  correctOptionIds: string[]
+}
+
+export interface FillBlankRunnerSpec {
+  readonly kind: 'fill_blank'
+  acceptedAnswers: string[]
+  caseSensitive?: boolean
+}
+
+export interface NumericRunnerSpec {
+  readonly kind: 'numeric'
+  expected: number
+  tolerance: number
+}
+
+export interface ExpressionRunnerSpec {
+  readonly kind: 'expression'
+  expectedLatex: string
+  steps?: readonly string[]
+}
+
+export interface ChemEquationRunnerSpec {
+  readonly kind: 'chem_equation'
+  expectedEquation: string
+}
+
+export interface EssayRunnerSpec {
+  readonly kind: 'essay'
+  minWords?: number
+  requiredKeywords?: string[]
+}
+
+/**
+ * Runner configuration union, discriminated by assignment.questionType.
+ * The code branch keeps the untagged PythonRunnerSpec shape for backward
+ * compatibility with Docker/subprocess runners.
+ */
+export type RunnerSpec =
+  | PythonRunnerSpec
+  | ChoiceRunnerSpec
+  | FillBlankRunnerSpec
+  | NumericRunnerSpec
+  | ExpressionRunnerSpec
+  | ChemEquationRunnerSpec
+  | EssayRunnerSpec
+
+export function isPythonRunnerSpec(spec: RunnerSpec): spec is PythonRunnerSpec {
+  if (typeof spec !== 'object' || spec === null) return false
+  if ('kind' in spec) return false
+  return (
+    'functionName' in spec &&
+    typeof spec.functionName === 'string' &&
+    'maxAstNodes' in spec &&
+    typeof spec.maxAstNodes === 'number' &&
+    'testCases' in spec &&
+    Array.isArray(spec.testCases)
+  )
+}
+
 export interface ExecutableAssignment extends Assignment {
   criteria: EvidenceCriterion[]
-  runner: PythonRunnerSpec
+  runner: RunnerSpec
 }
 
 export interface AssignmentRegistry {
@@ -45,6 +108,7 @@ const pythonAverageAssignment: ExecutableAssignment = {
   title: '边界条件诊断：平均分函数',
   module: 'Python 基础 · 函数与边界',
   language: 'python',
+  questionType: 'code',
   estimatedMinutes: 12,
   status: 'ready',
   objective: '实现一个可靠的平均分函数，并用测试证据证明它能处理常规输入与边界输入。',
@@ -210,18 +274,957 @@ const pythonAverageAssignment: ExecutableAssignment = {
   }
 }
 
+/** Demo: single-choice algebra (ObjectiveValidator → answer_match evidence). */
+const choiceSimplifyAssignment: ExecutableAssignment = {
+  id: 'choice-algebra-simplify',
+  title: '选择题：代数式化简',
+  module: '数学 · 代数基础',
+  language: 'math',
+  questionType: 'choice',
+  estimatedMinutes: 5,
+  status: 'ready',
+  objective: '选择与 2(x+1) 代数等价的化简结果。',
+  scenario: '课堂小测：同类项合并后的标准形式。',
+  requirements: ['从选项中选出唯一正确答案', '答案以选项 id 提交（如 B）'],
+  constraints: ['评分只比对选项集合，顺序无关', '生成式模型不参与分数计算'],
+  functionSignature: '2(x+1) 化简后等于？',
+  rubric: [
+    {
+      id: 'correctness',
+      label: '答案正确性',
+      description: '选项与标准答案集合一致',
+      maxScore: 100
+    }
+  ],
+  demoVariants: [
+    {
+      id: 'correct',
+      label: '正确答案',
+      description: '选中与 2x+2 等价的选项 B。',
+      code: 'B'
+    },
+    {
+      id: 'wrong',
+      label: '错误答案',
+      description: '误选未展开形式。',
+      code: 'A'
+    }
+  ],
+  criteria: [
+    {
+      id: 'answer-match',
+      kind: 'answer_match',
+      label: '选项匹配',
+      dimensionId: 'correctness',
+      visibility: 'public',
+      weight: 100,
+      expected: 'B',
+      conceptId: 'kp.math.algebra.simplify',
+      passedMessage: '选项与标准答案一致',
+      failedMessage: '选项与标准答案不一致'
+    }
+  ],
+  runner: {
+    kind: 'choice',
+    correctOptionIds: ['B']
+  }
+}
+
+/** Demo: fill-blank chemistry formula name. */
+const fillBlankAtomAssignment: ExecutableAssignment = {
+  id: 'fill-blank-water-formula',
+  title: '填空题：水的化学式',
+  module: '化学 · 物质构成',
+  language: 'chemistry',
+  questionType: 'fill_blank',
+  estimatedMinutes: 3,
+  status: 'ready',
+  objective: '写出水分子的化学式。',
+  scenario: '初中化学入门：从名称写化学式。',
+  requirements: ['提交化学式字符串', '大小写按标准化学式书写'],
+  constraints: ['可接受多种等价写法（如 H2O / H₂O 的 ASCII 形式）'],
+  functionSignature: '水的化学式是 ______',
+  rubric: [
+    {
+      id: 'correctness',
+      label: '答案正确性',
+      description: '填空命中任一可接受答案',
+      maxScore: 100
+    }
+  ],
+  demoVariants: [
+    {
+      id: 'correct',
+      label: '正确答案',
+      description: '标准化学式 H2O。',
+      code: 'H2O'
+    },
+    {
+      id: 'wrong',
+      label: '错误答案',
+      description: '写成 HO 或 H2O2。',
+      code: 'H2O2'
+    }
+  ],
+  criteria: [
+    {
+      id: 'answer-match',
+      kind: 'answer_match',
+      label: '填空匹配',
+      dimensionId: 'correctness',
+      visibility: 'public',
+      weight: 100,
+      expected: 'H2O',
+      conceptId: 'kp.chemistry.matter.atom_structure',
+      passedMessage: '填空与可接受答案匹配',
+      failedMessage: '填空未命中可接受答案'
+    }
+  ],
+  runner: {
+    kind: 'fill_blank',
+    acceptedAnswers: ['H2O', 'h2o'],
+    caseSensitive: false
+  }
+}
+
+/** Demo: numeric physics with tolerance. */
+const numericOhmAssignment: ExecutableAssignment = {
+  id: 'numeric-ohm-law',
+  title: '数值题：欧姆定律求电阻',
+  module: '物理 · 电学',
+  language: 'physics',
+  questionType: 'numeric',
+  estimatedMinutes: 5,
+  status: 'ready',
+  objective: '已知 U=12 V，I=0.5 A，求电阻 R（欧姆）。',
+  scenario: '串联电路中一段导体两端电压与电流已知，求电阻。',
+  requirements: ['提交数值答案', '允许 ±0.01 的容差'],
+  constraints: ['单位为欧姆，只提交数值不写单位'],
+  functionSignature: 'R = U / I = ?',
+  rubric: [
+    {
+      id: 'correctness',
+      label: '数值正确性',
+      description: '在容差内与期望值一致',
+      maxScore: 100
+    }
+  ],
+  demoVariants: [
+    {
+      id: 'correct',
+      label: '正确答案',
+      description: '12 / 0.5 = 24。',
+      code: '24'
+    },
+    {
+      id: 'wrong',
+      label: '错误答案',
+      description: '误用 R = I / U。',
+      code: '0.0417'
+    }
+  ],
+  criteria: [
+    {
+      id: 'answer-match',
+      kind: 'answer_match',
+      label: '数值匹配',
+      dimensionId: 'correctness',
+      visibility: 'public',
+      weight: 100,
+      expected: '24',
+      conceptId: 'kp.physics.electricity.ohm_law',
+      passedMessage: '数值在容差范围内',
+      failedMessage: '数值超出容差或无法解析'
+    }
+  ],
+  runner: {
+    kind: 'numeric',
+    expected: 24,
+    tolerance: 0.01
+  }
+}
+
+/**
+ * Demo: CAS expression expansion.
+ * ExpressionValidator evidence ids: cas-final (+ optional cas-step-*).
+ */
+const expressionExpandAssignment: ExecutableAssignment = {
+  id: 'expression-perfect-square',
+  title: '表达式题：完全平方展开',
+  module: '数学 · 代数式',
+  language: 'math',
+  questionType: 'expression',
+  estimatedMinutes: 8,
+  status: 'ready',
+  objective: '将 (x+1)^2 展开为多项式（CAS 代数等价即可）。',
+  scenario: '课堂练习：不同书写形式只要代数等价均判对。',
+  requirements: [
+    '提交最终表达式（mathjs 友好形式）',
+    '可选多行步骤：每行一步，末行为最终答案'
+  ],
+  constraints: ['评分来自 CAS 等价检查，形式不同仍可满分', '超时或解析失败记 blocked'],
+  functionSignature: '(x+1)^2 → ?',
+  rubric: [
+    {
+      id: 'correctness',
+      label: '代数正确性',
+      description: '最终答案与期望表达式代数等价',
+      maxScore: 100
+    }
+  ],
+  demoVariants: [
+    {
+      id: 'correct',
+      label: '正确答案（展开式）',
+      description: 'x^2+2*x+1 与 (x+1)^2 等价。',
+      code: 'x^2+2*x+1'
+    },
+    {
+      id: 'wrong',
+      label: '错误答案',
+      description: '漏掉交叉项。',
+      code: 'x^2+1'
+    }
+  ],
+  criteria: [
+    {
+      id: 'cas-final',
+      kind: 'cas_check',
+      label: '最终答案 CAS 等价',
+      dimensionId: 'correctness',
+      visibility: 'public',
+      weight: 100,
+      expected: '(x+1)^2',
+      conceptId: 'kp.math.algebra.simplify',
+      passedMessage: '最终答案与期望代数等价',
+      failedMessage: '最终答案与期望不等价或无法校验'
+    }
+  ],
+  runner: {
+    kind: 'expression',
+    expectedLatex: '(x+1)^2'
+  }
+}
+
+/**
+ * Demo: chemical equation balancing.
+ * ChemEquationValidator always emits evidence id `cas_check`.
+ */
+const chemWaterAssignment: ExecutableAssignment = {
+  id: 'chem-water-formation',
+  title: '方程式题：氢气燃烧生成水',
+  module: '化学 · 化学反应',
+  language: 'chemistry',
+  questionType: 'chem_equation',
+  estimatedMinutes: 8,
+  status: 'ready',
+  objective: '写出并配平氢气与氧气反应生成水的化学方程式。',
+  scenario: '配平练习：允许整体倍数的等价配平。',
+  requirements: [
+    '提交完整方程式（支持 =、->、→）',
+    '原子守恒且化学计量比与标准答案约简后一致'
+  ],
+  constraints: ['未配平或物种错误记 failed；解析失败记 blocked'],
+  functionSignature: 'H2 + O2 → H2O （配平）',
+  rubric: [
+    {
+      id: 'correctness',
+      label: '配平正确性',
+      description: '质量守恒且系数比与标准答案一致',
+      maxScore: 100
+    }
+  ],
+  demoVariants: [
+    {
+      id: 'correct',
+      label: '正确配平',
+      description: '2H2+O2=2H2O',
+      code: '2H2+O2=2H2O'
+    },
+    {
+      id: 'wrong',
+      label: '未配平',
+      description: '漏写系数。',
+      code: 'H2+O2=H2O'
+    }
+  ],
+  criteria: [
+    {
+      id: 'cas_check',
+      kind: 'cas_check',
+      label: '方程式配平与比对',
+      dimensionId: 'correctness',
+      visibility: 'public',
+      weight: 100,
+      expected: '2H2+O2=2H2O',
+      conceptId: 'kp.chemistry.reaction.equation_balance',
+      passedMessage: '配平正确且系数比与标准答案一致',
+      failedMessage: '方程式未配平或与标准答案不一致'
+    }
+  ],
+  runner: {
+    kind: 'chem_equation',
+    expectedEquation: '2H2+O2=2H2O'
+  }
+}
+
+/**
+ * Demo: essay objective dimensions + AdvisoryLayer.
+ * Evidence ids from EssayRunner: word-count, paragraph-count, sentence-length,
+ * spelling-punctuation, structure-completeness, keyword-coverage.
+ */
+const essayPerseveranceAssignment: ExecutableAssignment = {
+  id: 'essay-perseverance-growth',
+  title: '作文题：论坚持与成长',
+  module: '语文 · 议论文写作',
+  language: 'chinese',
+  questionType: 'essay',
+  estimatedMinutes: 30,
+  status: 'ready',
+  objective: '围绕「坚持与成长」写一篇结构完整的议论文。',
+  scenario:
+    '客观维度（字数、段落、句长、标点、结构、关键词）入正式分；立意与论证质量由 AdvisoryLayer 给出建议，不入分。',
+  requirements: [
+    '字数不少于 120 字',
+    '至少 3 个自然段',
+    '覆盖关键词：坚持、成长',
+    '论点、支撑与结论清晰可辨'
+  ],
+  constraints: [
+    '主观建议带 llm_inference provenance，须教师确认',
+    '生成式模型不参与正式分数计算'
+  ],
+  functionSignature: '以「坚持与成长」为题',
+  rubric: [
+    {
+      id: 'structure',
+      label: '结构与篇幅',
+      description: '字数、段落、句长与结构完整性',
+      maxScore: 60
+    },
+    {
+      id: 'language',
+      label: '语言与关键词',
+      description: '标点/书写启发式与关键词覆盖',
+      maxScore: 40
+    }
+  ],
+  demoVariants: [
+    {
+      id: 'well-structured',
+      label: '结构完整范文',
+      description: '论点、支撑、结论齐备，覆盖关键词。',
+      code: '我认为坚持是成长路上最重要的品质。\n\n因为任何有价值的目标都不会一蹴而就，例如运动员每天重复枯燥的训练，研究表明长期坚持的人更容易突破瓶颈。数据显示，持续练习一万小时的人往往能达到专业水准，这正说明了坚持的力量。\n\n此外，坚持并不意味着盲目重复，而是在反思中不断调整方向。真正的成长来自于把坚持与思考结合起来。\n\n综上所述，唯有把坚持内化为习惯，我们才能在漫长的岁月里持续成长，成为更好的自己。'
+    },
+    {
+      id: 'missing-structure',
+      label: '结构缺失短文',
+      description: '字数不足，缺关键词与结构标记。',
+      code: '今天天气很好。我出去走了走，看到了很多花花草草。风吹过来很舒服，心情也变得不错。路边有很多人在散步。'
+    }
+  ],
+  criteria: [
+    {
+      id: 'word-count',
+      kind: 'structural_metric',
+      label: '字数',
+      dimensionId: 'structure',
+      visibility: 'public',
+      weight: 15,
+      conceptId: 'kp.chinese.writing.argumentative',
+      passedMessage: '字数达到要求',
+      failedMessage: '字数不在要求区间'
+    },
+    {
+      id: 'paragraph-count',
+      kind: 'structural_metric',
+      label: '段落数',
+      dimensionId: 'structure',
+      visibility: 'public',
+      weight: 15,
+      conceptId: 'kp.chinese.writing.argumentative',
+      passedMessage: '段落数达到最低要求',
+      failedMessage: '段落数不足'
+    },
+    {
+      id: 'sentence-length',
+      kind: 'structural_metric',
+      label: '平均句长',
+      dimensionId: 'structure',
+      visibility: 'public',
+      weight: 10,
+      conceptId: 'kp.chinese.writing.argumentative',
+      passedMessage: '平均句长适中',
+      failedMessage: '平均句长偏离合理区间'
+    },
+    {
+      id: 'structure-completeness',
+      kind: 'structural_metric',
+      label: '结构完整性',
+      dimensionId: 'structure',
+      visibility: 'public',
+      weight: 20,
+      conceptId: 'kp.chinese.writing.argumentative',
+      passedMessage: '论点、支撑与结论齐备',
+      failedMessage: '结构不完整'
+    },
+    {
+      id: 'spelling-punctuation',
+      kind: 'lint_result',
+      label: '标点与书写',
+      dimensionId: 'language',
+      visibility: 'public',
+      weight: 20,
+      conceptId: 'kp.chinese.language.characters',
+      passedMessage: '标点/书写启发式检查通过',
+      failedMessage: '标点或书写问题过多'
+    },
+    {
+      id: 'keyword-coverage',
+      kind: 'structural_metric',
+      label: '关键词覆盖',
+      dimensionId: 'language',
+      visibility: 'public',
+      weight: 20,
+      expected: '坚持,成长',
+      conceptId: 'kp.chinese.writing.argumentative',
+      passedMessage: '覆盖全部关键词',
+      failedMessage: '缺少要求的关键词'
+    }
+  ],
+  runner: {
+    kind: 'essay',
+    minWords: 120,
+    requiredKeywords: ['坚持', '成长']
+  }
+}
+
+/** Demo: English grammar choice (objective; reuses ChoiceValidator). */
+const choiceEnglishTenseAssignment: ExecutableAssignment = {
+  id: 'choice-english-present-perfect',
+  title: '选择题：现在完成时',
+  module: '英语 · 语法时态',
+  language: 'english',
+  questionType: 'choice',
+  estimatedMinutes: 4,
+  status: 'ready',
+  objective: '选择正确完成句子的时态形式。',
+  scenario: 'She _____ in Beijing since 2020.',
+  requirements: ['从选项中选出唯一正确答案', '答案以选项 id 提交（如 C）'],
+  constraints: ['评分只比对选项集合', '生成式模型不参与分数计算'],
+  functionSignature: 'She _____ in Beijing since 2020.',
+  rubric: [
+    {
+      id: 'correctness',
+      label: '答案正确性',
+      description: '选项与标准答案集合一致',
+      maxScore: 100
+    }
+  ],
+  demoVariants: [
+    {
+      id: 'correct',
+      label: '正确答案',
+      description: 'since + 时间点 → 现在完成时 has lived。',
+      code: 'C'
+    },
+    {
+      id: 'wrong',
+      label: '错误答案',
+      description: '误选一般过去时。',
+      code: 'A'
+    }
+  ],
+  criteria: [
+    {
+      id: 'answer-match',
+      kind: 'answer_match',
+      label: '选项匹配',
+      dimensionId: 'correctness',
+      visibility: 'public',
+      weight: 100,
+      expected: 'C',
+      conceptId: 'kp.english.grammar.tenses',
+      passedMessage: '选项与标准答案一致',
+      failedMessage: '选项与标准答案不一致'
+    }
+  ],
+  runner: {
+    kind: 'choice',
+    correctOptionIds: ['C']
+  }
+}
+
+/** Demo: Biology fill-blank (objective; reuses ObjectiveValidator fill_blank). */
+const fillBlankBiologyCellAssignment: ExecutableAssignment = {
+  id: 'fill-blank-biology-mitochondria',
+  title: '填空题：线粒体功能',
+  module: '生物 · 细胞结构',
+  language: 'biology',
+  questionType: 'fill_blank',
+  estimatedMinutes: 3,
+  status: 'ready',
+  objective: '写出细胞中主要负责有氧呼吸供能的细胞器名称。',
+  scenario: '初中/高中衔接：细胞器与功能对应。',
+  requirements: ['提交细胞器中文名称', '可接受常见别称'],
+  constraints: ['评分命中任一可接受答案即可'],
+  functionSignature: '细胞的「动力工厂」是 ______',
+  rubric: [
+    {
+      id: 'correctness',
+      label: '答案正确性',
+      description: '填空命中任一可接受答案',
+      maxScore: 100
+    }
+  ],
+  demoVariants: [
+    {
+      id: 'correct',
+      label: '正确答案',
+      description: '线粒体。',
+      code: '线粒体'
+    },
+    {
+      id: 'wrong',
+      label: '错误答案',
+      description: '误写叶绿体。',
+      code: '叶绿体'
+    }
+  ],
+  criteria: [
+    {
+      id: 'answer-match',
+      kind: 'answer_match',
+      label: '填空匹配',
+      dimensionId: 'correctness',
+      visibility: 'public',
+      weight: 100,
+      expected: '线粒体',
+      conceptId: 'kp.biology.cell.structure',
+      passedMessage: '填空与可接受答案匹配',
+      failedMessage: '填空未命中可接受答案'
+    }
+  ],
+  runner: {
+    kind: 'fill_blank',
+    acceptedAnswers: ['线粒体', 'mitochondria', 'Mitochondria'],
+    caseSensitive: false
+  }
+}
+
+/** Demo: Politics objective choice. */
+const choicePoliticsRightsAssignment: ExecutableAssignment = {
+  id: 'choice-politics-basic-rights',
+  title: '选择题：公民基本权利',
+  module: '政治 · 法律基础',
+  language: 'politics',
+  questionType: 'choice',
+  estimatedMinutes: 4,
+  status: 'ready',
+  objective: '识别宪法保障的公民基本权利范畴。',
+  scenario: '初中道德与法治 / 高中思想政治入门小测。',
+  requirements: ['从选项中选出唯一正确答案'],
+  constraints: ['评分只比对选项集合'],
+  functionSignature: '下列哪一项属于公民的基本政治权利？',
+  rubric: [
+    {
+      id: 'correctness',
+      label: '答案正确性',
+      description: '选项与标准答案集合一致',
+      maxScore: 100
+    }
+  ],
+  demoVariants: [
+    {
+      id: 'correct',
+      label: '正确答案',
+      description: '选举权与被选举权。',
+      code: 'B'
+    },
+    {
+      id: 'wrong',
+      label: '错误答案',
+      description: '误选民事合同自由（非基本政治权利表述）。',
+      code: 'A'
+    }
+  ],
+  criteria: [
+    {
+      id: 'answer-match',
+      kind: 'answer_match',
+      label: '选项匹配',
+      dimensionId: 'correctness',
+      visibility: 'public',
+      weight: 100,
+      expected: 'B',
+      conceptId: 'kp.politics.law.basic_rights',
+      passedMessage: '选项与标准答案一致',
+      failedMessage: '选项与标准答案不一致'
+    }
+  ],
+  runner: {
+    kind: 'choice',
+    correctOptionIds: ['B']
+  }
+}
+
+/** Demo: History objective choice. */
+const choiceHistoryOpiumAssignment: ExecutableAssignment = {
+  id: 'choice-history-opium-war',
+  title: '选择题：鸦片战争',
+  module: '历史 · 中国近代史',
+  language: 'history',
+  questionType: 'choice',
+  estimatedMinutes: 4,
+  status: 'ready',
+  objective: '识别鸦片战争的直接导火索。',
+  scenario: '中国近代史开端知识点检测。',
+  requirements: ['从选项中选出唯一正确答案'],
+  constraints: ['评分只比对选项集合'],
+  functionSignature: '鸦片战争的直接导火索是？',
+  rubric: [
+    {
+      id: 'correctness',
+      label: '答案正确性',
+      description: '选项与标准答案集合一致',
+      maxScore: 100
+    }
+  ],
+  demoVariants: [
+    {
+      id: 'correct',
+      label: '正确答案',
+      description: '虎门销烟。',
+      code: 'A'
+    },
+    {
+      id: 'wrong',
+      label: '错误答案',
+      description: '误选洋务运动。',
+      code: 'C'
+    }
+  ],
+  criteria: [
+    {
+      id: 'answer-match',
+      kind: 'answer_match',
+      label: '选项匹配',
+      dimensionId: 'correctness',
+      visibility: 'public',
+      weight: 100,
+      expected: 'A',
+      conceptId: 'kp.history.modern_china.opium_war',
+      passedMessage: '选项与标准答案一致',
+      failedMessage: '选项与标准答案不一致'
+    }
+  ],
+  runner: {
+    kind: 'choice',
+    correctOptionIds: ['A']
+  }
+}
+
+/** Demo: Geography numeric (climate latitude band). */
+const numericGeographyLatitudeAssignment: ExecutableAssignment = {
+  id: 'numeric-geography-tropic',
+  title: '数值题：北回归线纬度',
+  module: '地理 · 地球运动与气候',
+  language: 'geography',
+  questionType: 'numeric',
+  estimatedMinutes: 4,
+  status: 'ready',
+  objective: '写出北回归线的大致纬度值（度）。',
+  scenario: '自然地理：五带划分与回归线。',
+  requirements: ['提交数值答案', '允许 ±0.5 的容差'],
+  constraints: ['只提交数值，不写单位「度」'],
+  functionSignature: '北回归线纬度 ≈ ?°',
+  rubric: [
+    {
+      id: 'correctness',
+      label: '数值正确性',
+      description: '在容差内与期望值一致',
+      maxScore: 100
+    }
+  ],
+  demoVariants: [
+    {
+      id: 'correct',
+      label: '正确答案',
+      description: '约 23.5°N。',
+      code: '23.5'
+    },
+    {
+      id: 'wrong',
+      label: '错误答案',
+      description: '误记为赤道 0°。',
+      code: '0'
+    }
+  ],
+  criteria: [
+    {
+      id: 'answer-match',
+      kind: 'answer_match',
+      label: '数值匹配',
+      dimensionId: 'correctness',
+      visibility: 'public',
+      weight: 100,
+      expected: '23.5',
+      conceptId: 'kp.geography.physical.climate',
+      passedMessage: '数值在容差范围内',
+      failedMessage: '数值超出容差或无法解析'
+    }
+  ],
+  runner: {
+    kind: 'numeric',
+    expected: 23.5,
+    tolerance: 0.5
+  }
+}
+
+/**
+ * Demo: History discourse (essay type). Objective structural metrics enter the
+ * formal score; thesis quality stays in AdvisoryLayer only (ADR-0008).
+ */
+const essayHistorySourceAssignment: ExecutableAssignment = {
+  id: 'essay-history-source-analysis',
+  title: '论述题：史料实证与鸦片战争',
+  module: '历史 · 史料方法',
+  language: 'history',
+  questionType: 'essay',
+  estimatedMinutes: 25,
+  status: 'ready',
+  objective: '结合史料实证方法，简述鸦片战争对中国近代社会转型的影响。',
+  scenario:
+    '客观维度（字数、段落、关键词）入正式分；立意与论证深度由 AdvisoryLayer 给出建议，不入分，须教师确认。',
+  requirements: [
+    '字数不少于 100 字',
+    '至少 2 个自然段',
+    '覆盖关键词：史料、鸦片战争'
+  ],
+  constraints: [
+    '主观建议带 llm_inference provenance，须教师确认',
+    '生成式模型不参与正式分数计算'
+  ],
+  functionSignature: '以史料实证视角论述鸦片战争的影响',
+  rubric: [
+    {
+      id: 'structure',
+      label: '结构与篇幅',
+      description: '字数、段落与结构完整性',
+      maxScore: 60
+    },
+    {
+      id: 'language',
+      label: '关键词覆盖',
+      description: '史料方法相关关键词',
+      maxScore: 40
+    }
+  ],
+  demoVariants: [
+    {
+      id: 'well-structured',
+      label: '结构完整论述',
+      description: '覆盖关键词，有论点与结论。',
+      code: '我认为运用史料实证方法研究鸦片战争，能够更准确地把握近代中国的社会转型。\n\n例如，对照中英双方档案与海关贸易数据可以发现，战争前后通商口岸的开放改变了传统经济格局。史料表明，条约体系逐步侵蚀了原有的朝贡秩序。\n\n综上所述，只有把鸦片战争放在多源史料互证的框架下，才能理解它作为近代史开端的深刻影响。'
+    },
+    {
+      id: 'missing-structure',
+      label: '结构缺失短文',
+      description: '字数不足且缺关键词。',
+      code: '很久以前发生过战争。人们打了很久。后来签了条约。'
+    }
+  ],
+  criteria: [
+    {
+      id: 'word-count',
+      kind: 'structural_metric',
+      label: '字数',
+      dimensionId: 'structure',
+      visibility: 'public',
+      weight: 25,
+      conceptId: 'kp.history.methodology.source_analysis',
+      passedMessage: '字数达到要求',
+      failedMessage: '字数不在要求区间'
+    },
+    {
+      id: 'paragraph-count',
+      kind: 'structural_metric',
+      label: '段落数',
+      dimensionId: 'structure',
+      visibility: 'public',
+      weight: 20,
+      conceptId: 'kp.history.methodology.source_analysis',
+      passedMessage: '段落数达到最低要求',
+      failedMessage: '段落数不足'
+    },
+    {
+      id: 'structure-completeness',
+      kind: 'structural_metric',
+      label: '结构完整性',
+      dimensionId: 'structure',
+      visibility: 'public',
+      weight: 15,
+      conceptId: 'kp.history.methodology.source_analysis',
+      passedMessage: '论点、支撑与结论齐备',
+      failedMessage: '结构不完整'
+    },
+    {
+      id: 'keyword-coverage',
+      kind: 'structural_metric',
+      label: '关键词覆盖',
+      dimensionId: 'language',
+      visibility: 'public',
+      weight: 40,
+      expected: '史料,鸦片战争',
+      conceptId: 'kp.history.modern_china.opium_war',
+      passedMessage: '覆盖全部关键词',
+      failedMessage: '缺少要求的关键词'
+    }
+  ],
+  runner: {
+    kind: 'essay',
+    minWords: 100,
+    requiredKeywords: ['史料', '鸦片战争']
+  }
+}
+
+/**
+ * Demo: Politics discourse (essay type). Same ADR-0008 split: objective
+ * evidence scores; AdvisoryLayer never contributes formal points.
+ */
+const essayPoliticsMoralityAssignment: ExecutableAssignment = {
+  id: 'essay-politics-social-rules',
+  title: '论述题：社会规则与个人成长',
+  module: '政治 · 道德与法治',
+  language: 'politics',
+  questionType: 'essay',
+  estimatedMinutes: 25,
+  status: 'ready',
+  objective: '论述遵守社会规则对个人成长的意义。',
+  scenario:
+    '客观维度入正式分；价值判断与论证质量仅由 AdvisoryLayer 建议，不入分。',
+  requirements: [
+    '字数不少于 100 字',
+    '至少 2 个自然段',
+    '覆盖关键词：规则、成长'
+  ],
+  constraints: [
+    '主观建议带 llm_inference provenance，须教师确认',
+    '生成式模型不参与正式分数计算'
+  ],
+  functionSignature: '论述社会规则与个人成长',
+  rubric: [
+    {
+      id: 'structure',
+      label: '结构与篇幅',
+      description: '字数、段落与结构完整性',
+      maxScore: 60
+    },
+    {
+      id: 'language',
+      label: '关键词覆盖',
+      description: '规则与成长相关关键词',
+      maxScore: 40
+    }
+  ],
+  demoVariants: [
+    {
+      id: 'well-structured',
+      label: '结构完整论述',
+      description: '覆盖关键词，有论点与结论。',
+      code: '我认为遵守社会规则是个人成长的重要基础。\n\n因为规则为每个人划定了权利与义务的边界，例如交通规则保障出行安全，学习纪律帮助形成自律习惯。只有在规则之内行动，成长才是可持续的。\n\n综上所述，规则不是束缚，而是个人在集体中实现更好成长的轨道。'
+    },
+    {
+      id: 'missing-structure',
+      label: '结构缺失短文',
+      description: '字数不足且缺关键词。',
+      code: '做人要听话。不要捣乱。好好学习。'
+    }
+  ],
+  criteria: [
+    {
+      id: 'word-count',
+      kind: 'structural_metric',
+      label: '字数',
+      dimensionId: 'structure',
+      visibility: 'public',
+      weight: 25,
+      conceptId: 'kp.politics.morality.social_rules',
+      passedMessage: '字数达到要求',
+      failedMessage: '字数不在要求区间'
+    },
+    {
+      id: 'paragraph-count',
+      kind: 'structural_metric',
+      label: '段落数',
+      dimensionId: 'structure',
+      visibility: 'public',
+      weight: 20,
+      conceptId: 'kp.politics.morality.social_rules',
+      passedMessage: '段落数达到最低要求',
+      failedMessage: '段落数不足'
+    },
+    {
+      id: 'structure-completeness',
+      kind: 'structural_metric',
+      label: '结构完整性',
+      dimensionId: 'structure',
+      visibility: 'public',
+      weight: 15,
+      conceptId: 'kp.politics.morality.self_growth',
+      passedMessage: '论点、支撑与结论齐备',
+      failedMessage: '结构不完整'
+    },
+    {
+      id: 'keyword-coverage',
+      kind: 'structural_metric',
+      label: '关键词覆盖',
+      dimensionId: 'language',
+      visibility: 'public',
+      weight: 40,
+      expected: '规则,成长',
+      conceptId: 'kp.politics.morality.social_rules',
+      passedMessage: '覆盖全部关键词',
+      failedMessage: '缺少要求的关键词'
+    }
+  ],
+  runner: {
+    kind: 'essay',
+    minWords: 100,
+    requiredKeywords: ['规则', '成长']
+  }
+}
+
+const allAssignments: readonly ExecutableAssignment[] = [
+  pythonAverageAssignment,
+  choiceSimplifyAssignment,
+  fillBlankAtomAssignment,
+  numericOhmAssignment,
+  expressionExpandAssignment,
+  chemWaterAssignment,
+  essayPerseveranceAssignment,
+  choiceEnglishTenseAssignment,
+  fillBlankBiologyCellAssignment,
+  choicePoliticsRightsAssignment,
+  choiceHistoryOpiumAssignment,
+  numericGeographyLatitudeAssignment,
+  essayHistorySourceAssignment,
+  essayPoliticsMoralityAssignment
+]
+
 class InMemoryAssignmentRegistry implements AssignmentRegistry {
-  private readonly assignments = new Map<string, ExecutableAssignment>([
-    [pythonAverageAssignment.id, pythonAverageAssignment]
-  ])
+  private readonly assignments = new Map<string, ExecutableAssignment>(
+    allAssignments.map((item) => [item.id, item])
+  )
 
   public list(): AssignmentSummary[] {
     return [...this.assignments.values()].map(
-      ({ id, title, module, language, estimatedMinutes, status }) => ({
+      ({ id, title, module, language, questionType, estimatedMinutes, status }) => ({
         id,
         title,
         module,
         language,
+        questionType,
         estimatedMinutes,
         status
       })

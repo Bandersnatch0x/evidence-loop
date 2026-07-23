@@ -23,6 +23,7 @@ import {
 } from './auth/MockSessionProvider'
 import type { SessionProvider, SessionUser } from './auth/SessionProvider'
 import { isMultimodalEnabled } from './config/features'
+import { AdvisoryService } from './advisory/AdvisoryService'
 import { createAssignmentRegistry } from './data/assignments'
 import { createCohortSnapshot } from './data/cohort'
 import { createKnowledgeBase } from './data/knowledge'
@@ -48,6 +49,10 @@ import {
   type DockerPythonRunnerOptions
 } from './runner/DockerPythonRunner'
 import { PythonSubprocessRunner } from './runner/PythonSubprocessRunner'
+import {
+  createRunnerRegistry,
+  type RunnerRegistry
+} from './runner/RunnerRegistry'
 import type { CodeRunner } from './runner/types'
 import { JsonEvaluationStore } from './store/EvaluationStore'
 
@@ -103,7 +108,13 @@ interface ApiContext {
 interface EvidenceLoopServerOptions {
   dataFile?: string
   vite?: boolean
+  /**
+   * Code-question runner. Wrapped into a RunnerRegistry when `runners` is omitted.
+   * Tests may inject a stub CodeRunner; production uses createConfiguredRunner().
+   */
   runner?: CodeRunner
+  /** Full multi-type registry. When set, takes precedence over `runner`. */
+  runners?: RunnerRegistry
   knowledgeStore?: KnowledgeStore
   knowledgeSeedPath?: string
   auditStore?: AuditStore
@@ -132,7 +143,9 @@ export async function createEvidenceLoopServer(
   const store = new JsonEvaluationStore(
     options.dataFile ?? join(projectRoot, '.data', 'evaluations.json')
   )
-  const runner = options.runner ?? createConfiguredRunner()
+  const runners =
+    options.runners ??
+    createRunnerRegistry(options.runner ?? createConfiguredRunner())
   const knowledge =
     options.knowledgeStore ??
     new JsonKnowledgeStore({ seedPath: options.knowledgeSeedPath })
@@ -163,13 +176,13 @@ export async function createEvidenceLoopServer(
 
   let vite: ViteDevServer | undefined
   try {
-    await runner.warm?.()
+    await runners.warm()
     // Warm the knowledge cache so misconfigured seeds fail fast at startup
     // rather than on the first API hit.
     await knowledge.getGraph()
     vite = options.vite ? await createViteMiddleware() : undefined
   } catch (error) {
-    await runner.dispose?.()
+    await runners.dispose()
     await audit.close().catch(() => undefined)
     memory.close()
     throw error
@@ -187,10 +200,12 @@ export async function createEvidenceLoopServer(
     agent: new EvaluationAgent({
       assignments,
       knowledge: createKnowledgeBase(),
-      runner,
-      feedback: createFeedbackGenerator()
+      runners,
+      feedback: createFeedbackGenerator(),
+      // Essay subjective coaching only — never folds into score (ADR-0008).
+      advisory: new AdvisoryService()
     }),
-    runnerName: runner.name ?? 'custom',
+    runnerName: runners.displayName(),
     knowledge,
     audit,
     sessions,
@@ -202,8 +217,8 @@ export async function createEvidenceLoopServer(
     void routeRequest(request, response, context, vite)
   })
   server.once('close', () => {
-    void runner.dispose?.().catch((error: unknown) => {
-      console.error('Failed to dispose code runner:', error)
+    void runners.dispose().catch((error: unknown) => {
+      console.error('Failed to dispose runner registry:', error)
     })
     void audit.close().catch((error: unknown) => {
       console.error('Failed to close audit store:', error)
@@ -366,6 +381,7 @@ async function handleApi(
       title: assignment.title,
       module: assignment.module,
       language: assignment.language,
+      questionType: assignment.questionType,
       estimatedMinutes: assignment.estimatedMinutes,
       status: assignment.status,
       objective: assignment.objective,
