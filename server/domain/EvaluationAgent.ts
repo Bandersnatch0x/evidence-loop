@@ -6,6 +6,7 @@ import type {
   EvaluationResult,
   EvidenceItem,
   MasterySignal,
+  Provenance,
   TraceStep
 } from '../../shared/contracts'
 import type {
@@ -101,8 +102,15 @@ export class EvaluationAgent {
         })
     )
 
+    const evaluationId = `eval_${randomUUID()}`
+    const provenance: Provenance = {
+      kind: 'evidence',
+      evidenceIds: evidence.map((item) => item.id),
+      algorithm: 'simple.v1'
+    }
+
     return {
-      id: `eval_${randomUUID()}`,
+      id: evaluationId,
       assignmentId: assignment.id,
       attempt: (previous?.attempt ?? 0) + 1,
       createdAt: new Date().toISOString(),
@@ -117,7 +125,8 @@ export class EvaluationAgent {
       intervention,
       trace,
       mastery: this.createMastery(assignment, evidence),
-      feedbackSource: feedback.source
+      feedbackSource: feedback.source,
+      provenance
     }
   }
 
@@ -289,7 +298,12 @@ export class EvaluationAgent {
       trace,
       mastery: [],
       feedbackSource: 'local-policy',
-      rejectionReason: runnerResult.reason
+      rejectionReason: runnerResult.reason,
+      provenance: {
+        kind: 'evidence',
+        evidenceIds: [],
+        algorithm: 'simple.v1'
+      }
     }
   }
 

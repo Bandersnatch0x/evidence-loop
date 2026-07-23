@@ -92,6 +92,28 @@ export interface MasterySignal {
   evidenceCount: number
 }
 
+/**
+ * Provenance of a learner fact (ADR-0006). Required — never optional.
+ * Evidence-backed facts must carry evidenceIds + algorithm for reproducibility.
+ */
+export type Provenance =
+  | { kind: 'evidence'; evidenceIds: string[]; algorithm: string }
+  | {
+      kind: 'llm_inference'
+      sourceMessages: string[]
+      model: string
+      extractedAt: string
+      confidence?: number
+    }
+  | { kind: 'learner_self_report'; sessionId: string }
+  | { kind: 'teacher_annotation'; teacherId: string; note: string }
+
+export const DEFAULT_EVIDENCE_PROVENANCE: Provenance = {
+  kind: 'evidence',
+  evidenceIds: [],
+  algorithm: 'simple.v1'
+}
+
 export interface EvaluationResult {
   id: string
   assignmentId: string
@@ -110,6 +132,74 @@ export interface EvaluationResult {
   mastery: MasterySignal[]
   feedbackSource: 'local-policy' | 'llm'
   rejectionReason?: string
+  /** Demo ownership stamp from the mock session (not real auth). */
+  studentId?: string
+  /** Required provenance tag (ADR-0006). Migrated rows default to evidence. */
+  provenance: Provenance
+}
+
+/** Weighted evidence atom consumed by MasteryProfile pure functions. */
+export interface MasteryEvidence {
+  id: string
+  score: number
+  weight: number
+  kpId: string
+  createdAt: string
+}
+
+export interface MasterySnapshot {
+  score: number
+  evidenceIds: string[]
+  computedAt: string
+  algorithmVersion: string
+}
+
+export type MasteryProfileMap = Record<string, MasterySnapshot>
+
+/**
+ * Next-intervention suggestion (ADR-0007 §4 dependency-chain diagnosis).
+ *
+ * Given a knowledge point the learner is stuck on (`weakKp`), the service
+ * walks the prerequisite chain and points at the earliest unmastered
+ * prerequisite (`targetKp`). `chain` is the topological prerequisite path
+ * that was inspected, most foundational first.
+ */
+export interface InterventionSuggestion {
+  studentId: string
+  weakKp: string
+  targetKp: string
+  chain: string[]
+}
+
+export interface MasteryTimelineEntry {
+  id: number
+  studentId: string
+  kpId: string
+  score: number
+  evidenceIds: string[]
+  computedAt: string
+  algorithmVersion: string
+}
+
+/**
+ * FSRS-derived scheduling parameters. Named SchedulingState (not MasteryLevel)
+ * so it cannot be confused with MasteryProfile.masteryLevel (ADR-0007).
+ */
+export interface SchedulingState {
+  stability: number
+  difficulty: number
+  dueAt: string
+  state: 'new' | 'learning' | 'review' | 'relearning'
+  reps: number
+  lapses: number
+  lastReviewAt?: string
+}
+
+export interface ReviewCard {
+  id: string
+  studentId: string
+  kpId: string
+  scheduling: SchedulingState
 }
 
 export interface EvaluateRequest {
@@ -126,6 +216,27 @@ export interface EvaluationHistoryItem {
   score: number
   scoreDelta?: number
   status: EvaluationStatus
+  studentId?: string
+}
+
+/** Demo role used by the mock multi-tenant access control layer. */
+export type DemoRole = 'student' | 'teacher' | 'admin'
+
+export interface AuditLogItem {
+  id: string
+  sequence: number
+  timestamp: string
+  actorRole: string
+  actorId: string | null
+  action: string
+  resourceType: string
+  resourceId: string | null
+  studentId: string | null
+  containerId: string | null
+  result: string | null
+  /** Interaction modality when present (ADR-0005 §7). */
+  modality?: 'text' | 'voice' | null
+  metadata?: Record<string, string | number | boolean | null> | null
 }
 
 export interface CohortLearner {
@@ -152,4 +263,22 @@ export interface CohortSnapshot {
 export interface ApiError {
   error: string
   details?: string[]
+}
+
+export interface KnowledgePoint {
+  id: string
+  name: string
+  parentId?: string
+  weight: number
+}
+
+export interface KpPrerequisite {
+  kpId: string
+  prereqId: string
+  strength: number
+}
+
+export interface KnowledgeGraph {
+  points: KnowledgePoint[]
+  edges: KpPrerequisite[]
 }

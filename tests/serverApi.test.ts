@@ -2,6 +2,7 @@
 
 import type { AddressInfo } from 'node:net'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { AuditStore } from '../server/audit/AuditStore'
 import { createEvidenceLoopServer } from '../server/index'
 
 describe('evaluation HTTP API', () => {
@@ -9,7 +10,13 @@ describe('evaluation HTTP API', () => {
   let baseUrl: string
 
   beforeEach(async () => {
-    server = await createEvidenceLoopServer({ dataFile: ':memory:' })
+    server = await createEvidenceLoopServer({
+      dataFile: ':memory:',
+      auditStore: new AuditStore({
+        dbPath: ':memory:',
+        hmacSecret: 'server-api-test-hmac'
+      })
+    })
     await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve))
     const address = server.address() as AddressInfo
     baseUrl = `http://127.0.0.1:${String(address.port)}`
@@ -18,6 +25,19 @@ describe('evaluation HTTP API', () => {
   afterEach(async () => {
     await new Promise<void>((resolve, reject) => {
       server.close((error) => error ? reject(error) : resolve())
+    })
+  })
+
+  it('reports the active code runner in the health response', async () => {
+    const response = await fetch(`${baseUrl}/api/health`)
+
+    expect(response.status).toBe(200)
+    expect(response.headers.get('x-security-warning')).toBe(
+      'Demo environment - no authentication'
+    )
+    await expect(response.json()).resolves.toMatchObject({
+      status: 'ok',
+      runner: 'python-subprocess'
     })
   })
 

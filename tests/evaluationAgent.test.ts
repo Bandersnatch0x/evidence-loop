@@ -140,7 +140,12 @@ describe('EvaluationAgent', () => {
         diagnoses: [],
         trace: [],
         mastery: [],
-        feedbackSource: 'local-policy'
+        feedbackSource: 'local-policy',
+        provenance: {
+          kind: 'evidence',
+          evidenceIds: [],
+          algorithm: 'simple.v1'
+        }
       }
     )
 

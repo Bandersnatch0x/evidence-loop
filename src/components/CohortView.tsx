@@ -8,6 +8,10 @@ import {
   UsersRound
 } from 'lucide-react'
 import type { CohortLearner, CohortSnapshot } from '../../shared/contracts'
+import { CohortMultimodalUsage } from './CohortMultimodalUsage'
+
+/** Demo cohort id used by MockSessionProvider teacher sessions. */
+const DEMO_CLASS_ID = 'july-cohort'
 
 interface CohortViewProps {
   cohort?: CohortSnapshot
@@ -99,9 +103,11 @@ export function CohortView({ cohort, isLoading }: CohortViewProps) {
         </div>
       </section>
 
+      <CohortMultimodalUsage classId={DEMO_CLASS_ID} />
+
       <aside className="teacher-boundary">
         <CircleAlert size={17} />
-        <p><strong>教师责任边界：</strong>队列只提供基于任务证据的关注建议，不推断能力以外的个人特征，也不自动写入正式成绩。</p>
+        <p><strong>教师责任边界：</strong>队列只提供基于任务证据的关注建议，不推断能力以外的个人特征，也不自动写入正式成绩。语音辅导面板仅显示使用次数，不展示转写内容。</p>
       </aside>
     </div>
   )

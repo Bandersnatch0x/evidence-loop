@@ -8,9 +8,13 @@ import type {
   EvaluationResult
 } from '../shared/contracts'
 import { App } from '../src/App'
+import { isMultimodalEnabled } from '../src/config/features'
 import * as api from '../src/lib/api'
 
 vi.mock('../src/lib/api')
+vi.mock('../src/config/features', () => ({
+  isMultimodalEnabled: vi.fn()
+}))
 
 const assignment: Assignment = {
   id: 'python-average',
@@ -140,11 +144,20 @@ const evaluation: EvaluationResult = {
     }
   ],
   mastery: [],
-  feedbackSource: 'local-policy'
+  feedbackSource: 'local-policy',
+  provenance: {
+    kind: 'evidence',
+    evidenceIds: ['empty-input'],
+    algorithm: 'simple.v1'
+  }
 }
 
 describe('App', () => {
   beforeEach(() => {
+    window.localStorage.clear()
+    vi.mocked(isMultimodalEnabled).mockReturnValue(false)
+    vi.mocked(api.getActiveDemoRole).mockReturnValue('student')
+    vi.mocked(api.setActiveDemoRole).mockImplementation(() => undefined)
     vi.mocked(api.listAssignments).mockResolvedValue([
       assignment satisfies AssignmentSummary
     ])
@@ -187,7 +200,15 @@ describe('App', () => {
 
   it('keeps a successful evaluation when secondary refreshes fail', async () => {
     const user = userEvent.setup()
+    // Teacher role also refreshes cohort after evaluate.
+    vi.mocked(api.getActiveDemoRole).mockReturnValue('teacher')
     render(<App />)
+
+    // Switch the visible role control to teacher so App state matches.
+    await user.selectOptions(
+      await screen.findByLabelText('演示角色切换'),
+      'teacher'
+    )
 
     expect(
       await screen.findByRole('heading', { name: assignment.title })
@@ -206,5 +227,43 @@ describe('App', () => {
     expect(screen.getByRole('alert')).toHaveTextContent(
       '本轮评估已完成，但历史记录和班级学情暂未同步'
     )
+  })
+
+  it('does not mount VoiceCompanion or OverlayLayer when multimodal flag is off', async () => {
+    vi.mocked(isMultimodalEnabled).mockReturnValue(false)
+    render(<App />)
+
+    expect(
+      await screen.findByRole('heading', { name: assignment.title })
+    ).toBeInTheDocument()
+
+    // ADR-0005 §8: flag off must leave the pre-Phase-1 workspace stable.
+    expect(screen.queryByRole('button', { name: '按住说话' })).toBeNull()
+    expect(document.querySelector('.overlay-layer')).toBeNull()
+    expect(document.querySelector('.voice-companion')).toBeNull()
+    expect(document.querySelector('.math-problem-slot')).toBeNull()
+  })
+
+  it('renders the demo role switcher defaulting to student', async () => {
+    render(<App />)
+    const roleSelect = await screen.findByLabelText('演示角色切换')
+    expect(roleSelect).toHaveValue('student')
+  })
+
+  it('hides the voice companion while the multimodal flag is off', async () => {
+    vi.mocked(isMultimodalEnabled).mockReturnValue(false)
+    render(<App />)
+
+    await screen.findByRole('heading', { name: assignment.title })
+    expect(screen.queryByRole('button', { name: '按住说话' })).toBeNull()
+  })
+
+  it('mounts the voice companion when the multimodal flag is on', async () => {
+    vi.mocked(isMultimodalEnabled).mockReturnValue(true)
+    render(<App />)
+
+    expect(
+      await screen.findByRole('button', { name: '按住说话' })
+    ).toBeInTheDocument()
   })
 })

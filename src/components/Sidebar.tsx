@@ -1,30 +1,55 @@
 import {
   BookOpenCheck,
+  CalendarClock,
   GraduationCap,
+  Grid3x3,
   Menu,
   ShieldCheck,
+  Target,
   UsersRound,
   X
 } from 'lucide-react'
+import type { DemoRole } from '../../shared/contracts'
+import { DEMO_ROLE_OPTIONS } from '../lib/demoRole'
 
-export type AppView = 'workspace' | 'cohort' | 'transparency'
+export type AppView =
+  | 'workspace'
+  | 'mastery'
+  | 'review'
+  | 'cohort'
+  | 'cohort-mastery'
+  | 'transparency'
 
 interface SidebarProps {
   activeView: AppView
   isOpen: boolean
+  demoRole: DemoRole
   onNavigate: (view: AppView) => void
+  onDemoRoleChange: (role: DemoRole) => void
   onClose: () => void
+}
+
+interface NavItem {
+  id: AppView
+  label: string
+  icon: typeof BookOpenCheck
+  /** Roles allowed to see the tab; omit for all roles. */
+  roles?: DemoRole[]
 }
 
 const navigation = [
   { id: 'workspace', label: '学习工作台', icon: BookOpenCheck },
-  { id: 'cohort', label: '班级学情', icon: UsersRound },
+  { id: 'mastery', label: '我的掌握度', icon: Target, roles: ['student'] },
+  { id: 'review', label: '今日复习', icon: CalendarClock, roles: ['student'] },
+  { id: 'cohort', label: '班级学情', icon: UsersRound, roles: ['teacher', 'admin'] },
+  {
+    id: 'cohort-mastery',
+    label: '班级掌握度矩阵',
+    icon: Grid3x3,
+    roles: ['teacher', 'admin']
+  },
   { id: 'transparency', label: '项目透明度', icon: ShieldCheck }
-] satisfies Array<{
-  id: AppView
-  label: string
-  icon: typeof BookOpenCheck
-}>
+] satisfies NavItem[]
 
 export function MobileHeader({ onOpen }: { onOpen: () => void }) {
   return (
@@ -49,7 +74,9 @@ export function MobileHeader({ onOpen }: { onOpen: () => void }) {
 export function Sidebar({
   activeView,
   isOpen,
+  demoRole,
   onNavigate,
+  onDemoRoleChange,
   onClose
 }: SidebarProps) {
   const navigate = (view: AppView) => {
@@ -90,8 +117,35 @@ export function Sidebar({
           AI+教育赛道 Demo
         </div>
 
+        <label className="role-switcher">
+          <span>演示角色</span>
+          <select
+            aria-label="演示角色切换"
+            value={demoRole}
+            onChange={(event) => {
+              const next = event.target.value
+              if (next === 'student' || next === 'teacher' || next === 'admin') {
+                onDemoRoleChange(next)
+              }
+            }}
+          >
+            {DEMO_ROLE_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+          <small>Demo 假多租户 · 无真实身份认证</small>
+        </label>
+
         <nav className="primary-nav" aria-label="主导航">
-          {navigation.map(({ id, label, icon: Icon }) => (
+          {navigation
+            .filter((item) =>
+              item.roles === undefined
+                ? true
+                : item.roles.some((role) => role === demoRole)
+            )
+            .map(({ id, label, icon: Icon }) => (
             <button
               key={id}
               type="button"

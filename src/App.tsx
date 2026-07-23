@@ -3,28 +3,36 @@ import { AlertTriangle, RefreshCw } from 'lucide-react'
 import type {
   Assignment,
   CohortSnapshot,
+  DemoRole,
   EvaluationHistoryItem,
   EvaluationResult
 } from '../shared/contracts'
 import { AssignmentPanel } from './components/AssignmentPanel'
 import { CohortView } from './components/CohortView'
 import { EditorPanel } from './components/EditorPanel'
+import { MathProblem } from './components/MathProblem'
+import { OverlayLayer } from './components/OverlayLayer'
 import { PipelineBar } from './components/PipelineBar'
 import { ResultsPanel } from './components/ResultsPanel'
 import { MobileHeader, Sidebar, type AppView } from './components/Sidebar'
 import { TransparencyView } from './components/TransparencyView'
+import { VoiceCompanion } from './components/VoiceCompanion'
+import { isMultimodalEnabled } from './config/features'
 import {
   evaluateCode,
+  getActiveDemoRole,
   getAssignment,
   getCohort,
   listAssignments,
-  listEvaluations
+  listEvaluations,
+  setActiveDemoRole
 } from './lib/api'
+import { readStoredDemoRole, writeStoredDemoRole } from './lib/demoRole'
 
 interface LoadedData {
   assignment: Assignment
   history: EvaluationHistoryItem[]
-  cohort: CohortSnapshot
+  cohort?: CohortSnapshot
 }
 
 function toHistoryItem(result: EvaluationResult): EvaluationHistoryItem {
@@ -35,21 +43,32 @@ function toHistoryItem(result: EvaluationResult): EvaluationHistoryItem {
     createdAt: result.createdAt,
     score: result.score,
     scoreDelta: result.scoreDelta,
-    status: result.status
+    status: result.status,
+    studentId: result.studentId
   }
 }
 
-async function loadInitialData(): Promise<LoadedData> {
+async function loadInitialData(role: DemoRole): Promise<LoadedData> {
+  setActiveDemoRole(role)
   const assignments = await listAssignments()
   const firstReady = assignments.find((item) => item.status === 'ready')
   if (!firstReady) throw new Error('当前没有可运行的训练任务')
 
-  const [assignment, history, cohort] = await Promise.all([
+  const [assignment, history] = await Promise.all([
     getAssignment(firstReady.id),
-    listEvaluations(firstReady.id),
-    getCohort()
+    listEvaluations(firstReady.id)
   ])
-  return { assignment, history, cohort }
+
+  if (role === 'student') {
+    return { assignment, history }
+  }
+
+  try {
+    const cohort = await getCohort()
+    return { assignment, history, cohort }
+  } catch {
+    return { assignment, history }
+  }
 }
 
 function ErrorState({ message, onRetry }: { message: string; onRetry: () => void }) {
@@ -66,8 +85,14 @@ function ErrorState({ message, onRetry }: { message: string; onRetry: () => void
 }
 
 export function App() {
+  const multimodalEnabled = isMultimodalEnabled()
   const [activeView, setActiveView] = useState<AppView>('workspace')
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+  const [demoRole, setDemoRole] = useState<DemoRole>(() => {
+    const role = readStoredDemoRole()
+    setActiveDemoRole(role)
+    return role
+  })
   const [assignment, setAssignment] = useState<Assignment>()
   const [history, setHistory] = useState<EvaluationHistoryItem[]>([])
   const [cohort, setCohort] = useState<CohortSnapshot>()
@@ -78,10 +103,10 @@ export function App() {
   const [isEvaluating, setIsEvaluating] = useState(false)
   const [error, setError] = useState<string>()
 
-  const load = () => {
+  const load = (role: DemoRole = getActiveDemoRole()) => {
     setIsLoading(true)
     setError(undefined)
-    void loadInitialData()
+    void loadInitialData(role)
       .then((data) => {
         const defaultVariant = data.assignment.demoVariants[0]
         setAssignment(data.assignment)
@@ -96,7 +121,20 @@ export function App() {
       .finally(() => setIsLoading(false))
   }
 
-  useEffect(load, [])
+  useEffect(() => {
+    load(demoRole)
+  }, [demoRole])
+
+  const handleDemoRoleChange = (role: DemoRole) => {
+    writeStoredDemoRole(role)
+    setActiveDemoRole(role)
+    setEvaluation(undefined)
+    setError(undefined)
+    if (role === 'student' && activeView === 'cohort') {
+      setActiveView('workspace')
+    }
+    setDemoRole(role)
+  }
 
   const handleVariantChange = (variantId: string) => {
     if (!assignment) return
@@ -122,21 +160,29 @@ export function App() {
         ...current.filter((item) => item.id !== result.id)
       ])
 
-      const [historyRefresh, cohortRefresh] = await Promise.allSettled([
-        listEvaluations(assignment.id),
-        getCohort()
-      ])
+      const historyRefresh = await Promise.allSettled([
+        listEvaluations(assignment.id)
+      ]).then((results) => results[0])
 
-      if (historyRefresh.status === 'fulfilled' && historyRefresh.value.length > 0) {
+      if (historyRefresh?.status === 'fulfilled' && historyRefresh.value.length > 0) {
         setHistory(historyRefresh.value)
       }
-      if (cohortRefresh.status === 'fulfilled') {
-        setCohort(cohortRefresh.value)
+
+      let cohortFailed = false
+      if (demoRole !== 'student') {
+        const cohortRefresh = await Promise.allSettled([getCohort()]).then(
+          (results) => results[0]
+        )
+        if (cohortRefresh?.status === 'fulfilled') {
+          setCohort(cohortRefresh.value)
+        } else {
+          cohortFailed = true
+        }
       }
 
       const failedRefreshes = [
-        historyRefresh.status === 'rejected' ? '历史记录' : undefined,
-        cohortRefresh.status === 'rejected' ? '班级学情' : undefined
+        historyRefresh?.status === 'rejected' ? '历史记录' : undefined,
+        cohortFailed ? '班级学情' : undefined
       ].filter((label): label is string => label !== undefined)
       if (failedRefreshes.length > 0) {
         setError(
@@ -173,7 +219,9 @@ export function App() {
       <Sidebar
         activeView={activeView}
         isOpen={isSidebarOpen}
+        demoRole={demoRole}
         onNavigate={setActiveView}
+        onDemoRoleChange={handleDemoRoleChange}
         onClose={() => setIsSidebarOpen(false)}
       />
 
@@ -181,7 +229,7 @@ export function App() {
         {isLoading || !assignment ? (
           <div className="view-loading"><span className="loading-bar" />正在读取任务与量规...</div>
         ) : activeView === 'workspace' ? (
-          <div className="workspace-view">
+          <div className="workspace-view" data-evidence-id="demo-1">
             <PipelineBar isEvaluating={isEvaluating} trace={evaluation?.trace} />
             {error && (
               <div className="inline-error" role="alert">
@@ -205,13 +253,32 @@ export function App() {
                 onApplyRepair={handleApplyRepair}
               />
             </div>
+            {multimodalEnabled && (
+              <div className="math-problem-slot">
+                <MathProblem problemId="math-1" />
+              </div>
+            )}
           </div>
         ) : activeView === 'cohort' ? (
-          <CohortView cohort={cohort} isLoading={false} />
+          demoRole === 'student' ? (
+            <div className="view-loading role-denied" role="status">
+              <AlertTriangle size={18} />
+              学生角色无法访问班级学情。请切换到教师或管理员。
+            </div>
+          ) : (
+            <CohortView cohort={cohort} isLoading={false} />
+          )
         ) : (
           <TransparencyView />
         )}
       </main>
+
+      {multimodalEnabled && (
+        <>
+          <VoiceCompanion />
+          <OverlayLayer />
+        </>
+      )}
     </div>
   )
 }
