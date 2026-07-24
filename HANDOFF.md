@@ -53,7 +53,7 @@ Wayfinder 十票产品化(`.scratch/wayfinder/MAP.md`,状态 IMPLEMENTED)已全�
 | 项 | 说明 |
 |----|------|
 | 成套卷计时交卷 UI | T07 fog;paper 后端已有 |
-| 批量发提示/站内消息 | T08 评审出界(需消息通道) |
+| 批量发提示/站内消息 | **T14 open** — `docs/product-roadmap/decisions/T14-batch-teacher-tips.md` |
 | 成绩 Excel/PDF 教务导出 | fog;CSV 已有 |
 | S4 list 性能 / S5 demo id 耦合 | Demo 可接受 |
 | 激励体系 / 家长报告 / 课标对齐 | MAP Not yet specified |
@@ -61,8 +61,9 @@ Wayfinder 十票产品化(`.scratch/wayfinder/MAP.md`,状态 IMPLEMENTED)已全�
 ## Next
 
 1. **E2E 浏览器实测**:`npm run dev` 后 `node scripts/e2e-demo-loops.mjs`（Playwright,截图进 `output/playwright/e2e/`）
-2. 现场演示脚本 + 专家问答准备
-3. 决赛若需「测评态成套交卷」仪式感再做计时壳
+2. **T14 批量发提示**（若要做消息通道）: `/implement` 或 `开工14票` — 决策已开盘
+3. 现场演示脚本 + 专家问答准备
+4. 决赛若需「测评态成套交卷」仪式感再做计时壳
 
 ## Key docs
 

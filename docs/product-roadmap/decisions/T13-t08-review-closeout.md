@@ -11,7 +11,7 @@ T11/T12 之后评审清单仍剩：P5 签名、P6 导出、S6 列表装配静默
 | **P6** | Gradebook 导出成绩 CSV；名单导入结果导出激活码 CSV |
 | **S6** | `listForTeacher` 在 org 无 list 能力时抛错（不再静默 `[]`） |
 
-**出界**：批量发提示/站内消息。
+**出界**：批量发提示/站内消息 → 已 graduate 为 [[T14-batch-teacher-tips]]（open）。
 
 ## ✅ 已解决（resolution）
 

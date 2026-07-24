@@ -62,6 +62,7 @@
 - **T11 T08 评审扫尾**（P4/S2/S1）：Cohort 正式中位分排除待终裁主观题（`pendingAdjudication`）；布置 `studentIds` 必须在 enrollment 内；`assembleManual` 认预置库。
 - **T12 T08 评审剩余**（P1/P2/P3/S3）：布置 `dueAt`；建单元自动建行政班；名单 CSV 上传；Gradebook 主观满分可编辑。
 - **T13 T08 评审收口**（P5/P6/S6）：终裁 `signature` HMAC；成绩/激活码 CSV 导出；list 装配缺失抛错。
+- **T14 教师批量发提示**（**open**，决策见 `docs/product-roadmap/decisions/T14-batch-teacher-tips.md`）：站内消息通道，TeachingUnit 范围 fan-out + 学生收件箱；永不写 score。短信/推送/家长端出界。
 - **接线闭环**（已实施）：`server/index.ts` 主路由挂载 7 个 `handle*Api`（auth/questions/tutoring/import/adaptive/student/teacher）；`productDb` 独立 SQLite 连接承载 questions/auth/org 表；前端 Sidebar 新增学生/教师工作台入口。烟测 `tests/routeWiring.test.ts` + 端到端链路验证。
 - **attemptId 评价贯通**（已实施）：`POST /api/evaluations` 接受可选 `attemptId`，就地更新 Attempt 并保留 mode/paperId；`EvidenceProjector` 按 D1 分流（practice 只喂 FSRS，assessment 才重算正式 MasteryProfile）。学生工作台双模入口 → 工作台提交自动带 attemptId。
 - **验证基线**：tsc 0 / lint 0 / vitest 442 tests green / vite build ✓。
