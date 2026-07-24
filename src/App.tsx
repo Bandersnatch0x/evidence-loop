@@ -377,6 +377,8 @@ export function App() {
             evaluation={evaluation}
             history={history}
             onApplyRepair={handleApplyRepair}
+            sessionMode={activeAttempt?.mode}
+            attemptId={activeAttempt?.attemptId}
           />
         </div>
         {multimodalEnabled && (
