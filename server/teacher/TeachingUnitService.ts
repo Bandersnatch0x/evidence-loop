@@ -100,10 +100,15 @@ export class TeachingUnitService {
 
   /**
    * List teaching units owned by this teacher (T08 workbench unit picker).
-   * Empty when the org reader has no listTeachingUnitsByTeacher helper.
+   * T13/S6: missing list helper is a wiring error (no silent empty list).
    */
   public listForTeacher(teacherId: string): TeachingUnitView[] {
-    const units = this.org.listTeachingUnitsByTeacher?.(teacherId) ?? []
+    if (typeof this.org.listTeachingUnitsByTeacher !== 'function') {
+      throw new TeachingUnitError(
+        'OrgReader.listTeachingUnitsByTeacher is not wired — cannot list teaching units'
+      )
+    }
+    const units = this.org.listTeachingUnitsByTeacher(teacherId)
     return units.map((unit) => this.toView(unit))
   }
 

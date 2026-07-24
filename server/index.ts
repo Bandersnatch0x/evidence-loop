@@ -325,7 +325,8 @@ export async function createEvidenceLoopServer(
   const grading = new SubjectiveGradingService({
     attempts: store,
     questions: questionStore,
-    org
+    org,
+    hmacSecret
   })
   // D1 dual-mode projector: practice feeds FSRS only; assessment also
   // recomputes formal MasteryProfile. Used by the evaluate path when an

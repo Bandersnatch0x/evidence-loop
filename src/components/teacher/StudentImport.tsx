@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import { AlertTriangle, Upload } from 'lucide-react'
+import { AlertTriangle, Download, Upload } from 'lucide-react'
 import type { ImportRosterResult } from '../../../shared/contracts'
 import { importRoster } from '../../lib/api'
+import { downloadCsv } from '../../lib/downloadCsv'
 
 interface StudentImportProps {
   teachingUnitId: string
@@ -95,7 +96,27 @@ export function StudentImport({ teachingUnitId }: StudentImportProps) {
 
       {result !== undefined ? (
         <div className="activation-manifest">
-          <h4>激活码清单（线下分发）</h4>
+          <div className="activation-manifest-header">
+            <h4>激活码清单（线下分发）</h4>
+            <button
+              type="button"
+              className="export-csv-btn"
+              onClick={() =>
+                downloadCsv(
+                  `activation-codes-${teachingUnitId}.csv`,
+                  ['loginId', 'displayName', 'activationCode', 'userId'],
+                  result.imported.map((s) => [
+                    s.loginId,
+                    s.displayName,
+                    s.activationCode,
+                    s.userId
+                  ])
+                )
+              }
+            >
+              <Download size={14} /> 导出激活码 CSV
+            </button>
+          </div>
           <table>
             <thead>
               <tr>

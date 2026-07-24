@@ -196,13 +196,7 @@ export interface EvaluationResult {
    * evidence layer vs the teacher-judgment layer distinctly. Never folded
    * into `score`, never batch-applied (每份人工判断 — 守铁律).
    */
-  teacherAnnotation?: {
-    teacherId: string
-    subjectiveScore: number
-    subjectiveMaxScore: number
-    note: string
-    adjudicatedAt: string
-  }
+  teacherAnnotation?: TeacherAnnotation
   /**
    * Paper-batch binding for T07 session derivation (T07). When set, attempts
    * belonging to the same paper group into one 'paper' practice session.
@@ -214,6 +208,21 @@ export interface EvaluationResult {
   studentId?: string
   /** Required provenance tag (ADR-0006). Migrated rows default to evidence. */
   provenance: Provenance
+}
+
+/**
+ * Teacher final adjudication payload (T08 / T13).
+ * `signature` is HMAC-SHA256 over attemptId + fields (T13/P5) so tampering
+ * is detectable; never folds into automatic `score`.
+ */
+export interface TeacherAnnotation {
+  teacherId: string
+  subjectiveScore: number
+  subjectiveMaxScore: number
+  note: string
+  adjudicatedAt: string
+  /** Hex HMAC-SHA256 (T13/P5). Optional on legacy rows graded before T13. */
+  signature?: string
 }
 
 /** Weighted evidence atom consumed by MasteryProfile pure functions. */
@@ -1007,13 +1016,7 @@ export interface GradingQueueItem {
   /** Student's submitted answer text for the teacher to read. */
   submissionText: string
   /** Present when a teacher has already adjudicated this item. */
-  teacherAnnotation?: {
-    teacherId: string
-    subjectiveScore: number
-    subjectiveMaxScore: number
-    note: string
-    adjudicatedAt: string
-  }
+  teacherAnnotation?: TeacherAnnotation
 }
 
 export interface GradeSubjectiveInput {
@@ -1026,11 +1029,5 @@ export interface GradeSubjectiveInput {
 export interface GradeSubjectiveResult {
   attemptId: string
   /** teacher_annotation provenance — never folded into the automatic score. */
-  teacherAnnotation: {
-    teacherId: string
-    subjectiveScore: number
-    subjectiveMaxScore: number
-    note: string
-    adjudicatedAt: string
-  }
+  teacherAnnotation: TeacherAnnotation
 }

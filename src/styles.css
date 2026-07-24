@@ -3901,6 +3901,27 @@ td > b {
   margin-bottom: 6px;
 }
 
+.gradebook-header,
+.activation-manifest-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.export-csv-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  font-size: 0.8125rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  cursor: pointer;
+}
+
 .class-setup label,
 .student-import label,
 .assignment-composer label {

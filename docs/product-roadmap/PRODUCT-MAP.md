@@ -48,6 +48,7 @@
 - [T08 教师工作流](tickets/T08-teacher-workflow.md) — 补充刚需2。建教学单元（班级×学科，D3）+ 导入学生名单批量分配账号（T02 激活码流）。布置作业：单题/组卷/按薄弱点（联动 T06）。**主观题批改界面**（补 AdvisoryLayer 缺失的人工终裁环）：展示 EssayRunner 客观指标 + AdvisoryService 的 AI 建议（灰色"AI 推断"标识）+ 教师打终裁分（`teacher_annotation` provenance，`requiresTeacherConfirmation` 门），终裁后才入 Cohort 指标。批量操作限本教学单元。
 - [T11 T08 评审扫尾](decisions/T11-t08-review-sweep.md) — 仅三项：P4 Cohort 消费 teacherAnnotation 门 / S2 布置 enrollment 校验 / S1 assembleManual 认预置库。其余评审 fog 后置。
 - [T12 T08 评审剩余项](decisions/T12-t08-review-remainder.md) — P1 截止时间 / P2 先建班 / P3 CSV 上传 / S3 主观满分可编辑。P5 签名、P6 导出/发提示仍出界。
+- [T13 T08 评审收口](decisions/T13-t08-review-closeout.md) — P5 终裁 HMAC 签名 / P6 成绩与激活码 CSV 导出 / S6 list 装配失败可见。批量发提示仍出界。
 
 ## Not yet specified
 

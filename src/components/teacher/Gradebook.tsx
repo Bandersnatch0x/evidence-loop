@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
-import { AlertTriangle, ClipboardList, ShieldAlert } from 'lucide-react'
+import { AlertTriangle, ClipboardList, Download, ShieldAlert } from 'lucide-react'
 import type { GradingQueueItem } from '../../../shared/contracts'
 import { getGradingQueue, gradeSubjective } from '../../lib/api'
+import { downloadCsv } from '../../lib/downloadCsv'
 
 interface GradebookProps {
   teachingUnitId: string
@@ -93,13 +94,48 @@ export function Gradebook({ teachingUnitId }: GradebookProps) {
 
   const pending = queue.filter((item) => item.teacherAnnotation === undefined).length
 
+  const exportCsv = () => {
+    downloadCsv(
+      `grading-${teachingUnitId}.csv`,
+      [
+        'attemptId',
+        'studentId',
+        'questionId',
+        'objectiveScore',
+        'objectiveMaxScore',
+        'subjectiveScore',
+        'subjectiveMaxScore',
+        'note',
+        'adjudicatedAt',
+        'signature'
+      ],
+      queue.map((item) => [
+        item.attemptId,
+        item.studentId,
+        item.questionId,
+        item.objectiveScore,
+        item.objectiveMaxScore,
+        item.teacherAnnotation?.subjectiveScore,
+        item.teacherAnnotation?.subjectiveMaxScore,
+        item.teacherAnnotation?.note,
+        item.teacherAnnotation?.adjudicatedAt,
+        item.teacherAnnotation?.signature
+      ])
+    )
+  }
+
   return (
     <section className="gradebook">
-      <header>
-        <h3>主观题批改</h3>
-        <span className="muted">
-          共 {queue.length} 份 · 待批 {pending} 份
-        </span>
+      <header className="gradebook-header">
+        <div>
+          <h3>主观题批改</h3>
+          <span className="muted">
+            共 {queue.length} 份 · 待批 {pending} 份
+          </span>
+        </div>
+        <button type="button" className="export-csv-btn" onClick={exportCsv}>
+          <Download size={14} /> 导出成绩 CSV
+        </button>
       </header>
       <ul className="grading-list">
         {queue.map((item) => (

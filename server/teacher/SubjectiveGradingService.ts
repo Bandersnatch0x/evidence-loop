@@ -2,11 +2,13 @@ import type {
   Attempt,
   GradeSubjectiveInput,
   GradeSubjectiveResult,
-  GradingQueueItem
+  GradingQueueItem,
+  TeacherAnnotation
 } from '../../shared/contracts'
 import type { AttemptStore } from '../store/AttemptStore'
 import type { QuestionStore } from '../questionbank/QuestionStore'
 import type { OrgReader } from '../adaptive/OrgReader'
+import { signTeacherAnnotation } from './teacherAnnotationSignature'
 
 /**
  * T08 subjective grading service — the human final-adjudication ring the
@@ -30,6 +32,8 @@ export interface SubjectiveGradingServiceOptions {
   attempts: AttemptStore
   questions: QuestionStore
   org: OrgReader
+  /** HMAC secret for T13/P5 teacherAnnotation.signature. */
+  hmacSecret: string
   now?: () => Date
 }
 
@@ -44,12 +48,17 @@ export class SubjectiveGradingService {
   private readonly attempts: AttemptStore
   private readonly questions: QuestionStore
   private readonly org: OrgReader
+  private readonly hmacSecret: string
   private readonly now: () => Date
 
   public constructor(options: SubjectiveGradingServiceOptions) {
+    if (options.hmacSecret.trim() === '') {
+      throw new SubjectiveGradingError('hmacSecret is required for teacher signatures')
+    }
     this.attempts = options.attempts
     this.questions = options.questions
     this.org = options.org
+    this.hmacSecret = options.hmacSecret
     this.now = options.now ?? (() => new Date())
   }
 
@@ -132,12 +141,24 @@ export class SubjectiveGradingService {
     }
 
     const adjudicatedAt = this.now().toISOString()
-    const teacherAnnotation = {
+    const signature = signTeacherAnnotation(
+      {
+        attemptId: attempt.id,
+        teacherId,
+        subjectiveScore: input.subjectiveScore,
+        subjectiveMaxScore: input.subjectiveMaxScore,
+        note: input.note,
+        adjudicatedAt
+      },
+      this.hmacSecret
+    )
+    const teacherAnnotation: TeacherAnnotation = {
       teacherId,
       subjectiveScore: input.subjectiveScore,
       subjectiveMaxScore: input.subjectiveMaxScore,
       note: input.note,
-      adjudicatedAt
+      adjudicatedAt,
+      signature
     }
     // Immutable update — write the annotation WITHOUT touching result.score.
     const updatedResult = {

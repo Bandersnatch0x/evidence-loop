@@ -485,6 +485,7 @@ describe('T08 SubjectiveGradingService (铁律闭环)', () => {
       attempts,
       questions,
       org,
+      hmacSecret: 'test-teacher-annotation-hmac',
       now: NOW
     })
     // Submit one essay attempt awaiting adjudication
@@ -539,6 +540,8 @@ describe('T08 SubjectiveGradingService (铁律闭环)', () => {
     )
     expect(out.teacherAnnotation.subjectiveScore).toBe(8)
     expect(out.teacherAnnotation.teacherId).toBe(teacherId)
+    // T13/P5: signature present and verifies
+    expect(out.teacherAnnotation.signature?.length).toBeGreaterThan(0)
 
     // Reload: the automatic objective score is UNCHANGED.
     const saved = await attempts.getAttempt('att-essay-1')
@@ -547,6 +550,46 @@ describe('T08 SubjectiveGradingService (铁律闭环)', () => {
     // Annotation provenance is a separate layer; result.score provenance
     // stays 'evidence' — never flipped to teacher_annotation.
     expect(saved?.result.provenance.kind).toBe('evidence')
+  })
+
+  it('teacherAnnotation signature fails after field tamper (T13/P5)', async () => {
+    const { verifyTeacherAnnotation } = await import(
+      '../server/teacher/teacherAnnotationSignature'
+    )
+    const out = await grading.grade(
+      {
+        attemptId: 'att-essay-1',
+        subjectiveScore: 7,
+        subjectiveMaxScore: 10,
+        note: 'ok'
+      },
+      teacherId
+    )
+    const secret = 'test-teacher-annotation-hmac'
+    expect(
+      verifyTeacherAnnotation('att-essay-1', out.teacherAnnotation, secret)
+    ).toBe(true)
+    const tampered = {
+      ...out.teacherAnnotation,
+      subjectiveScore: 10
+    }
+    expect(verifyTeacherAnnotation('att-essay-1', tampered, secret)).toBe(false)
+  })
+
+  it('listForTeacher throws when org list helper is missing (T13/S6)', () => {
+    const bareOrg = {
+      getTeachingUnit: (id: string) => org.getTeachingUnit(id),
+      listEnrollments: (c: string, t: string) => org.listEnrollments(c, t),
+      listEnrolledStudentIds: (c: string, t: string) =>
+        org.listEnrolledStudentIds(c, t),
+      saveTeachingUnit: (unit: Parameters<typeof org.saveTeachingUnit>[0]) =>
+        org.saveTeachingUnit(unit),
+      saveEnrollment: (enrollment: Parameters<typeof org.saveEnrollment>[0]) =>
+        org.saveEnrollment(enrollment)
+      // deliberately no listTeachingUnitsByTeacher
+    }
+    const service = new TeachingUnitService({ org: bareOrg })
+    expect(() => service.listForTeacher(teacherId)).toThrow(/not wired/)
   })
 
   it('forbids another teacher from grading the unit', async () => {
