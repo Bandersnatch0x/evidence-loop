@@ -7,7 +7,8 @@ import type {
   DemoRole,
   EvaluationHistoryItem,
   EvaluationResult,
-  KnowledgePoint
+  KnowledgePoint,
+  SessionMode
 } from '../shared/contracts'
 import { AssignmentPanel } from './components/AssignmentPanel'
 import { AssignmentPicker } from './components/AssignmentPicker'
@@ -34,7 +35,8 @@ import {
   getKnowledgeGraph,
   listAssignments,
   listEvaluations,
-  setActiveDemoRole
+  setActiveDemoRole,
+  startPractice
 } from './lib/api'
 import {
   DEMO_STUDENT_ID,
@@ -128,6 +130,13 @@ export function App() {
   const [isSwitching, setIsSwitching] = useState(false)
   const [isEvaluating, setIsEvaluating] = useState(false)
   const [error, setError] = useState<string>()
+  // T07 active product Attempt (mode + attemptId). When set, evaluate
+  // updates this Attempt in place and preserves D1 dual-mode projection.
+  // Cleared on assignment switch / role change.
+  const [activeAttempt, setActiveAttempt] = useState<{
+    attemptId: string
+    mode: SessionMode
+  }>()
 
   const applyAssignment = useCallback((nextAssignment: Assignment) => {
     const defaultVariant = nextAssignment.demoVariants[0]
@@ -135,6 +144,7 @@ export function App() {
     setSelectedVariantId(defaultVariant?.id ?? '')
     setSubmission(defaultVariant?.code ?? '')
     setEvaluation(undefined)
+    setActiveAttempt(undefined)
   }, [])
 
   const load = useCallback(
@@ -182,6 +192,7 @@ export function App() {
     writeStoredDemoRole(role)
     setActiveDemoRole(role)
     setEvaluation(undefined)
+    setActiveAttempt(undefined)
     setError(undefined)
     if (role === 'student' && isTeacherOnlyView(activeView)) {
       setActiveView('workspace')
@@ -222,10 +233,26 @@ export function App() {
     setError(undefined)
 
     try {
+      // Product path: if no active Attempt yet (legacy workspace submit),
+      // open a practice Attempt so D1 dual-mode is always explicit for
+      // student sessions. Teachers keep the legacy assessment-default path.
+      let attemptId = activeAttempt?.attemptId
+      if (attemptId === undefined && demoRole === 'student') {
+        const started = await startPractice({
+          questionId: assignment.id,
+          teachingUnitId: 'tu-demo',
+          termId: 'term-demo',
+          mode: 'practice'
+        })
+        attemptId = started.attemptId
+        setActiveAttempt({ attemptId, mode: started.mode })
+      }
+
       const result = await evaluateCode({
         assignmentId: assignment.id,
         code: submission,
-        previousEvaluationId: evaluation?.id ?? history[0]?.id
+        previousEvaluationId: evaluation?.id ?? history[0]?.id,
+        attemptId
       })
       setEvaluation(result)
       setHistory((current) => [
@@ -312,6 +339,21 @@ export function App() {
             {error}
           </div>
         )}
+        {activeAttempt !== undefined ? (
+          <div
+            className={
+              activeAttempt.mode === 'practice'
+                ? 'mode-badge practice'
+                : 'mode-badge assessment'
+            }
+            role="status"
+            style={{ marginBottom: 8, display: 'inline-block' }}
+          >
+            {activeAttempt.mode === 'practice'
+              ? '练习态 · 辅导开启 · 不计入正式掌握度'
+              : '测评态 · 独立完成 · 计入正式掌握度'}
+          </div>
+        ) : null}
         {assignments.length > 1 && (
           <AssignmentPicker
             assignments={assignments}
@@ -367,7 +409,16 @@ export function App() {
   } else if (activeView === 'practice') {
     mainBody =
       demoRole === 'student' ? (
-        <StudentWorkbench />
+        <StudentWorkbench
+          questionId={assignment.id}
+          teachingUnitId="tu-demo"
+          termId="term-demo"
+          onAttemptStarted={(attemptId, mode) => {
+            setActiveAttempt({ attemptId, mode })
+            setEvaluation(undefined)
+            setActiveView('workspace')
+          }}
+        />
       ) : (
         <div className="view-loading role-denied" role="status">
           <AlertTriangle size={18} />

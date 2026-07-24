@@ -177,6 +177,11 @@ describe('App', () => {
     vi.mocked(api.getKnowledgeGraph).mockResolvedValue({ points: [], edges: [] })
     vi.mocked(api.listDueReviews).mockResolvedValue([])
     vi.mocked(api.getMasteryProfile).mockResolvedValue({})
+    vi.mocked(api.startPractice).mockResolvedValue({
+      attemptId: 'att-demo-1',
+      mode: 'practice',
+      tutoringEnabled: true
+    })
   })
 
   it('loads an assignment, evaluates code, and applies the suggested repair', async () => {
@@ -199,7 +204,16 @@ describe('App', () => {
       expect((editor as HTMLTextAreaElement).value).toContain('if not scores')
     })
     expect(api.evaluateCode).toHaveBeenCalledWith(
-      expect.objectContaining({ assignmentId: assignment.id })
+      expect.objectContaining({
+        assignmentId: assignment.id,
+        attemptId: 'att-demo-1'
+      })
+    )
+    expect(api.startPractice).toHaveBeenCalledWith(
+      expect.objectContaining({
+        questionId: assignment.id,
+        mode: 'practice'
+      })
     )
   })
 

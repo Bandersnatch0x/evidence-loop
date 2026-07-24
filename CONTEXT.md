@@ -60,7 +60,8 @@
 - **T07 学生刷题体验**（已实施）：`PracticeSessionService`（session 由 Attempt 派生）+ `MistakeBookService`（D1 掌握规则）+ 前端 `StudentWorkbench`（双模入口 + 错题本）。
 - **T08 教师工作流**（已实施）：`TeachingUnitService`（D3）+ `StudentImportService`（复用 T02 导入 + 补 Enrollment）+ `AssignmentService`（三布置 shape）+ `SubjectiveGradingService`（主观题终裁环，守铁律）+ 前端 `TeacherWorkbench`（建单元→导名单→布置→批改四标签）。
 - **接线闭环**（已实施）：`server/index.ts` 主路由挂载 7 个 `handle*Api`（auth/questions/tutoring/import/adaptive/student/teacher）；`productDb` 独立 SQLite 连接承载 questions/auth/org 表；前端 Sidebar 新增学生/教师工作台入口。烟测 `tests/routeWiring.test.ts` + 端到端链路验证。
-- **验证基线**：tsc 0 / lint 0 / vitest 427 tests green / vite build ✓。
+- **attemptId 评价贯通**（已实施）：`POST /api/evaluations` 接受可选 `attemptId`，就地更新 Attempt 并保留 mode/paperId；`EvidenceProjector` 按 D1 分流（practice 只喂 FSRS，assessment 才重算正式 MasteryProfile）。学生工作台双模入口 → 工作台提交自动带 attemptId。
+- **验证基线**：tsc 0 / lint 0 / vitest 442 tests green / vite build ✓。
 
 ### 通用
 - **教师视图**：只提供干预建议，不自动写入正式成绩。

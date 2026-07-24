@@ -78,8 +78,10 @@
 | 3 | T04/T05/T06 | 扫描导入 OCR / 三层 AI 辅导 / 学情自动闭环 | `7e446bf` |
 | 4 | T07/T08 | 学生刷题体验 / 教师工作流 | `3b3f84f` |
 | 接线 | — | 主路由挂载 7 模块 + 前端工作台入口 | `wiring + ui` |
+| 评审修复 | — | 生产认证后门关闭 / 错题本占位过滤 / 归属校验 / paperId 显式字段 | `5c98b22` |
+| 贯通 | T07 | attemptId 评价路径 + D1 掌握度分流 + 前端双模入口 | `e2c0102+` |
 
-**验证基线**：tsc 0 错误 / lint 0 问题 / vitest 427 tests green / vite build ✓。
+**验证基线**：tsc 0 错误 / lint 0 问题 / vitest 442 tests green / vite build ✓。
 
 **铁律守护落地**（CI 测试断言）：
 - D1 双模：练习态证据不进正式 MasteryProfile（架构测试 + MistakeBook 只认 assessment 判对）

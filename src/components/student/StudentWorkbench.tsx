@@ -1,23 +1,36 @@
 import { useEffect, useState } from 'react'
 import { AlertTriangle, GraduationCap, ListChecks } from 'lucide-react'
-import type { PracticeSession } from '../../../shared/contracts'
+import type { PracticeSession, SessionMode } from '../../../shared/contracts'
 import { listPracticeSessions } from '../../lib/api'
 import { MistakeBook } from './MistakeBook'
+import { PracticeView } from './PracticeView'
+
+interface StudentWorkbenchProps {
+  /** Current assignment id used as the question for free practice. */
+  questionId?: string
+  teachingUnitId?: string
+  termId?: string
+  /**
+   * Called when the student opens a new practice/assessment attempt.
+   * Parent should store attemptId and route to the workspace for submission.
+   */
+  onAttemptStarted?: (attemptId: string, mode: SessionMode) => void
+}
 
 /**
  * T07 student workbench — the student-side landing that ties the mistake book
- * to the practice-session history.
- *
- * Kept demo-safe: it reads the student's own sessions + mistakes (server-scoped
- * by session), so a demo role switch never leaks another student's data. The
- * practice starter itself lives in the workspace flow (an Attempt is created on
- * submit); this view surfaces what the student has done and what they still owe.
+ * to the practice-session history and the D1 dual-mode starter.
  */
-export function StudentWorkbench() {
+export function StudentWorkbench({
+  questionId,
+  teachingUnitId = 'tu-demo',
+  termId = 'term-demo',
+  onAttemptStarted
+}: StudentWorkbenchProps) {
   const [sessions, setSessions] = useState<PracticeSession[]>([])
   const [error, setError] = useState<string>()
   const [isLoading, setIsLoading] = useState(true)
-  const [refreshKey] = useState(0)
+  const [refreshKey, setRefreshKey] = useState(0)
 
   useEffect(() => {
     let cancelled = false
@@ -50,6 +63,21 @@ export function StudentWorkbench() {
           练习态开启 AI 辅导（不计入正式掌握度）；测评态独立完成（计入正式掌握度）。
         </p>
       </header>
+
+      {questionId !== undefined ? (
+        <>
+          <PracticeView
+            questionId={questionId}
+            teachingUnitId={teachingUnitId}
+            termId={termId}
+            onAttemptStarted={(attemptId, mode) => {
+              setRefreshKey((k) => k + 1)
+              onAttemptStarted?.(attemptId, mode)
+            }}
+          />
+          <hr />
+        </>
+      ) : null}
 
       <section className="session-history">
         <h3>
