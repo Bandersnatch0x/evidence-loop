@@ -1,9 +1,11 @@
 import { createReadStream } from 'node:fs'
+import { mkdirSync } from 'node:fs'
 import { readFile, stat } from 'node:fs/promises'
 import { createServer } from 'node:http'
 import type { IncomingMessage, ServerResponse } from 'node:http'
-import { extname, isAbsolute, join, normalize, relative, resolve, sep } from 'node:path'
+import { dirname, extname, isAbsolute, join, normalize, relative, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import Database from 'better-sqlite3'
 import { z } from 'zod'
 import type { ViteDevServer } from 'vite'
 import type {
@@ -22,13 +24,46 @@ import {
   SECURITY_WARNING_VALUE
 } from './auth/MockSessionProvider'
 import type { SessionProvider, SessionUser } from './auth/SessionProvider'
+import { AuthService } from './auth/AuthService'
+import { AuthStore } from './auth/AuthStore'
+import { tryHandleAuthRoute } from './auth/authRoutes'
 import { isMultimodalEnabled } from './config/features'
 import { AdvisoryService } from './advisory/AdvisoryService'
+import {
+  AssignByWeaknessService,
+  NextPracticeService,
+  SqliteOrgReader,
+  handleAdaptiveApi
+} from './adaptive'
 import { createAssignmentRegistry } from './data/assignments'
 import { createCohortSnapshot } from './data/cohort'
 import { createKnowledgeBase } from './data/knowledge'
 import { EvaluationAgent } from './domain/EvaluationAgent'
 import { createFeedbackGenerator } from './domain/feedback'
+import {
+  ImportDraftStore,
+  ImportService,
+  createOcrProvider,
+  createQuestionSplitter,
+  tryHandleImportRoute
+} from './import'
+import { QuestionBankService } from './questionbank/QuestionBankService'
+import { QuestionStore } from './questionbank/QuestionStore'
+import {
+  AssignmentService,
+  SubjectiveGradingService,
+  StudentImportService,
+  TeachingUnitService,
+  handleTeacherApi
+} from './teacher'
+import {
+  MistakeBookService,
+  PracticeSessionService,
+  handleStudentApi
+} from './student'
+import { createTutoringService, handleTutoringApi } from './tutoring'
+import { handleQuestionBankApi } from './questionbank/questionRoutes'
+import { JsonAttemptStore } from './store/AttemptStore'
 import {
   JsonKnowledgeStore,
   type KnowledgeStore
@@ -54,7 +89,7 @@ import {
   type RunnerRegistry
 } from './runner/RunnerRegistry'
 import type { CodeRunner } from './runner/types'
-import { JsonEvaluationStore } from './store/EvaluationStore'
+import type { EvaluationStore } from './store/EvaluationStore'
 
 const projectRoot = resolve(fileURLToPath(new URL('..', import.meta.url)))
 const isProduction = process.argv.includes('--production')
@@ -94,7 +129,7 @@ const reviewCompleteSchema = z.object({
 
 interface ApiContext {
   assignments: ReturnType<typeof createAssignmentRegistry>
-  store: JsonEvaluationStore
+  store: JsonAttemptStore
   agent: EvaluationAgent
   runnerName: string
   knowledge: KnowledgeStore
@@ -103,6 +138,21 @@ interface ApiContext {
   memory: MemoryLayer
   interventions: InterventionService
   stt: STTProvider
+  /** Product database shared by question bank / auth / org (T02-T08). */
+  productDb: Database.Database
+  auth: AuthService
+  questionBank: QuestionBankService
+  tutoring: ReturnType<typeof createTutoringService>
+  importService: ImportService
+  nextPractice: NextPracticeService
+  assignByWeakness: AssignByWeaknessService
+  org: SqliteOrgReader
+  practiceSessions: PracticeSessionService
+  mistakes: MistakeBookService
+  teachingUnits: TeachingUnitService
+  roster: StudentImportService
+  assignmentService: AssignmentService
+  grading: SubjectiveGradingService
 }
 
 interface EvidenceLoopServerOptions {
@@ -125,6 +175,12 @@ interface EvidenceLoopServerOptions {
   memoryDbPath?: string
   memoryLayer?: MemoryLayer
   sttProvider?: STTProvider
+  /**
+   * Product database path (questions / auth / teaching units / enrollments).
+   * Defaults to `.data/product.sqlite`; in-memory when an auditStore is injected
+   * (test mode) so unit suites never touch disk.
+   */
+  productDbPath?: string
 }
 
 class HttpError extends Error {
@@ -140,7 +196,10 @@ export async function createEvidenceLoopServer(
   options: EvidenceLoopServerOptions = {}
 ) {
   const assignments = createAssignmentRegistry()
-  const store = new JsonEvaluationStore(
+  // T01 expand-contract: the main store is now an Attempt-aware store so the
+  // product services (student / teacher / adaptive) and the legacy
+  // /api/evaluations demo path share one source of truth.
+  const store = new JsonAttemptStore(
     options.dataFile ?? join(projectRoot, '.data', 'evaluations.json')
   )
   const runners =
@@ -194,9 +253,82 @@ export async function createEvidenceLoopServer(
     mastery: memory.mastery
   })
 
+  // ---------------------------------------------------------------------------
+  // Product database (T02-T08): questions / auth / teaching units / enrollments.
+  // Separate connection from audit + memory so WAL locking stays isolated.
+  // In-memory when an auditStore is injected (test mode) — no disk touch.
+  // ---------------------------------------------------------------------------
+  const defaultProductDbPath = join(projectRoot, '.data', 'product.sqlite')
+  const productDbPath =
+    options.productDbPath ??
+    (options.auditStore ? ':memory:' : defaultProductDbPath)
+  if (productDbPath !== ':memory:') {
+    mkdirSync(dirname(productDbPath), { recursive: true })
+  }
+  const productDb = new Database(productDbPath)
+  productDb.pragma('journal_mode = WAL')
+
+  const questionStore = new QuestionStore({ database: productDb })
+  const questionBank = new QuestionBankService({ store: questionStore })
+  const authStore = new AuthStore(productDb)
+  const auth = new AuthService(authStore)
+  const org = new SqliteOrgReader(productDb)
+
+  const tutoring = createTutoringService(store)
+  const importService = new ImportService({
+    store: new ImportDraftStore({ database: productDb }),
+    questionBank,
+    ocr: createOcrProvider(),
+    splitter: createQuestionSplitter()
+  })
+  const nextPractice = new NextPracticeService({
+    review: memory.review,
+    interventions,
+    org,
+    questions: questionStore,
+    mastery: memory.mastery
+  })
+  const assignByWeakness = new AssignByWeaknessService({
+    org,
+    mastery: memory.mastery,
+    questionBank,
+    attempts: store
+  })
+  const practiceSessions = new PracticeSessionService({ attempts: store })
+  const mistakes = new MistakeBookService({
+    attempts: store,
+    questions: questionStore
+  })
+  const teachingUnits = new TeachingUnitService({ org })
+  const roster = new StudentImportService({ auth, org })
+  const assignmentService = new AssignmentService({
+    questionBank,
+    weakness: assignByWeakness,
+    attempts: store
+  })
+  const grading = new SubjectiveGradingService({
+    attempts: store,
+    questions: questionStore,
+    org
+  })
+
   const context: ApiContext = {
     assignments,
     store,
+    productDb,
+    auth,
+    questionBank,
+    tutoring,
+    importService,
+    nextPractice,
+    assignByWeakness,
+    org,
+    practiceSessions,
+    mistakes,
+    teachingUnits,
+    roster,
+    assignmentService,
+    grading,
     agent: new EvaluationAgent({
       assignments,
       knowledge: createKnowledgeBase(),
@@ -227,6 +359,11 @@ export async function createEvidenceLoopServer(
       memory.close()
     } catch (error: unknown) {
       console.error('Failed to close memory layer:', error)
+    }
+    try {
+      productDb.close()
+    } catch (error: unknown) {
+      console.error('Failed to close product database:', error)
     }
   })
 
@@ -1000,6 +1137,72 @@ async function handleApi(
     return
   }
 
+  // ---------------------------------------------------------------------------
+  // Delegated module routers (T02-T08). Each returns true when it consumed the
+  // request. Kept after the core evaluation/mastery routes so those stay hot.
+  // ---------------------------------------------------------------------------
+  if (
+    await tryHandleAuthRoute(request, response, requestUrl, {
+      auth: context.auth,
+      sessions
+    })
+  ) {
+    return
+  }
+  if (
+    await handleQuestionBankApi(request, response, requestUrl, {
+      questionBank: context.questionBank,
+      user
+    })
+  ) {
+    return
+  }
+  if (
+    await handleTutoringApi(request, response, requestUrl, {
+      tutoring: context.tutoring,
+      user
+    })
+  ) {
+    return
+  }
+  if (
+    await tryHandleImportRoute(request, response, requestUrl, {
+      importService: context.importService,
+      user
+    })
+  ) {
+    return
+  }
+  if (
+    await handleAdaptiveApi(request, response, requestUrl, {
+      nextPractice: context.nextPractice,
+      assignByWeakness: context.assignByWeakness,
+      user
+    })
+  ) {
+    return
+  }
+  if (
+    await handleStudentApi(request, response, requestUrl, {
+      sessions: context.practiceSessions,
+      mistakes: context.mistakes,
+      user
+    })
+  ) {
+    return
+  }
+  if (
+    await handleTeacherApi(request, response, requestUrl, {
+      teachingUnits: context.teachingUnits,
+      roster: context.roster,
+      assignments: context.assignmentService,
+      grading: context.grading,
+      user
+    })
+  ) {
+    return
+  }
+
   respondJson(response, 404, { error: 'API route not found' })
 }
 
@@ -1035,7 +1238,7 @@ function sanitizeAuditMetadata(
 }
 
 async function listEvaluationsForUser(
-  store: JsonEvaluationStore,
+  store: EvaluationStore,
   user: SessionUser,
   assignmentId?: string
 ): Promise<EvaluationHistoryItem[]> {
@@ -1048,7 +1251,7 @@ async function listEvaluationsForUser(
 }
 
 async function resolvePreviousEvaluation(
-  store: JsonEvaluationStore,
+  store: EvaluationStore,
   user: SessionUser,
   assignmentId: string,
   previousEvaluationId?: string
