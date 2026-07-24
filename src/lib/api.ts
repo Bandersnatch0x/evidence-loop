@@ -237,13 +237,12 @@ export function getTeachingUnit(id: string): Promise<TeachingUnitView> {
 }
 
 export function importRoster(
-  classId: string,
-  termId: string,
+  teachingUnitId: string,
   rows: Array<{ studentNumber: string; displayName: string }>
 ): Promise<ImportRosterResult> {
   return requestJson('/api/teacher/roster/import', {
     method: 'POST',
-    body: JSON.stringify({ classId, termId, rows })
+    body: JSON.stringify({ teachingUnitId, rows })
   })
 }
 

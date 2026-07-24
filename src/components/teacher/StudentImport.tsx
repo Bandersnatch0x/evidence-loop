@@ -4,19 +4,18 @@ import type { ImportRosterResult } from '../../../shared/contracts'
 import { importRoster } from '../../lib/api'
 
 interface StudentImportProps {
-  classId: string
-  termId: string
+  teachingUnitId: string
 }
 
 /**
  * T08 student roster import (T02 activation-code flow).
  *
  * Teacher pastes a name+studentNumber roster → backend creates Student Users
- * + activation codes + binds Enrollments. The returned manifest is shown for
- * offline distribution. Demo compliance: test roster data only, never real
- * 学籍 (守 CONTEXT 边界).
+ * + activation codes + binds Enrollments scoped to the owned TeachingUnit.
+ * The returned manifest is shown for offline distribution. Demo compliance:
+ * test roster data only, never real 学籍 (守 CONTEXT 边界).
  */
-export function StudentImport({ classId, termId }: StudentImportProps) {
+export function StudentImport({ teachingUnitId }: StudentImportProps) {
   const [roster, setRoster] = useState('2026001,张三\n2026002,李四')
   const [result, setResult] = useState<ImportRosterResult>()
   const [error, setError] = useState<string>()
@@ -44,7 +43,7 @@ export function StudentImport({ classId, termId }: StudentImportProps) {
     setSubmitting(true)
     setError(undefined)
     try {
-      const out = await importRoster(classId, termId, rows)
+      const out = await importRoster(teachingUnitId, rows)
       setResult(out)
     } catch (submitError: unknown) {
       setError(submitError instanceof Error ? submitError.message : '导入失败')

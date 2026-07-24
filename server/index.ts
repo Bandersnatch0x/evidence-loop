@@ -19,7 +19,6 @@ import {
   resolveAuditHmacSecret
 } from './audit/AuditStore'
 import {
-  MockSessionProvider,
   SECURITY_WARNING_HEADER,
   SECURITY_WARNING_VALUE
 } from './auth/MockSessionProvider'
@@ -27,6 +26,8 @@ import type { SessionProvider, SessionUser } from './auth/SessionProvider'
 import { AuthService } from './auth/AuthService'
 import { AuthStore } from './auth/AuthStore'
 import { tryHandleAuthRoute } from './auth/authRoutes'
+import { createSessionProvider } from './auth/createSessionProvider'
+import { AuthError, authStatusCode } from './auth/errors'
 import { isMultimodalEnabled } from './config/features'
 import { AdvisoryService } from './advisory/AdvisoryService'
 import {
@@ -217,7 +218,6 @@ export async function createEvidenceLoopServer(
       dbPath: auditDbPath,
       hmacSecret
     })
-  const sessions = options.sessionProvider ?? new MockSessionProvider()
   // Mastery + review share the audit SQLite file (same DB, different tables).
   // When tests inject an in-memory AuditStore without a path, keep memory
   // in-memory too so unit suites never touch disk.
@@ -273,6 +273,14 @@ export async function createEvidenceLoopServer(
   const authStore = new AuthStore(productDb)
   const auth = new AuthService(authStore)
   const org = new SqliteOrgReader(productDb)
+  // Session provider: real (cookie→auth_sessions) in production, mock
+  // (X-Demo-Role header) in dev/test. AUTH_MODE / DEMO_AUTH override.
+  // ponytail: default shifts to real under NODE_ENV=production (authMode.ts),
+  // so the X-Demo-Role backdoor is closed on `--production` servers unless
+  // DEMO_AUTH is explicitly set.
+  const sessions =
+    options.sessionProvider ??
+    createSessionProvider({ db: productDb, env: process.env })
 
   const tutoring = createTutoringService(store)
   const importService = new ImportService({
@@ -304,7 +312,8 @@ export async function createEvidenceLoopServer(
   const assignmentService = new AssignmentService({
     questionBank,
     weakness: assignByWeakness,
-    attempts: store
+    attempts: store,
+    org
   })
   const grading = new SubjectiveGradingService({
     attempts: store,
@@ -463,6 +472,11 @@ async function routeRequest(
       respondJson(response, 422, { error: error.message })
       return
     }
+    // Real-session provider throws AuthError on unauthenticated requests.
+    if (error instanceof AuthError && !response.headersSent) {
+      respondJson(response, authStatusCode(error), { error: error.message })
+      return
+    }
     console.error(error)
     if (!response.headersSent) {
       respondJson(response, 500, { error: 'Internal server error' })
@@ -490,8 +504,20 @@ async function handleApi(
     interventions,
     stt
   } = context
-  const user = sessions.resolve(request)
 
+  // Auth routes (register/login/activate/change-password/logout) do not
+  // require a session — they're the entry to obtaining one. Must run BEFORE
+  // sessions.resolve, otherwise real-mode unauthenticated callers throw.
+  if (
+    await tryHandleAuthRoute(request, response, requestUrl, {
+      auth: context.auth,
+      sessions
+    })
+  ) {
+    return
+  }
+
+  // Health is an infrastructure probe — no auth required.
   if (request.method === 'GET' && requestUrl.pathname === '/api/health') {
     respondJson(response, 200, {
       status: 'ok',
@@ -500,6 +526,8 @@ async function handleApi(
     })
     return
   }
+
+  const user = sessions.resolve(request)
 
   if (request.method === 'GET' && requestUrl.pathname === '/api/assignments') {
     respondJson(response, 200, assignments.list())
@@ -1140,15 +1168,8 @@ async function handleApi(
   // ---------------------------------------------------------------------------
   // Delegated module routers (T02-T08). Each returns true when it consumed the
   // request. Kept after the core evaluation/mastery routes so those stay hot.
+  // (Auth routes are handled above, before sessions.resolve.)
   // ---------------------------------------------------------------------------
-  if (
-    await tryHandleAuthRoute(request, response, requestUrl, {
-      auth: context.auth,
-      sessions
-    })
-  ) {
-    return
-  }
   if (
     await handleQuestionBankApi(request, response, requestUrl, {
       questionBank: context.questionBank,

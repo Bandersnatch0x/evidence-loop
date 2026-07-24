@@ -62,12 +62,28 @@ describe('password scrypt helpers', () => {
 })
 
 describe('auth mode switch', () => {
-  it('defaults to mock', () => {
+  it('defaults to mock in dev (no env)', () => {
     expect(resolveAuthMode({})).toBe('mock')
+  })
+
+  it('defaults to real in production (closes X-Demo-Role backdoor)', () => {
+    expect(resolveAuthMode({ NODE_ENV: 'production' })).toBe('real')
+  })
+
+  it('DEMO_AUTH=true forces mock even in production (explicit demo backdoor)', () => {
+    expect(
+      resolveAuthMode({ NODE_ENV: 'production', DEMO_AUTH: 'true' })
+    ).toBe('mock')
   })
 
   it('AUTH_MODE=real selects real', () => {
     expect(resolveAuthMode({ AUTH_MODE: 'real' })).toBe('real')
+  })
+
+  it('AUTH_MODE=mock forces mock even in production', () => {
+    expect(
+      resolveAuthMode({ NODE_ENV: 'production', AUTH_MODE: 'mock' })
+    ).toBe('mock')
   })
 
   it('DEMO_AUTH=true forces mock even if AUTH_MODE=real', () => {

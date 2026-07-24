@@ -1,6 +1,6 @@
 export { TeachingUnitService, TeachingUnitError } from './TeachingUnitService'
 export type { TeachingUnitServiceOptions } from './TeachingUnitService'
-export { StudentImportService } from './StudentImportService'
+export { StudentImportService, StudentImportError } from './StudentImportService'
 export type { StudentImportServiceOptions } from './StudentImportService'
 export { AssignmentService, AssignmentError } from './AssignmentService'
 export type { AssignmentServiceOptions } from './AssignmentService'

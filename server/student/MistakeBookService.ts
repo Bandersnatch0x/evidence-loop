@@ -45,7 +45,17 @@ export class MistakeBookService {
     const byQuestion = groupByQuestion(all)
 
     const entries: MistakeEntry[] = []
-    for (const [questionId, attemptsForQuestion] of byQuestion.entries()) {
+    for (const [questionId, attemptsForQuestionRaw] of byQuestion.entries()) {
+      // Filter out placeholders — assignment/practice stubs that have not
+      // been submitted (rejectionReason: assigned_not_started /
+      // practice_not_submitted). They must not register as mistakes; without
+      // this, a teacher assigning a paper pollutes every student's error book
+      // with score-0 entries before anyone attempts the question.
+      const attemptsForQuestion = attemptsForQuestionRaw.filter(
+        (a) => !isPlaceholder(a)
+      )
+      if (attemptsForQuestion.length === 0) continue
+
       const question = this.questions.get(questionId)
       const subject: SubjectLanguage = question?.subject ?? 'math'
       const kpIds = question?.kpIds ?? []
@@ -90,6 +100,25 @@ export class MistakeBookService {
       masteredCount
     }
   }
+}
+
+/**
+ * Placeholder attempts are stubs created by AssignmentService /
+ * PracticeSessionService before the student submits. They carry
+ * status='rejected' + a placeholder rejectionReason. They must never register
+ * as mistakes or count toward mastery — only real submitted attempts do.
+ */
+const PLACEHOLDER_REJECTION_REASONS = new Set([
+  'assigned_not_started',
+  'practice_not_submitted'
+])
+
+function isPlaceholder(attempt: Attempt): boolean {
+  return (
+    attempt.result.status === 'rejected' &&
+    attempt.result.rejectionReason !== undefined &&
+    PLACEHOLDER_REJECTION_REASONS.has(attempt.result.rejectionReason)
+  )
 }
 
 function groupByQuestion(

@@ -214,8 +214,7 @@ describe('T08 StudentImportService (roster + activation codes)', () => {
     const service = new StudentImportService({ auth, org })
     const result = service.import(
       { userId: teacherId, role: 'teacher' },
-      'cls-1',
-      'term-1',
+      'tu-1',
       [
         { studentNumber: '2026001', displayName: '张三' },
         { studentNumber: '2026002', displayName: '李四' }
@@ -223,7 +222,7 @@ describe('T08 StudentImportService (roster + activation codes)', () => {
     )
     expect(result.imported).toHaveLength(2)
     expect(result.imported[0]?.activationCode.length).toBeGreaterThan(0)
-    // Enrollments bound for the new students
+    // Enrollments bound for the new students on the unit's class×term
     const enrolled = org.listEnrolledStudentIds('cls-1', 'term-1')
     expect(enrolled).toContain(result.imported[0]?.userId)
   })
@@ -233,9 +232,19 @@ describe('T08 StudentImportService (roster + activation codes)', () => {
     expect(() =>
       service.import(
         { userId: 'someone', role: 'student' },
-        'cls-1',
-        'term-1',
+        'tu-1',
         [{ studentNumber: '2026099', displayName: '王五' }]
+      )
+    ).toThrow(/Forbidden/)
+  })
+
+  it('forbids another teacher from importing into this unit', () => {
+    const service = new StudentImportService({ auth, org })
+    expect(() =>
+      service.import(
+        { userId: 'intruder', role: 'teacher' },
+        'tu-1',
+        [{ studentNumber: '2026098', displayName: '赵六' }]
       )
     ).toThrow(/Forbidden/)
   })
@@ -246,6 +255,7 @@ describe('T08 AssignmentService (three shapes)', () => {
     const service = new AssignmentService({
       questionBank: bank,
       attempts,
+      org,
       now: NOW
     })
     const result = await service.create(
@@ -263,12 +273,38 @@ describe('T08 AssignmentService (three shapes)', () => {
     // Placeholders never feed mastery until submitted
     const saved = await attempts.getAttempt(result.attemptIds[0] ?? '')
     expect(saved?.result.status).toBe('rejected')
+    // termId comes from the teaching unit (not a hardcode)
+    expect(saved?.termId).toBe('term-1')
+    // top-level paperId drives session grouping
+    expect(saved?.paperId?.startsWith('paper_')).toBe(true)
+  })
+
+  it('forbids another teacher from assigning on this unit', async () => {
+    const service = new AssignmentService({
+      questionBank: bank,
+      attempts,
+      org,
+      now: NOW
+    })
+    await expect(
+      service.create(
+        {
+          teachingUnitId: 'tu-1',
+          mode: 'assessment',
+          kind: 'handpick',
+          questionIds: [...choiceQuestionIds],
+          studentIds: ['student-a']
+        },
+        'intruder'
+      )
+    ).rejects.toThrow(/Forbidden/)
   })
 
   it('assemble_by_kp assembles from the teacher bank', async () => {
     const service = new AssignmentService({
       questionBank: bank,
       attempts,
+      org,
       now: NOW
     })
     const result = await service.create(

@@ -143,5 +143,3 @@ function respondJson(
   response.writeHead(statusCode, JSON_HEADERS)
   response.end(JSON.stringify(payload))
 }
-
-export { readJsonBody as readStudentJsonBody, HttpLikeError as StudentHttpError }

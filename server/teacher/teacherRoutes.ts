@@ -11,10 +11,16 @@ import type {
   GradeSubjectiveInput,
   RosterRow
 } from '../../shared/contracts'
-import type { TeachingUnitService } from './TeachingUnitService'
-import type { StudentImportService } from './StudentImportService'
-import type { AssignmentService } from './AssignmentService'
-import type { SubjectiveGradingService } from './SubjectiveGradingService'
+import { AssignmentError, type AssignmentService } from './AssignmentService'
+import {
+  SubjectiveGradingError,
+  type SubjectiveGradingService
+} from './SubjectiveGradingService'
+import { TeachingUnitError, type TeachingUnitService } from './TeachingUnitService'
+import {
+  StudentImportError,
+  type StudentImportService
+} from './StudentImportService'
 
 /**
  * HTTP surface for T08 teacher workflow.
@@ -52,8 +58,7 @@ const rosterRowSchema = z.object({
 })
 
 const importRosterSchema = z.object({
-  classId: z.string().min(1).max(128),
-  termId: z.string().min(1).max(128),
+  teachingUnitId: z.string().min(1).max(128),
   rows: z.array(rosterRowSchema).min(1).max(1000)
 })
 
@@ -128,9 +133,7 @@ export async function handleTeacherApi(
       )
       respondJson(response, 200, view)
     } catch (error) {
-      respondJson(response, 403, {
-        error: error instanceof Error ? error.message : 'Forbidden'
-      })
+      respondServiceError(response, error, 403)
     }
     return true
   }
@@ -149,15 +152,12 @@ export async function handleTeacherApi(
     try {
       const result = context.roster.import(
         { userId: teacherId, role: context.user.role },
-        parsed.data.classId,
-        parsed.data.termId,
+        parsed.data.teachingUnitId,
         rows
       )
       respondJson(response, 201, result)
     } catch (error) {
-      respondJson(response, 422, {
-        error: error instanceof Error ? error.message : 'Roster import failed'
-      })
+      respondServiceError(response, error, 422)
     }
     return true
   }
@@ -177,9 +177,7 @@ export async function handleTeacherApi(
       const result = await context.assignments.create(input, teacherId)
       respondJson(response, 201, result)
     } catch (error) {
-      respondJson(response, 422, {
-        error: error instanceof Error ? error.message : 'Assignment failed'
-      })
+      respondServiceError(response, error, 422)
     }
     return true
   }
@@ -196,9 +194,7 @@ export async function handleTeacherApi(
       )
       respondJson(response, 200, items)
     } catch (error) {
-      respondJson(response, 403, {
-        error: error instanceof Error ? error.message : 'Forbidden'
-      })
+      respondServiceError(response, error, 403)
     }
     return true
   }
@@ -223,9 +219,7 @@ export async function handleTeacherApi(
       const result = await context.grading.grade(input, teacherId)
       respondJson(response, 200, result)
     } catch (error) {
-      respondJson(response, 422, {
-        error: error instanceof Error ? error.message : 'Grading failed'
-      })
+      respondServiceError(response, error, 422)
     }
     return true
   }
@@ -265,6 +259,31 @@ class TeacherHttpError extends Error {
   ) {
     super(message)
   }
+}
+
+/**
+ * Dispatch a service-layer error to an HTTP status. Domain errors
+ * (TeachingUnitError / AssignmentError / SubjectiveGradingError) map to
+ * 403/422 with their own message; unknown errors (storage I/O, JSON
+ * serialization, undefined fields) log + fall back to 500 instead of being
+ * silently misclassified as business-validation failures.
+ */
+function respondServiceError(
+  response: ServerResponse,
+  error: unknown,
+  domainStatus: 403 | 422
+): void {
+  if (
+    error instanceof TeachingUnitError ||
+    error instanceof AssignmentError ||
+    error instanceof SubjectiveGradingError ||
+    error instanceof StudentImportError
+  ) {
+    respondJson(response, domainStatus, { error: error.message })
+    return
+  }
+  console.error('teacher service error:', error)
+  respondJson(response, 500, { error: 'Internal server error' })
 }
 
 function respondJson(

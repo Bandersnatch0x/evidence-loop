@@ -15,6 +15,10 @@ import type { OrgReader } from '../adaptive/OrgReader'
  * binding (student → class for the term) that the auth layer deliberately
  * does not own (auth knows accounts, not org membership).
  *
+ * Ownership: import is scoped to a TeachingUnit the actor owns. classId/termId
+ * are derived from the unit (not caller-supplied), so a teacher cannot inject
+ * enrollments into another teacher's class.
+ *
  * Demo compliance: the roster is teacher-pasted test data, never real学籍.
  */
 export interface StudentImportServiceOptions {
@@ -29,6 +33,13 @@ export interface StudentImportServiceOptions {
   }
 }
 
+export class StudentImportError extends Error {
+  public constructor(message: string) {
+    super(message)
+    this.name = 'StudentImportError'
+  }
+}
+
 export class StudentImportService {
   private readonly auth: AuthService
   private readonly org: StudentImportServiceOptions['org']
@@ -39,36 +50,46 @@ export class StudentImportService {
   }
 
   /**
-   * Import a roster for a class×term. The actor must be a teacher. Each row
-   * becomes a Student User (with activation code) + an Enrollment row. Returns
-   * the activation-code manifest for offline distribution (T02/T08).
-   *
-   * `actor` is a minimal principal (userId+role). The service resolves the full
-   * PublicAuthUser via AuthService.getPublicUser so the underlying importStudents
-   * (which stamps the actor) gets a complete record.
+   * Import a roster for a teaching unit the actor owns. Each row becomes a
+   * Student User (with activation code) + an Enrollment bound to the unit's
+   * class×term. Returns the activation-code manifest for offline distribution.
    */
   public import(
     actor: {
       userId: string
       role: 'student' | 'teacher' | 'admin'
     },
-    classId: string,
-    termId: string,
+    teachingUnitId: string,
     rows: RosterRow[]
   ): ImportRosterResult {
-    if (classId.trim() === '' || termId.trim() === '') {
-      throw new Error('classId and termId are required')
+    if (teachingUnitId.trim() === '') {
+      throw new StudentImportError('teachingUnitId is required')
     }
     if (rows.length === 0) {
-      throw new Error('At least one roster row is required')
+      throw new StudentImportError('At least one roster row is required')
     }
     if (actor.role !== 'teacher' && actor.role !== 'admin') {
-      throw new Error('Forbidden: only teachers can import students')
+      throw new StudentImportError(
+        'Forbidden: only teachers can import students'
+      )
+    }
+
+    const unit = this.org.getTeachingUnit(teachingUnitId)
+    if (!unit) {
+      throw new StudentImportError(
+        `Teaching unit not found: ${teachingUnitId}`
+      )
+    }
+    // Admin may import into any unit (demo parity); teachers only their own.
+    if (actor.role === 'teacher' && unit.teacherId !== actor.userId) {
+      throw new StudentImportError(
+        'Forbidden: only the teaching-unit teacher may import students into this unit'
+      )
     }
 
     const publicUser = this.auth.getPublicUser(actor.userId)
     if (publicUser === null) {
-      throw new Error(`Actor user not found: ${actor.userId}`)
+      throw new StudentImportError(`Actor user not found: ${actor.userId}`)
     }
 
     const importedStudents = this.auth.importStudents(
@@ -81,12 +102,12 @@ export class StudentImportService {
 
     const imported: ImportedRosterEntry[] = importedStudents.map(
       (s: ImportedStudent) => {
-        // Bind each new student to the class for this term.
+        // Bind each new student to the unit's class for this term.
         this.org.saveEnrollment({
           id: `enr_${randomUUID()}`,
           studentId: s.userId,
-          classId,
-          termId
+          classId: unit.classId,
+          termId: unit.termId
         })
         return {
           userId: s.userId,
@@ -98,8 +119,8 @@ export class StudentImportService {
     )
 
     return {
-      classId,
-      termId,
+      classId: unit.classId,
+      termId: unit.termId,
       imported
     }
   }

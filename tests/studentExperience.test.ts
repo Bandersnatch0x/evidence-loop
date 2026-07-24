@@ -140,7 +140,7 @@ describe('T07 PracticeSessionService (D1 mode gate)', () => {
 
   it('listSessions groups paper-batched attempts into one session', async () => {
     const service = new PracticeSessionService({ attempts, now: NOW })
-    // Two attempts sharing a paper_ assignmentId → one paper session
+    // Two attempts sharing an explicit top-level paperId → one paper session
     await attempts.saveAttempt({
       id: 'att-a',
       studentId: STUDENT,
@@ -148,18 +148,52 @@ describe('T07 PracticeSessionService (D1 mode gate)', () => {
       teachingUnitId: 'tu-1',
       termId: 'term-1',
       mode: 'assessment',
+      paperId: 'paper_xyz',
       createdAt: '2026-07-24T08:00:00.000Z',
-      result: { ...result({ id: 'att-a', assignmentId: 'paper_xyz' }) }
+      result: { ...result({ id: 'att-a', assignmentId: 'q-1' }) }
     })
     await attempts.saveAttempt({
       id: 'att-b',
       studentId: STUDENT,
-      questionId: 'q-1',
+      questionId: 'q-2',
       teachingUnitId: 'tu-1',
       termId: 'term-1',
       mode: 'assessment',
+      paperId: 'paper_xyz',
       createdAt: '2026-07-24T08:05:00.000Z',
-      result: { ...result({ id: 'att-b', assignmentId: 'paper_xyz' }) }
+      result: { ...result({ id: 'att-b', assignmentId: 'q-2' }) }
+    })
+    const sessions = await service.listSessions(STUDENT)
+    expect(sessions).toHaveLength(1)
+    expect(sessions[0]?.shape).toBe('paper')
+    expect(sessions[0]?.attemptIds).toHaveLength(2)
+  })
+
+  it('by_weakness attempts (assignmentId=questionId) still group by paperId', async () => {
+    const service = new PracticeSessionService({ attempts, now: NOW })
+    // Regression: by_weakness stamps assignmentId=questionId, not paper_. The
+    // top-level paperId must still group them (previously collapsed to singles).
+    await attempts.saveAttempt({
+      id: 'att-w1',
+      studentId: STUDENT,
+      questionId: 'q-A',
+      teachingUnitId: 'tu-1',
+      termId: 'term-1',
+      mode: 'practice',
+      paperId: 'paper_weak',
+      createdAt: '2026-07-24T09:00:00.000Z',
+      result: { ...result({ id: 'att-w1', assignmentId: 'q-A' }) }
+    })
+    await attempts.saveAttempt({
+      id: 'att-w2',
+      studentId: STUDENT,
+      questionId: 'q-B',
+      teachingUnitId: 'tu-1',
+      termId: 'term-1',
+      mode: 'practice',
+      paperId: 'paper_weak',
+      createdAt: '2026-07-24T09:05:00.000Z',
+      result: { ...result({ id: 'att-w2', assignmentId: 'q-B' }) }
     })
     const sessions = await service.listSessions(STUDENT)
     expect(sessions).toHaveLength(1)
@@ -266,6 +300,73 @@ describe('T07 MistakeBookService (D1 mastery rule)', () => {
       ]
     })
     await attempts.saveAttempt(attempt('assessment', 'q-fail', passRes))
+    const service = new MistakeBookService({
+      attempts,
+      questions,
+      masteryThreshold: 2
+    })
+    const view = await service.view(STUDENT)
+    expect(view.entries).toHaveLength(0)
+  })
+
+  it('does NOT count assignment placeholders as mistakes (regression)', async () => {
+    // Placeholder attempt stamped by AssignmentService before any submission.
+    const placeholder: Attempt = {
+      id: 'ph-1',
+      studentId: STUDENT,
+      questionId: 'q-fail',
+      teachingUnitId: 'tu-1',
+      termId: 'term-1',
+      mode: 'assessment',
+      createdAt: '2026-07-24T08:00:00.000Z',
+      result: {
+        ...result({ id: 'ph-1', score: 0, status: 'rejected' }),
+        summary: 'Assignment placeholder (not yet attempted)',
+        rejectionReason: 'assigned_not_started',
+        evidence: [],
+        dimensions: []
+      }
+    }
+    await attempts.saveAttempt(placeholder)
+
+    const service = new MistakeBookService({
+      attempts,
+      questions,
+      masteryThreshold: 2
+    })
+    const view = await service.view(STUDENT)
+    // Placeholder alone must NOT surface as a mistake.
+    expect(view.entries).toHaveLength(0)
+    expect(view.activeCount).toBe(0)
+
+    // Real failed submission appears; placeholder still ignored.
+    await attempts.saveAttempt(
+      attempt('assessment', 'q-fail', result({ id: 'real-1' }))
+    )
+    const view2 = await service.view(STUDENT)
+    expect(view2.entries).toHaveLength(1)
+    expect(view2.entries[0]?.attemptId).toBe('real-1')
+    expect(view2.entries[0]?.lastScore).toBe(0)
+  })
+
+  it('does NOT count practice-not-submitted placeholders as mistakes', async () => {
+    const placeholder: Attempt = {
+      id: 'ph-2',
+      studentId: STUDENT,
+      questionId: 'q-fail',
+      teachingUnitId: 'tu-1',
+      termId: 'term-1',
+      mode: 'practice',
+      createdAt: '2026-07-24T08:00:00.000Z',
+      result: {
+        ...result({ id: 'ph-2', score: 0, status: 'rejected' }),
+        summary: 'Practice session placeholder (not yet submitted)',
+        rejectionReason: 'practice_not_submitted',
+        evidence: [],
+        dimensions: []
+      }
+    }
+    await attempts.saveAttempt(placeholder)
     const service = new MistakeBookService({
       attempts,
       questions,

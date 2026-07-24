@@ -1,6 +1,5 @@
 import { randomUUID } from 'node:crypto'
 import type {
-  AssignmentKind,
   Attempt,
   CreateAssignmentInput,
   CreateAssignmentResult,
@@ -9,6 +8,7 @@ import type {
 } from '../../shared/contracts'
 import type { Paper, QuestionBankService } from '../questionbank/QuestionBankService'
 import type { AssignByWeaknessService } from '../adaptive/AssignByWeaknessService'
+import type { OrgReader } from '../adaptive/OrgReader'
 import type { AttemptStore } from '../store/AttemptStore'
 
 /**
@@ -19,13 +19,15 @@ import type { AttemptStore } from '../store/AttemptStore'
  *
  * Each shape produces a Paper (paperId) + batched placeholder Attempts
  * (student × question). Placeholders are not-completed so they never feed
- * mastery/FSRS until the learner submits (D1). The attempt result.assignmentId
- * is stamped with the paperId so the T07 session derivation can group them.
+ * mastery/FSRS until the learner submits (D1). Paper grouping uses the
+ * explicit top-level Attempt.paperId field (not an assignmentId prefix).
  */
 export interface AssignmentServiceOptions {
   questionBank: QuestionBankService
   weakness?: AssignByWeaknessService
   attempts: AttemptStore
+  /** Required for ownership check on handpick/assemble (unit.teacherId). */
+  org: OrgReader
   now?: () => Date
 }
 
@@ -40,12 +42,14 @@ export class AssignmentService {
   private readonly questionBank: QuestionBankService
   private readonly weakness: AssignByWeaknessService | undefined
   private readonly attempts: AttemptStore
+  private readonly org: OrgReader
   private readonly now: () => Date
 
   public constructor(options: AssignmentServiceOptions) {
     this.questionBank = options.questionBank
     this.weakness = options.weakness
     this.attempts = options.attempts
+    this.org = options.org
     this.now = options.now ?? (() => new Date())
   }
 
@@ -54,6 +58,21 @@ export class AssignmentService {
     teacherId: string
   ): Promise<CreateAssignmentResult> {
     const createdAt = this.now().toISOString()
+
+    // Ownership gate for ALL shapes — only the unit's teacher may assign.
+    // by_weakness re-checks inside AssignByWeaknessService; handpick/assemble
+    // previously skipped this and allowed cross-teacher pollution.
+    const unit = this.org.getTeachingUnit(input.teachingUnitId)
+    if (!unit) {
+      throw new AssignmentError(
+        `Teaching unit not found: ${input.teachingUnitId}`
+      )
+    }
+    if (unit.teacherId !== teacherId) {
+      throw new AssignmentError(
+        'Forbidden: only the teaching-unit teacher may assign from this unit'
+      )
+    }
 
     if (input.kind === 'by_weakness') {
       if (!this.weakness) {
@@ -84,7 +103,7 @@ export class AssignmentService {
     // handpick / assemble_by_kp both resolve a paper first, then fan out
     // placeholder attempts per student × question (no mastery write yet).
     const paper = this.resolvePaper(input, teacherId)
-    const studentIds = this.resolveStudents(input)
+    const studentIds = this.resolveStudents(input, unit)
     if (studentIds.length === 0) {
       throw new AssignmentError('No target students for this assignment')
     }
@@ -100,7 +119,8 @@ export class AssignmentService {
           id: attemptId,
           studentId,
           questionId,
-          teachingUnitId: input.teachingUnitId,
+          teachingUnitId: unit.id,
+          termId: unit.termId,
           mode: input.mode,
           paperId: paper.id,
           createdAt
@@ -111,7 +131,7 @@ export class AssignmentService {
     }
 
     return {
-      teachingUnitId: input.teachingUnitId,
+      teachingUnitId: unit.id,
       kind: input.kind,
       paperId: paper.id,
       attemptIds,
@@ -158,38 +178,34 @@ export class AssignmentService {
   }
 
   private resolveStudents(
-    input: CreateAssignmentInput
+    input: CreateAssignmentInput,
+    unit: { classId: string; termId: string }
   ): string[] {
     if (input.studentIds && input.studentIds.length > 0) {
       return [...new Set(input.studentIds.filter((id) => id.trim() !== ''))]
     }
-    // Without explicit students the caller must supply them — the T06
-    // by_weakness path resolves the whole class itself; handpick/assemble
-    // require explicit studentIds (no org access here to avoid coupling).
-    throw new AssignmentError(
-      `${input.kind} requires explicit studentIds (use by_weakness for whole-class)`
-    )
+    // Whole-class default for handpick/assemble (mirrors by_weakness).
+    return this.org.listEnrolledStudentIds(unit.classId, unit.termId)
   }
 }
 
 /**
- * Placeholder attempt bound to a paper. result.assignmentId stamps the paperId
- * (paper_ prefix) so T07 deriveSessions groups batched attempts into one
- * 'paper' session. status=rejected so it never feeds mastery until submitted.
+ * Placeholder attempt bound to a paper. status=rejected so it never feeds
+ * mastery until submitted. Top-level paperId drives T07 session grouping.
  */
 function makePlaceholderForAssignment(input: {
   id: string
   studentId: string
   questionId: string
   teachingUnitId: string
+  termId: string
   mode: SessionMode
   paperId: string
   createdAt: string
 }): Attempt {
   const result: EvaluationResult = {
     id: input.id,
-    // assignmentId carries the paperId so session derivation groups the batch.
-    assignmentId: input.paperId,
+    assignmentId: input.questionId,
     attempt: 1,
     createdAt: input.createdAt,
     status: 'rejected',
@@ -214,11 +230,10 @@ function makePlaceholderForAssignment(input: {
     studentId: input.studentId,
     questionId: input.questionId,
     teachingUnitId: input.teachingUnitId,
-    termId: 'assigned-term',
+    termId: input.termId,
     mode: input.mode,
     createdAt: input.createdAt,
+    paperId: input.paperId,
     result
   }
 }
-
-export type { AssignmentKind }

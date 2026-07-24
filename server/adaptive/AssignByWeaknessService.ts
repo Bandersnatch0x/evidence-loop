@@ -137,6 +137,7 @@ export class AssignByWeaknessService {
           teachingUnitId: unit.id,
           termId: unit.termId,
           mode,
+          paperId: paper.id,
           createdAt
         })
         await this.attempts.saveAttempt(attempt)
@@ -218,6 +219,7 @@ function makePlaceholderAttempt(input: {
   teachingUnitId: string
   termId: string
   mode: SessionMode
+  paperId: string
   createdAt: string
 }): Attempt {
   const result: EvaluationResult = {
@@ -251,6 +253,7 @@ function makePlaceholderAttempt(input: {
     termId: input.termId,
     mode: input.mode,
     createdAt: input.createdAt,
+    paperId: input.paperId,
     result
   }
 }

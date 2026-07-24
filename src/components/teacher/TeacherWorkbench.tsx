@@ -76,7 +76,7 @@ export function TeacherWorkbench() {
           />
         ) : null}
         {tab === 'roster' && unit !== undefined ? (
-          <StudentImport classId={unit.classId} termId={unit.termId} />
+          <StudentImport teachingUnitId={unit.id} />
         ) : null}
         {tab === 'assign' && unit !== undefined ? (
           <AssignmentComposer teachingUnitId={unit.id} />

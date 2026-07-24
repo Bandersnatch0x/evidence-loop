@@ -203,6 +203,13 @@ export interface EvaluationResult {
     note: string
     adjudicatedAt: string
   }
+  /**
+   * Paper-batch binding for T07 session derivation (T07). When set, attempts
+   * belonging to the same paper group into one 'paper' practice session.
+   * Explicit field — NOT derived from an assignmentId string prefix (the old
+   * heuristic broke by_weakness batches and the /api/evaluations submit path).
+   */
+  paperId?: string
   /** Demo ownership stamp from the mock session (not real auth). */
   studentId?: string
   /** Required provenance tag (ADR-0006). Migrated rows default to evidence. */
@@ -418,6 +425,14 @@ export interface Attempt {
   termId: string
   mode: SessionMode
   createdAt: string
+  /**
+   * Paper-batch binding (T07). When set, this attempt belongs to a composed
+   * paper; T07 session derivation groups attempts sharing a paperId into one
+   * 'paper' session. Explicit top-level field — the old practice of stuffing
+   * a paper_ prefix into result.assignmentId broke under /api/evaluations
+   * submit (which overwrites assignmentId with the question id).
+   */
+  paperId?: string
   /** Embedded evaluation payload (existing EvaluationResult shape). */
   result: EvaluationResult
 }

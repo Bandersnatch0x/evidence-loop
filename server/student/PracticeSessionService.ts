@@ -1,4 +1,6 @@
 import type {
+  Attempt,
+  EvaluationResult,
   PracticeSession,
   SessionMode,
   StartPracticeRequest,
@@ -6,7 +8,6 @@ import type {
 } from '../../shared/contracts'
 import { randomUUID } from 'node:crypto'
 import type { AttemptStore } from '../store/AttemptStore'
-import type { EvaluationResult } from '../../shared/contracts'
 
 /**
  * T07 practice-session service.
@@ -105,6 +106,7 @@ function deriveSessions(
     termId: string
     mode: SessionMode
     createdAt: string
+    paperId?: string
     result: { id: string; assignmentId: string }
   }>
 ): PracticeSession[] {
@@ -113,7 +115,7 @@ function deriveSessions(
   const singles: SessionAccumulator[] = []
 
   for (const attempt of attempts) {
-    const paperId = paperIdOf(attempt)
+    const paperId = attempt.paperId
     if (paperId) {
       const existing = byPaper.get(paperId)
       if (existing) {
@@ -169,22 +171,6 @@ function toSession(acc: SessionAccumulator): PracticeSession {
   }
 }
 
-/**
- * Paper binding is read from the attempt result's assignmentId when the id
- * carries a paper_ prefix (placeholder attempts created by the assignment
- * batch path stamp paperId into the result id namespace). Single自由练
- * attempts have no paper binding.
- */
-function paperIdOf(attempt: {
-  result: { id: string; assignmentId: string }
-}): string | undefined {
-  // AssignmentService stamps paperId into the attempt result.assignmentId when
-  // the attempt belongs to a paper batch. Heuristic: assignmentId starts with
-  // paper_ marks a batched attempt.
-  const aid = attempt.result.assignmentId
-  return aid.startsWith('paper_') ? aid : undefined
-}
-
 function newer(a: string, b: string): string {
   return a.localeCompare(b) >= 0 ? a : b
 }
@@ -206,20 +192,12 @@ function makePlaceholderForPractice(input: {
   mode: SessionMode
   paperId?: string
   createdAt: string
-}): {
-  id: string
-  studentId: string
-  questionId: string
-  teachingUnitId: string
-  termId: string
-  mode: SessionMode
-  createdAt: string
-  result: EvaluationResult
-} {
+}): Attempt {
   const result: EvaluationResult = {
     id: input.id,
-    // assignmentId doubles as the questionId OR paperId binding for sessions.
-    assignmentId: input.paperId ?? input.questionId,
+    // assignmentId reflects the question (legacy demo path reads it).
+    // Paper grouping uses the explicit top-level paperId field.
+    assignmentId: input.questionId,
     attempt: 1,
     createdAt: input.createdAt,
     status: 'rejected',
@@ -247,6 +225,7 @@ function makePlaceholderForPractice(input: {
     termId: input.termId,
     mode: input.mode,
     createdAt: input.createdAt,
+    paperId: input.paperId,
     result
   }
 }
