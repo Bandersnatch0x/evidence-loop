@@ -15,21 +15,29 @@ export const DEMO_USERS: Record<DemoRole, SessionUser> = {
     role: 'student',
     displayName: '当前演示学员',
     studentId: 'learner-demo',
-    cohortId: 'july-cohort'
+    cohortId: 'july-cohort',
+    actorSource: 'demo'
   },
   teacher: {
     userId: 'teacher-demo',
     role: 'teacher',
     displayName: '演示教师',
-    cohortId: 'july-cohort'
+    cohortId: 'july-cohort',
+    actorSource: 'demo'
   },
   admin: {
     userId: 'admin-demo',
     role: 'admin',
-    displayName: '演示管理员'
+    displayName: '演示管理员',
+    actorSource: 'demo'
   }
 }
 
+/**
+ * Demo / AUTH_MODE=mock session provider.
+ * `X-Demo-Role` is intentionally only meaningful when this provider is installed
+ * (i.e. AUTH_MODE=mock or DEMO_AUTH=true). Production uses RealSessionProvider.
+ */
 export class MockSessionProvider implements SessionProvider {
   public resolve(request: IncomingMessage): SessionUser {
     const rawHeader = request.headers[DEMO_ROLE_HEADER]

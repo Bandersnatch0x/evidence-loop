@@ -11,11 +11,18 @@ export interface SessionUser {
   studentId?: string
   /** Present for teacher sessions; demo uses a single cohort. */
   cohortId?: string
+  /**
+   * Provenance of the session principal (T02).
+   * - demo: MockSessionProvider / AUTH_MODE=mock
+   * - auth: RealSessionProvider server-side session
+   */
+  actorSource?: 'demo' | 'auth'
 }
 
 /**
  * Session abstraction. Demo uses header-based MockSessionProvider;
- * production can swap in CasSessionProvider (or JWT) without touching routes.
+ * production swaps in RealSessionProvider (cookie → SQLite session) without
+ * touching business routes. Interface shape is stable (expand-contract).
  */
 export interface SessionProvider {
   resolve(request: IncomingMessage): SessionUser
