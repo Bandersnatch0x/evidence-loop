@@ -200,6 +200,8 @@ describe('App', () => {
       taughtKpIds: [],
       items: []
     })
+    // T14: StudentWorkbench mounts TeacherTipsInbox, which fetches on mount.
+    vi.mocked(api.listStudentTips).mockResolvedValue([])
   })
 
   it('loads an assignment, evaluates code, and applies the suggested repair', async () => {
