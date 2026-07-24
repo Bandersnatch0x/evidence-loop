@@ -389,13 +389,6 @@ export function createTeacherTip(
   })
 }
 
-/** Alias used by older TeacherTips surface. */
-export function sendTeacherTip(
-  body: CreateTeacherTipInput
-): Promise<CreateTeacherTipResult> {
-  return createTeacherTip(body)
-}
-
 export function listTeacherTips(
   teachingUnitId: string
 ): Promise<TeacherTipSummary[]> {

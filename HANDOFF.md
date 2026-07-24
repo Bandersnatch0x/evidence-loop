@@ -11,20 +11,21 @@ T11–T13 评审扫尾 + **T14 教师批量发提示（站内消息）** 已落�
 
 ## Status (2026-07-25)
 
-**十票 + T11–T14 IMPLEMENTED；演示交付件齐；E2E 浏览器冒烟绿。**
+**十票 + T11–T14 IMPLEMENTED；演示交付件齐；E2E 冒烟绿。**
 
-| 波次 | 内容 | 代表 |
-|------|------|------|
+| 波次 | 内容 | commit |
+|------|------|--------|
 | T01–T10 | 产品化主路径 | `docs/product-roadmap/PRODUCT-MAP.md` |
-| T11–T13 | T08 评审扫尾 | commits `2eaf693` / `bad7a69` / `d81f0aa` |
-| **T14** | 教师批量发提示（站内消息） | `docs/product-roadmap/reports/T14-implementation-report.md` |
-| Demo | 现场脚本 + 成套计时壳 + 提示多选 | `docs/DEMO-live-script.md` |
-| E2E | Playwright demo loops | `scripts/e2e-demo-loops.mjs` → 16/16 |
+| T11–T13 | T08 评审扫尾 | `2eaf693` / `bad7a69` / `d81f0aa` |
+| **T14** | 教师批量发提示（站内消息） | `16a65e9` + report |
+| Demo 交付件 | 现场脚本 + 成套计时壳 + 提示多选 | `bf6c112` |
+| 测试修复 | `App.test` mock `listStudentTips`（收件箱挂载） | `6a615e3` |
+| E2E | Playwright demo loops → 16/16 | `scripts/e2e-demo-loops.mjs` |
 
 验证快照：
-- `tests/teacherTips.test.ts` **11/11**
-- `tests/productDataModel.test.ts` **9/9**
-- E2E baseUrl 建议用空闲端口（本机默认 `4173` 可能 EACCES；常用 `http://127.0.0.1:5280`）
+- `tsc --noEmit` **EXIT=0**；全量 `vitest run` **481 passed + 1 skipped**
+- `tests/teacherTips.test.ts` 11/11；`tests/productDataModel.test.ts` 9/9
+- E2E baseUrl 用空闲端口（本机 `4173` 可能 EACCES；常用 `http://127.0.0.1:5280`）
 
 ## 复赛已交付(产品化十票之前的地基,勿重做)
 
@@ -63,6 +64,7 @@ T11–T13 评审扫尾 + **T14 教师批量发提示（站内消息）** 已落�
 | 激励体系 / 家长报告 / 课标对齐 | MAP Not yet specified |
 | 短信/推送/家长端提示 | T14 出界 |
 | 成套交卷与 Attempt 批量提交 API | 当前为 UI 仪式壳；计分仍在单题 Attempt |
+| 全量 vitest 并发 flake | 5 个 .tsx（App/tutoringPanel/Gradebook/MistakeBook/QuestionBankPanel）偶发红，并发起 HTTP server 抢端口所致；重跑必绿。决赛 CI 前建议 `npx vitest run --no-file-parallelism` 或限并发 |
 
 ## Next
 
