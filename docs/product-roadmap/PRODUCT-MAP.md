@@ -63,9 +63,32 @@
   空状态/冷启动 → T08（教师引导流程：建单元→导入→建/导题）
 -->
 
-## 地图状态：CLEARED ✅
+## 地图状态：CLEARED ✅ → IMPLEMENTED ✅
 
-所有主决策票（T01-T10）与研究票（TR1/TR2）已关闭。四个先验裁决（D1 双模 / D2 证据分级+OCR闸门 / D3 教学单元 / D4 学期切片）+ D5 数据出境已落定。**通往目的地的路已清晰——可交 /to-spec → /to-tickets → /implement 开建。** 剩余 fog 均为建设期可定的次级项，不阻塞开建。
+所有主决策票（T01-T10）与研究票（TR1/TR2）已关闭。四个先验裁决（D1 双模 / D2 证据分级+OCR闸门 / D3 教学单元 / D4 学期切片）+ D5 数据出境已落定。
+
+### 实现状态（全部落地 ✅）
+
+四波编排 + 接线闭环，全产品实现完成：
+
+| 波次 | 票 | 内容 | 落地 commit |
+|------|----|------|------------|
+| 1 | T01 | 产品数据模型地基（Attempt 聚合根 + Drizzle schema + 迁移） | `7c1b7bd` |
+| 2 | T02/T03/T09 | 认证会话 / 题库系统 / 标准解析 | `c33f89c` |
+| 3 | T04/T05/T06 | 扫描导入 OCR / 三层 AI 辅导 / 学情自动闭环 | `7e446bf` |
+| 4 | T07/T08 | 学生刷题体验 / 教师工作流 | `3b3f84f` |
+| 接线 | — | 主路由挂载 7 模块 + 前端工作台入口 | `wiring + ui` |
+
+**验证基线**：tsc 0 错误 / lint 0 问题 / vitest 427 tests green / vite build ✓。
+
+**铁律守护落地**（CI 测试断言）：
+- D1 双模：练习态证据不进正式 MasteryProfile（架构测试 + MistakeBook 只认 assessment 判对）
+- T05 物理隔离：辅导 generator 不接触打分路径，产物 `llm_inference` provenance，永不回写 score
+- T08 主观题终裁：`teacher_annotation` 写 `result.teacherAnnotation`，**不进 `result.score`**，provenance 不翻转，单份批改无批量 API（结构性禁止）
+
+**仍未通电（建设期项，非本轮范围）**：真实 LLM provider 密钥（现 `LocalFeedbackGenerator` 模板 + `OpenAICompatible` 骨架待配 `LLM_API_KEY`）；真实 OCR 服务（现 `MockOcrProvider`，`createOcrProvider` 按 `OCR_PROVIDER` 切 Mathpix/Paddle）；生产数据库（现 SQLite，接口隔离可换 Postgres）。
+
+剩余 fog 均为建设期可定的次级项，不阻塞。
 
 ## Out of scope
 

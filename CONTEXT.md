@@ -14,6 +14,11 @@
 - **Provenance / 来源标注**: 学情事实的强制字段，四种类型：`evidence` / `llm_inference` / `learner_self_report` / `teacher_annotation`。TypeScript 层面必填，不允许可选。
 - **EvaluationAgent**: 编排"读取任务 → 受限验证 → 量规评分 → 知识匹配 → 反馈生成"的五步闭环。仅第 5 步允许读写记忆；步 3、4 严格"仅本次证据"。
 - **SubmissionForm / 提交形态**: `text | latex | dom-structured | canvas-stroke | canvas-image`。DOM-structured 是数学 MVP 的必建域概念，为后续 CAS 解析提供中间表示。
+- **Attempt / 尝试（聚合根，T01）**: 产品级做题单元，取代裸 `EvaluationResult`。四个必填判别字段 `mode(practice|assessment)` / `source(test_case|authored_key)` / `termId` / `teachingUnitId` 承载 D1-D4 全部约束。`MasteryProfile`/`ReviewCard` 降为按 `mode` 分流的派生读模型。
+- **TeachingUnit / 教学单元（D3）**: 组织单位 = 班级 × 学科 × 学期。两层角色（学生/老师，无校级管理员）。`taughtKpIds` 承载 D4 已教知识点集合，未教 KP 学情不报警。
+- **PracticeSession / 练习场次（T07）**: 由 Attempt 元数据派生（非独立存储），一题一交（single）或成套打包（paper）。练习态开 AI 辅导（不入正式掌握度），测评态裸做（入正式掌握度）——D1 双模在 UI 明确标识。
+- **MistakeBook / 错题本（T07）**: 错题按 KP/学科自动归集。掌握规则守 D1——仅连续 N 次**测评态**判对才移出活跃本，练习态通过不算。
+- **teacherAnnotation / 教师终裁（T08）**: 主观题人工终裁分，写 `EvaluationResult.teacherAnnotation`（`teacher_annotation` provenance），**独立于 `result.score`（客观自动分）**，不折叠、不批量、`requiresTeacherConfirmation` 门。补 AdvisoryLayer 缺的人工终裁环。
 
 ## Active decisions
 
@@ -43,6 +48,19 @@
 - **决赛加语义层**：借鉴 Mem0 v3 设计（Integrity Rules、UUID→整数反幻觉、entity linking、BM25+embedding 混合检索），在 SQLite 上用 `sqlite-vec` 扩展 + `@xenova/transformers` 本地 embedding 自建。**不引入 Mem0 运行时依赖**。
 - **同库不同前缀**：语义层与 evaluations 同 SQLite 数据库，`memory_*` 表前缀隔离，复用哈希链审计。
 - **UI 三色系统**：evidence（蓝盾牌）/ llm_inference（灰气泡）/ self_report（绿）/ teacher_annotation（橙）。教师面板提供"只看证据层"开关。
+
+### 产品化（学生刷题 + AI 辅导 + 教师学情，T01-T08 已实施）
+决策地图见 `docs/product-roadmap/PRODUCT-MAP.md`（状态 IMPLEMENTED ✅）。四波编排 + 接线闭环：
+- **T01 数据模型地基**（已实施）：`Attempt` 聚合根 + Drizzle schema + 迁移；四判别字段承载 D1-D4；`JsonEvaluationStore→JsonAttemptStore` expand-contract；架构测试守护"练习态证据字节级不进正式掌握度"。
+- **T02 认证会话**（已实施）：学号/邮箱+密码，scrypt 加盐，HTTP-only cookie + 服务端 session；学生账号老师批量导入 + 激活码强制改密；`RealSessionProvider`（生产）/ `MockSessionProvider`（dev-only）。
+- **T03 题库 + T09 标准解析**（已实施）：老师私有题库（共享出界），7 题型表单，智能组卷；`Question.solution` 可选，AI 辅导 RAG 挂解析降幻觉，无解析标 `llm_inference` + 免责徽章。
+- **T04 扫描导入 OCR**（已实施）：纯 Node 文档解析（.docx/PDF 文本层，无出境）+ `OcrProvider` 接口（Mathpix 可出境/Paddle 本地/Mock），草稿→教师逐题确认→入库闸门（D2）。
+- **T05 三层 AI 辅导**（已实施，骨架待通电）：讲解/苏格拉底/对话；D1 仅练习态开放（mode gate 403）；物理隔离——辅导 generator 不接触打分路径，产物 `llm_inference`，永不回写 score/evidence；模板 fallback。`OpenAICompatible` 骨架待配 `LLM_API_KEY`。
+- **T06 学情自动闭环**（已实施）：`NextPracticeService` = FSRS due ∩ 依赖链薄弱点 ∩ D4 已教进度；`AssignByWeaknessService` 聚合班级薄弱 KP → 组卷 → 批量布置占位 Attempt（未提交不入掌握度）。
+- **T07 学生刷题体验**（已实施）：`PracticeSessionService`（session 由 Attempt 派生）+ `MistakeBookService`（D1 掌握规则）+ 前端 `StudentWorkbench`（双模入口 + 错题本）。
+- **T08 教师工作流**（已实施）：`TeachingUnitService`（D3）+ `StudentImportService`（复用 T02 导入 + 补 Enrollment）+ `AssignmentService`（三布置 shape）+ `SubjectiveGradingService`（主观题终裁环，守铁律）+ 前端 `TeacherWorkbench`（建单元→导名单→布置→批改四标签）。
+- **接线闭环**（已实施）：`server/index.ts` 主路由挂载 7 个 `handle*Api`（auth/questions/tutoring/import/adaptive/student/teacher）；`productDb` 独立 SQLite 连接承载 questions/auth/org 表；前端 Sidebar 新增学生/教师工作台入口。烟测 `tests/routeWiring.test.ts` + 端到端链路验证。
+- **验证基线**：tsc 0 / lint 0 / vitest 427 tests green / vite build ✓。
 
 ### 通用
 - **教师视图**：只提供干预建议，不自动写入正式成绩。
