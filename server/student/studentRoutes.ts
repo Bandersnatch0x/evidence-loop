@@ -6,15 +6,19 @@ import {
 } from '../auth/MockSessionProvider'
 import type { SessionUser } from '../auth/SessionProvider'
 import type { StartPracticeRequest } from '../../shared/contracts'
+import type { TeacherTipService } from '../teacher/TeacherTipService'
+import { TeacherTipError } from '../teacher/TeacherTipService'
 import type { PracticeSessionService } from './PracticeSessionService'
 import type { MistakeBookService } from './MistakeBookService'
 
 /**
- * HTTP surface for T07 student practice.
+ * HTTP surface for T07 student practice + T14 tip inbox.
  *
  * - GET  /api/student/sessions       — list the student's practice sessions
  * - GET  /api/student/mistakes        — mistake book (active + mastered history)
  * - POST /api/student/practice        — start a fresh practice/assessment attempt
+ * - GET  /api/student/tips            — teacher tip inbox (T14)
+ * - POST /api/student/tips/:id/read   — mark tip read (T14)
  *
  * Student-scoped: every read is bound to the resolved session's studentId, so
  * a demo role switch can never leak another student's mistake book. Tutoring
@@ -41,6 +45,7 @@ const startPracticeSchema = z.object({
 export interface StudentRouteContext {
   sessions: PracticeSessionService
   mistakes: MistakeBookService
+  tips: TeacherTipService
   user: SessionUser
 }
 
@@ -88,6 +93,31 @@ export async function handleStudentApi(
     const input: StartPracticeRequest = parsed.data
     const result = await context.sessions.startPractice(input, studentId)
     respondJson(response, 201, result)
+    return true
+  }
+
+  // GET /api/student/tips — inbox (unread first)
+  if (request.method === 'GET' && pathname === '/api/student/tips') {
+    const inbox = context.tips.listForStudent(studentId)
+    respondJson(response, 200, inbox)
+    return true
+  }
+
+  // POST /api/student/tips/:id/read
+  const tipReadMatch = pathname.match(/^\/api\/student\/tips\/([^/]+)\/read$/)
+  if (request.method === 'POST' && tipReadMatch?.[1]) {
+    const tipId = decodeURIComponent(tipReadMatch[1])
+    try {
+      const item = context.tips.markRead(tipId, studentId)
+      respondJson(response, 200, item)
+    } catch (error) {
+      if (error instanceof TeacherTipError) {
+        respondJson(response, 404, { error: error.message })
+      } else {
+        console.error('student tip error:', error)
+        respondJson(response, 500, { error: 'Internal server error' })
+      }
+    }
     return true
   }
 

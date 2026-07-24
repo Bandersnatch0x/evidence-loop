@@ -196,7 +196,7 @@ export class JsonAttemptStore implements AttemptStore {
       )
       const parsed = JSON.parse(contents) as unknown
       if (!Array.isArray(parsed)) return []
-      return (parsed as Attempt[]).map(normalizeAttempt)
+      return (parsed as unknown[]).map(normalizeAttempt)
     } catch (error) {
       if (error instanceof Error && 'code' in error && error.code === 'ENOENT') {
         return []
@@ -206,17 +206,49 @@ export class JsonAttemptStore implements AttemptStore {
   }
 }
 
-function normalizeAttempt(attempt: Attempt): Attempt {
-  const result = ensureEvaluationProvenance({
-    ...attempt.result,
-    // Keep studentId aligned with the aggregate root when present.
-    studentId: attempt.result.studentId ?? attempt.studentId
-  })
-  return {
-    ...attempt,
-    mode: attempt.mode === 'practice' ? 'practice' : 'assessment',
-    result
+/**
+ * Accept both Attempt-shaped rows and pre-T01 bare EvaluationResult rows that
+ * still live in .data/evaluations.json. Without this coerce, list/boot throws
+ * on attempt.result.studentId and the whole workspace 500s.
+ */
+function normalizeAttempt(raw: Attempt | EvaluationResult | unknown): Attempt {
+  if (isAttemptRecord(raw)) {
+    const result = ensureEvaluationProvenance({
+      ...raw.result,
+      // Keep studentId aligned with the aggregate root when present.
+      studentId: raw.result.studentId ?? raw.studentId
+    })
+    return {
+      ...raw,
+      mode: raw.mode === 'practice' ? 'practice' : 'assessment',
+      result
+    }
   }
+  if (isLegacyEvaluationRecord(raw)) {
+    return evaluationToLegacyAttempt(raw)
+  }
+  throw new Error('Unrecognized attempt/evaluation record shape in store')
+}
+
+function isAttemptRecord(value: unknown): value is Attempt {
+  if (typeof value !== 'object' || value === null) return false
+  const record = value as Partial<Attempt>
+  return (
+    typeof record.id === 'string' &&
+    typeof record.result === 'object' &&
+    record.result !== null
+  )
+}
+
+function isLegacyEvaluationRecord(value: unknown): value is EvaluationResult {
+  if (typeof value !== 'object' || value === null) return false
+  if (isAttemptRecord(value)) return false
+  const record = value as Partial<EvaluationResult>
+  return (
+    typeof record.id === 'string' &&
+    typeof record.assignmentId === 'string' &&
+    typeof record.score === 'number'
+  )
 }
 
 /**

@@ -49,7 +49,7 @@
 - [T11 T08 评审扫尾](decisions/T11-t08-review-sweep.md) — 仅三项：P4 Cohort 消费 teacherAnnotation 门 / S2 布置 enrollment 校验 / S1 assembleManual 认预置库。其余评审 fog 后置。
 - [T12 T08 评审剩余项](decisions/T12-t08-review-remainder.md) — P1 截止时间 / P2 先建班 / P3 CSV 上传 / S3 主观满分可编辑。P5 签名、P6 导出/发提示仍出界。
 - [T13 T08 评审收口](decisions/T13-t08-review-closeout.md) — P5 终裁 HMAC 签名 / P6 成绩与激活码 CSV 导出 / S6 list 装配失败可见。批量发提示仍出界。
-- [T14 教师批量发提示](decisions/T14-batch-teacher-tips.md) — **open**。T08「发提示」graduate：站内消息通道（TeachingUnit 范围 fan-out + 学生收件箱），不碰 score。短信/推送/家长端出界。
+- [T14 教师批量发提示](decisions/T14-batch-teacher-tips.md) — **IMPLEMENTED**。站内消息通道（TeachingUnit fan-out + 学生收件箱），不碰 score。见 reports/T14-implementation-report.md。
 
 ## Not yet specified
 
@@ -65,7 +65,7 @@
   AI 辅导成本/延迟/限流 → T05（境内模型 + try/catch 模板 fallback）
   移动端 → T07（响应式优先，学生刷题手机场景）
   空状态/冷启动 → T08（教师引导流程：建单元→导入→建/导题）
-  教师批量发提示 → T14（站内消息通道，open）
+  教师批量发提示 → T14（站内消息通道，IMPLEMENTED）
 -->
 
 ## 地图状态：CLEARED ✅ → IMPLEMENTED ✅

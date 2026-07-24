@@ -1031,3 +1031,61 @@ export interface GradeSubjectiveResult {
   /** teacher_annotation provenance — never folded into the automatic score. */
   teacherAnnotation: TeacherAnnotation
 }
+
+// ---------------------------------------------------------------------------
+// T14 — teacher batch tips (站内消息; never touches score)
+// ---------------------------------------------------------------------------
+
+/** Teacher-authored short tip for a teaching unit (not a grade, not Intervention). */
+export interface TeacherTip {
+  id: string
+  teachingUnitId: string
+  teacherId: string
+  /** Plain text body, max ~2000 chars. */
+  body: string
+  createdAt: string
+  /** Optional weak-KP tags (display/link only). */
+  kpIds?: string[]
+  /** Optional paper link (display only; never writes score). */
+  paperId?: string
+  /** Optional question link (display only; never writes score). */
+  questionId?: string
+}
+
+/** Per-student delivery envelope for a tip (one tip → N deliveries). */
+export interface TeacherTipDelivery {
+  tipId: string
+  studentId: string
+  /** ISO-8601; absent/undefined = unread. */
+  readAt?: string
+}
+
+/** POST /api/teacher/tips */
+export interface CreateTeacherTipInput {
+  teachingUnitId: string
+  body: string
+  /** Optional subset of enrolled students; omitted = whole unit. */
+  studentIds?: string[]
+  kpIds?: string[]
+  paperId?: string
+  questionId?: string
+}
+
+export interface CreateTeacherTipResult {
+  tip: TeacherTip
+  /** Students who received a delivery envelope. */
+  studentIds: string[]
+  deliveryCount: number
+}
+
+/** GET /api/teacher/tips — tip + read counters for the teacher. */
+export interface TeacherTipSummary extends TeacherTip {
+  deliveryCount: number
+  readCount: number
+}
+
+/** GET /api/student/tips — inbox item (unread first). */
+export interface StudentTipItem extends TeacherTip {
+  /** Present when this student has marked the tip read. */
+  readAt?: string
+}

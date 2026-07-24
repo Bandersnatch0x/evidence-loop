@@ -100,7 +100,7 @@ TeacherTipDelivery {
 
 ## 状态
 
-**open** — 决策已钉 MVP 形状；**未实施**。开建用 `/implement` 或 `/mattpocock-skills:implement 开工14票`。
+**IMPLEMENTED** — 见 docs/product-roadmap/reports/T14-implementation-report.md。
 
 ## 关联
 

@@ -56,6 +56,8 @@ import {
   AssignmentService,
   SubjectiveGradingService,
   StudentImportService,
+  TeacherTipService,
+  TeacherTipStore,
   TeachingUnitService,
   handleTeacherApi
 } from './teacher'
@@ -157,6 +159,7 @@ interface ApiContext {
   roster: StudentImportService
   assignmentService: AssignmentService
   grading: SubjectiveGradingService
+  tips: TeacherTipService
   evidenceProjector: EvidenceProjector
 }
 
@@ -328,6 +331,11 @@ export async function createEvidenceLoopServer(
     org,
     hmacSecret
   })
+  // T14: in-app teacher tips (站内消息). Shares productDb; never scores.
+  const tips = new TeacherTipService({
+    store: new TeacherTipStore({ database: productDb }),
+    org
+  })
   // D1 dual-mode projector: practice feeds FSRS only; assessment also
   // recomputes formal MasteryProfile. Used by the evaluate path when an
   // attemptId is supplied (T07 product flow).
@@ -353,6 +361,7 @@ export async function createEvidenceLoopServer(
     roster,
     assignmentService,
     grading,
+    tips,
     evidenceProjector,
     agent: new EvaluationAgent({
       assignments,
@@ -441,9 +450,19 @@ async function start(): Promise<void> {
 
 async function createViteMiddleware(): Promise<ViteDevServer> {
   const { createServer: createViteServer } = await import('vite')
+  // Prefer an explicit free HMR port. The default 24678 collides when another
+  // Vite instance is already alive on the machine, which throws a page error
+  // and confuses Playwright boot checks.
+  const hmrPort = Number(process.env.VITE_HMR_PORT ?? 24679)
   return createViteServer({
     root: projectRoot,
-    server: { middlewareMode: true },
+    server: {
+      middlewareMode: true,
+      hmr: {
+        port: hmrPort,
+        clientPort: hmrPort
+      }
+    },
     appType: 'spa'
   })
 }
@@ -1294,6 +1313,7 @@ async function handleApi(
     await handleStudentApi(request, response, requestUrl, {
       sessions: context.practiceSessions,
       mistakes: context.mistakes,
+      tips: context.tips,
       user
     })
   ) {
@@ -1305,6 +1325,7 @@ async function handleApi(
       roster: context.roster,
       assignments: context.assignmentService,
       grading: context.grading,
+      tips: context.tips,
       user
     })
   ) {

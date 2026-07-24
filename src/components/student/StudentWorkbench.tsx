@@ -3,6 +3,7 @@ import { AlertTriangle, GraduationCap, ListChecks } from 'lucide-react'
 import type { PracticeSession, SessionMode } from '../../../shared/contracts'
 import { listPracticeSessions } from '../../lib/api'
 import { MistakeBook } from './MistakeBook'
+import { TeacherTipsInbox } from './TeacherTipsInbox'
 import { PracticeView } from './PracticeView'
 import { TodayPractice } from './TodayPractice'
 
@@ -98,6 +99,10 @@ export function StudentWorkbench({
           <AlertTriangle size={18} /> {actionError}
         </div>
       ) : null}
+
+      <TeacherTipsInbox refreshKey={refreshKey} />
+
+      <hr />
 
       <TodayPractice
         studentId={studentId}

@@ -9,6 +9,8 @@ import type {
   CreateAssignmentInput,
   CreateAssignmentResult,
   CreateQuestionInput,
+  CreateTeacherTipInput,
+  CreateTeacherTipResult,
   CreateTeachingUnitInput,
   DemoRole,
   EvaluateRequest,
@@ -30,7 +32,9 @@ import type {
   ReviewCard,
   StartPracticeRequest,
   StartPracticeResponse,
+  StudentTipItem,
   TeachingUnit,
+  TeacherTipSummary,
   TeachingUnitView,
   TutoringDialogueRequest,
   TutoringExplainRequest,
@@ -369,5 +373,36 @@ export function gradeSubjective(
   return requestJson(`/api/teacher/grading/${encodeURIComponent(attemptId)}`, {
     method: 'POST',
     body: JSON.stringify(body)
+  })
+}
+
+// ---------------------------------------------------------------------------
+// T14 — teacher batch tips (in-app messages; never scores)
+// ---------------------------------------------------------------------------
+
+export function createTeacherTip(
+  body: CreateTeacherTipInput
+): Promise<CreateTeacherTipResult> {
+  return requestJson('/api/teacher/tips', {
+    method: 'POST',
+    body: JSON.stringify(body)
+  })
+}
+
+export function listTeacherTips(
+  teachingUnitId: string
+): Promise<TeacherTipSummary[]> {
+  return requestJson(
+    `/api/teacher/tips?teachingUnitId=${encodeURIComponent(teachingUnitId)}`
+  )
+}
+
+export function listStudentTips(): Promise<StudentTipItem[]> {
+  return requestJson('/api/student/tips')
+}
+
+export function markStudentTipRead(tipId: string): Promise<StudentTipItem> {
+  return requestJson(`/api/student/tips/${encodeURIComponent(tipId)}/read`, {
+    method: 'POST'
   })
 }

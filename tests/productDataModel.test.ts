@@ -27,6 +27,9 @@ import {
 import { MasteryService } from '../server/mastery/MasteryService'
 import { JsonAttemptStore } from '../server/store/AttemptStore'
 import { JsonEvaluationStore } from '../server/store/EvaluationStore'
+import { mkdtemp, writeFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 
 const SECRET = 't01-product-data-model-hmac'
 
@@ -177,6 +180,38 @@ describe('JsonAttemptStore expand-contract', () => {
     const next = new JsonAttemptStore(':memory:')
     await next.saveAttempt(sampleAttempt({ id: 'eval_attempt' }))
     expect((await next.listAttempts()).length).toBe(1)
+  })
+
+  it('reads legacy bare EvaluationResult rows without throwing', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'attempt-store-'))
+    const file = join(dir, 'evaluations.json')
+    const withStudent = sampleResult({
+      id: 'eval_legacy_file',
+      studentId: 'learner-demo'
+    })
+    const { studentId: _omitStudentId, ...withoutStudent } = sampleResult({
+      id: 'eval_legacy_no_student'
+    })
+    const legacyRows = [withStudent, withoutStudent]
+    await writeFile(file, JSON.stringify(legacyRows, null, 2), 'utf8')
+
+    const store = new JsonAttemptStore(file)
+    const attempts = await store.listAttempts()
+    expect(attempts).toHaveLength(2)
+    expect(attempts.map((item) => item.id).sort()).toEqual([
+      'eval_legacy_file',
+      'eval_legacy_no_student'
+    ])
+    expect(attempts.find((item) => item.id === 'eval_legacy_file')?.studentId).toBe(
+      'learner-demo'
+    )
+    expect(
+      attempts.find((item) => item.id === 'eval_legacy_no_student')?.studentId
+    ).toBe('unknown-student')
+    expect(attempts.every((item) => item.mode === 'assessment')).toBe(true)
+
+    const listed = await store.list()
+    expect(listed).toHaveLength(2)
   })
 })
 

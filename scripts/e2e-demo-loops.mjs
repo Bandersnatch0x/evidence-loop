@@ -49,19 +49,23 @@ async function setRole(page, role) {
 }
 
 async function gotoApp(page) {
-  await page.goto(baseUrl, { waitUntil: 'networkidle', timeout: 60_000 })
-  await page.waitForSelector('text=EvidenceLoop', { timeout: 30_000 })
+  await page.goto(baseUrl, { waitUntil: 'domcontentloaded', timeout: 60_000 })
+  // Desktop brand lives in .sidebar; a second EvidenceLoop sits in the hidden
+  // .mobile-header. waitForSelector('text=EvidenceLoop') latches onto the first
+  // DOM match (hidden) and times out even when the app is healthy.
+  await page
+    .locator('.sidebar strong', { hasText: 'EvidenceLoop' })
+    .waitFor({ state: 'visible', timeout: 30_000 })
   // Workspace loads assignment async.
-  await page.waitForSelector('text=运行循证评估, text=正在读取任务', {
-    timeout: 30_000
-  }).catch(() => {})
-  // Prefer loaded workspace over loading shell.
   await page
     .getByRole('button', { name: /运行循证评估/ })
     .waitFor({ state: 'visible', timeout: 45_000 })
     .catch(async () => {
       // May land on non-workspace; still ok if shell is up.
-      await page.waitForSelector('.app-shell, .sidebar', { timeout: 10_000 })
+      await page.locator('.app-shell, .sidebar').first().waitFor({
+        state: 'visible',
+        timeout: 10_000
+      })
     })
 }
 

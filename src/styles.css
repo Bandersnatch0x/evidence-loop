@@ -4041,3 +4041,67 @@ td > b {
   padding: 6px 8px;
   border-bottom: 1px solid var(--line);
 }
+
+/* T14 teacher tips / student inbox */
+.tip-composer label,
+.teacher-tips-inbox label {
+  display: block;
+  margin: 10px 0;
+}
+
+.tip-list {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tip-row {
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  font-size: 0.8125rem;
+}
+
+.tip-row.unread {
+  border-color: var(--accent, #3b82f6);
+  background: color-mix(in srgb, var(--accent, #3b82f6) 8%, var(--surface));
+}
+
+.tip-body {
+  white-space: pre-wrap;
+  margin-bottom: 6px;
+}
+
+.tip-meta {
+  font-size: 0.75rem;
+}
+
+.tip-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.tip-unread-badge {
+  display: inline-block;
+  margin-left: 8px;
+  min-width: 1.25rem;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--warn, #f59e0b);
+  color: #111;
+  font-size: 0.75rem;
+  font-weight: 700;
+  vertical-align: middle;
+}
+
+.mark-read-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}

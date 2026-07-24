@@ -7,6 +7,7 @@ import {
 import type { SessionUser } from '../auth/SessionProvider'
 import type {
   CreateAssignmentInput,
+  CreateTeacherTipInput,
   CreateTeachingUnitInput,
   GradeSubjectiveInput,
   RosterRow
@@ -21,9 +22,10 @@ import {
   StudentImportError,
   type StudentImportService
 } from './StudentImportService'
+import { TeacherTipError, type TeacherTipService } from './TeacherTipService'
 
 /**
- * HTTP surface for T08 teacher workflow.
+ * HTTP surface for T08 teacher workflow + T14 tips.
  *
  * - POST /api/teacher/teaching-units          — create a teaching unit
  * - GET  /api/teacher/teaching-units          — list units for this teacher
@@ -32,10 +34,12 @@ import {
  * - POST /api/teacher/assignments             — create an assignment (3 shapes)
  * - GET  /api/teacher/grading/:teachingUnitId  — subjective grading queue
  * - POST /api/teacher/grading/:attemptId       — teacher final adjudication
+ * - POST /api/teacher/tips                    — batch tip fan-out (T14)
+ * - GET  /api/teacher/tips?teachingUnitId=    — list tips + read counts (T14)
  *
  * Teacher-scoped: every write is bound to the resolved teacher's userId, and
  * the主观题 grading path takes exactly ONE attemptId per call (no batch —
- * 守铁律: 主观题不可批量给分).
+ * 守铁律: 主观题不可批量给分). Tips are messages, not scores — batch OK.
  */
 
 const JSON_HEADERS = {
@@ -82,11 +86,21 @@ const gradeSchema = z.object({
   note: z.string().min(1).max(2000)
 })
 
+const createTipSchema = z.object({
+  teachingUnitId: z.string().min(1).max(128),
+  body: z.string().min(1).max(2000),
+  studentIds: z.array(z.string().min(1).max(128)).max(500).optional(),
+  kpIds: z.array(z.string().min(1).max(128)).max(200).optional(),
+  paperId: z.string().min(1).max(128).optional(),
+  questionId: z.string().min(1).max(128).optional()
+})
+
 export interface TeacherRouteContext {
   teachingUnits: TeachingUnitService
   roster: StudentImportService
   assignments: AssignmentService
   grading: SubjectiveGradingService
+  tips: TeacherTipService
   user: SessionUser
 }
 
@@ -234,6 +248,44 @@ export async function handleTeacherApi(
     return true
   }
 
+  // POST /api/teacher/tips — batch tip fan-out (T14; messages, not scores)
+  if (request.method === 'POST' && pathname === '/api/teacher/tips') {
+    const parsed = createTipSchema.safeParse(await readJsonBody(request))
+    if (!parsed.success) {
+      respondJson(response, 400, {
+        error: 'Invalid tip request',
+        details: parsed.error.issues.map((issue) => issue.message)
+      })
+      return true
+    }
+    const input: CreateTeacherTipInput = parsed.data
+    try {
+      const result = context.tips.send(input, teacherId)
+      respondJson(response, 201, result)
+    } catch (error) {
+      respondTipError(response, error)
+    }
+    return true
+  }
+
+  // GET /api/teacher/tips?teachingUnitId=
+  if (request.method === 'GET' && pathname === '/api/teacher/tips') {
+    const teachingUnitId = requestUrl.searchParams.get('teachingUnitId')
+    if (!teachingUnitId) {
+      respondJson(response, 400, {
+        error: 'teachingUnitId query parameter is required'
+      })
+      return true
+    }
+    try {
+      const list = context.tips.listForTeacher(teachingUnitId, teacherId)
+      respondJson(response, 200, list)
+    } catch (error) {
+      respondTipError(response, error)
+    }
+    return true
+  }
+
   respondJson(response, 404, { error: 'Teacher route not found' })
   return true
 }
@@ -287,12 +339,26 @@ function respondServiceError(
     error instanceof TeachingUnitError ||
     error instanceof AssignmentError ||
     error instanceof SubjectiveGradingError ||
-    error instanceof StudentImportError
+    error instanceof StudentImportError ||
+    error instanceof TeacherTipError
   ) {
     respondJson(response, domainStatus, { error: error.message })
     return
   }
   console.error('teacher service error:', error)
+  respondJson(response, 500, { error: 'Internal server error' })
+}
+
+/**
+ * Tip errors: ownership → 403; validation/enrollment → 422.
+ */
+function respondTipError(response: ServerResponse, error: unknown): void {
+  if (error instanceof TeacherTipError) {
+    const forbidden = error.message.startsWith('Forbidden:')
+    respondJson(response, forbidden ? 403 : 422, { error: error.message })
+    return
+  }
+  console.error('teacher tip error:', error)
   respondJson(response, 500, { error: 'Internal server error' })
 }
 

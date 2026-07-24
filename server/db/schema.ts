@@ -264,3 +264,41 @@ export const importDrafts = sqliteTable(
     index('idx_import_drafts_status').on(table.authorId, table.status)
   ]
 )
+
+// ---------------------------------------------------------------------------
+// Migration 0006 — teacher tips / 站内消息 (T14)
+// ---------------------------------------------------------------------------
+
+/** Teacher-authored tip header. Never participates in scoring. */
+export const teacherTips = sqliteTable(
+  'teacher_tips',
+  {
+    id: text('id').primaryKey(),
+    teachingUnitId: text('teaching_unit_id').notNull(),
+    teacherId: text('teacher_id').notNull(),
+    body: text('body').notNull(),
+    createdAt: text('created_at').notNull(),
+    kpIds: text('kp_ids').notNull().default(sql`'[]'`),
+    paperId: text('paper_id'),
+    questionId: text('question_id')
+  },
+  (table) => [
+    index('idx_teacher_tips_unit').on(table.teachingUnitId, table.createdAt),
+    index('idx_teacher_tips_teacher').on(table.teacherId, table.createdAt)
+  ]
+)
+
+/** Per-student delivery; readAt null = unread. */
+export const teacherTipDeliveries = sqliteTable(
+  'teacher_tip_deliveries',
+  {
+    tipId: text('tip_id').notNull(),
+    studentId: text('student_id').notNull(),
+    readAt: text('read_at')
+  },
+  (table) => [
+    // Composite PK expressed as unique index + columns (SQLite drizzle style).
+    uniqueIndex('idx_teacher_tip_delivery_pk').on(table.tipId, table.studentId),
+    index('idx_teacher_tip_deliveries_student').on(table.studentId, table.readAt)
+  ]
+)

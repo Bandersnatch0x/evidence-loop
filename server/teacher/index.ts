@@ -9,5 +9,9 @@ export {
   SubjectiveGradingError
 } from './SubjectiveGradingService'
 export type { SubjectiveGradingServiceOptions } from './SubjectiveGradingService'
+export { TeacherTipService, TeacherTipError } from './TeacherTipService'
+export type { TeacherTipServiceOptions } from './TeacherTipService'
+export { TeacherTipStore, newTeacherTipId } from './TeacherTipStore'
+export type { TeacherTipStoreOptions } from './TeacherTipStore'
 export { handleTeacherApi } from './teacherRoutes'
 export type { TeacherRouteContext } from './teacherRoutes'

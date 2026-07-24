@@ -3,6 +3,7 @@ import {
   BookMarked,
   Building2,
   ClipboardList,
+  MessageSquareText,
   Send,
   Upload
 } from 'lucide-react'
@@ -11,9 +12,10 @@ import { ClassSetup } from './ClassSetup'
 import { StudentImport } from './StudentImport'
 import { AssignmentComposer } from './AssignmentComposer'
 import { Gradebook } from './Gradebook'
+import { TipComposer } from './TipComposer'
 import { QuestionBankPanel } from './QuestionBankPanel'
 
-type TeacherTab = 'class' | 'bank' | 'roster' | 'assign' | 'grade'
+type TeacherTab = 'class' | 'bank' | 'roster' | 'assign' | 'tips' | 'grade'
 
 const TABS: Array<{
   id: TeacherTab
@@ -26,6 +28,7 @@ const TABS: Array<{
   { id: 'bank', label: '题库录入', icon: BookMarked, requiresUnit: false },
   { id: 'roster', label: '导入名单', icon: Upload, requiresUnit: true },
   { id: 'assign', label: '布置作业', icon: Send, requiresUnit: true },
+  { id: 'tips', label: '发提示', icon: MessageSquareText, requiresUnit: true },
   { id: 'grade', label: '主观题批改', icon: ClipboardList, requiresUnit: true }
 ]
 
@@ -94,6 +97,9 @@ export function TeacherWorkbench() {
         ) : null}
         {tab === 'assign' && unit !== undefined ? (
           <AssignmentComposer teachingUnitId={unit.id} />
+        ) : null}
+        {tab === 'tips' && unit !== undefined ? (
+          <TipComposer teachingUnitId={unit.id} />
         ) : null}
         {tab === 'grade' && unit !== undefined ? (
           <Gradebook teachingUnitId={unit.id} />
