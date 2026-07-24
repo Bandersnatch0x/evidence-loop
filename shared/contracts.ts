@@ -284,6 +284,13 @@ export interface EvaluateRequest {
   assignmentId: string
   code: string
   previousEvaluationId?: string
+  /**
+   * Optional product Attempt id (T07). When present, the evaluate path updates
+   * that Attempt in place and preserves mode/paperId/teachingUnitId/termId so
+   * D1 dual-mode mastery projection and T07 session grouping stay honest.
+   * Legacy demo callers omit this and still get assessment-default Attempts.
+   */
+  attemptId?: string
 }
 
 export interface EvaluationHistoryItem {

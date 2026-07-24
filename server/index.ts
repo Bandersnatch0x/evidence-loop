@@ -32,6 +32,7 @@ import { isMultimodalEnabled } from './config/features'
 import { AdvisoryService } from './advisory/AdvisoryService'
 import {
   AssignByWeaknessService,
+  EvidenceProjector,
   NextPracticeService,
   SqliteOrgReader,
   handleAdaptiveApi
@@ -100,7 +101,8 @@ const maxRequestBodyBytes = 256 * 1024
 const evaluateRequestSchema = z.object({
   assignmentId: z.string().min(1),
   code: z.string().min(1).max(20_000),
-  previousEvaluationId: z.string().min(1).optional()
+  previousEvaluationId: z.string().min(1).optional(),
+  attemptId: z.string().min(1).optional()
 })
 
 const multimodalAskSchema = z.object({
@@ -154,6 +156,7 @@ interface ApiContext {
   roster: StudentImportService
   assignmentService: AssignmentService
   grading: SubjectiveGradingService
+  evidenceProjector: EvidenceProjector
 }
 
 interface EvidenceLoopServerOptions {
@@ -320,6 +323,13 @@ export async function createEvidenceLoopServer(
     questions: questionStore,
     org
   })
+  // D1 dual-mode projector: practice feeds FSRS only; assessment also
+  // recomputes formal MasteryProfile. Used by the evaluate path when an
+  // attemptId is supplied (T07 product flow).
+  const evidenceProjector = new EvidenceProjector({
+    mastery: memory.mastery,
+    review: memory.review
+  })
 
   const context: ApiContext = {
     assignments,
@@ -338,6 +348,7 @@ export async function createEvidenceLoopServer(
     roster,
     assignmentService,
     grading,
+    evidenceProjector,
     agent: new EvaluationAgent({
       assignments,
       knowledge: createKnowledgeBase(),
@@ -636,9 +647,73 @@ async function handleApi(
       throw error
     }
 
-    await store.save(owned)
+    // Product Attempt path (T07): when the client supplies attemptId, update
+    // that Attempt in place and preserve mode/paperId/teachingUnitId/termId so
+    // D1 dual-mode mastery projection and T07 session grouping stay honest.
+    // Legacy demo callers omit attemptId and still get assessment-default
+    // Attempts via store.save → evaluationToLegacyAttempt.
+    const attemptId = parsed.data.attemptId
+    let projectedMode: 'practice' | 'assessment' = 'assessment'
+    if (attemptId !== undefined) {
+      const existing = await store.getAttempt(attemptId)
+      if (!existing) {
+        respondJson(response, 404, { error: 'Attempt not found' })
+        return
+      }
+      const owner = user.studentId ?? user.userId
+      if (
+        user.role === 'student' &&
+        existing.studentId !== owner
+      ) {
+        respondJson(response, 403, {
+          error: 'Forbidden: cannot evaluate an attempt you do not own'
+        })
+        return
+      }
+      // Keep the original evaluation id on the Attempt aggregate so tutoring
+      // and mistake-book references remain stable after submit.
+      const resultForAttempt = {
+        ...owned,
+        id: existing.id,
+        studentId: existing.studentId
+      }
+      const updatedAttempt = {
+        ...existing,
+        result: resultForAttempt
+      }
+      await store.saveAttempt(updatedAttempt)
+      projectedMode = existing.mode
+      if (resultForAttempt.status === 'completed') {
+        await context.evidenceProjector.projectAttempt(updatedAttempt)
+      }
+      const containerId = resolveContainerId(resultForAttempt, runnerName)
+      audit.enqueue({
+        actorRole: user.role,
+        actorId: user.userId,
+        action: 'evaluate',
+        resourceType: 'evaluation',
+        resourceId: existing.id,
+        studentId: existing.studentId,
+        containerId,
+        result:
+          resultForAttempt.status === 'completed'
+            ? 'success'
+            : resultForAttempt.status,
+        metadata: {
+          assignmentId: resultForAttempt.assignmentId,
+          score: resultForAttempt.score,
+          attempt: resultForAttempt.attempt,
+          piiDetected: false,
+          mode: projectedMode,
+          attemptId: existing.id
+        }
+      })
+      respondJson(response, 201, resultForAttempt)
+      return
+    }
 
-    // Triggered mastery recompute + FSRS review update (issues 012 / 014).
+    await store.save(owned)
+    // Legacy demo path: assessment-default, both mastery + FSRS.
     if (owned.status === 'completed') {
       await memory.mastery.recomputeFromEvaluation(owned)
       memory.review.applyFromEvaluation(owned)
@@ -658,7 +733,9 @@ async function handleApi(
         assignmentId: owned.assignmentId,
         score: owned.score,
         attempt: owned.attempt,
-        piiDetected: false
+        piiDetected: false,
+        mode: 'assessment',
+        attemptId: null
       }
     })
 
