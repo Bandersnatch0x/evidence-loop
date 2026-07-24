@@ -1,0 +1,147 @@
+import type { IncomingMessage, ServerResponse } from 'node:http'
+import { z } from 'zod'
+import {
+  SECURITY_WARNING_HEADER,
+  SECURITY_WARNING_VALUE
+} from '../auth/MockSessionProvider'
+import type { SessionUser } from '../auth/SessionProvider'
+import type { StartPracticeRequest } from '../../shared/contracts'
+import type { PracticeSessionService } from './PracticeSessionService'
+import type { MistakeBookService } from './MistakeBookService'
+
+/**
+ * HTTP surface for T07 student practice.
+ *
+ * - GET  /api/student/sessions       — list the student's practice sessions
+ * - GET  /api/student/mistakes        — mistake book (active + mastered history)
+ * - POST /api/student/practice        — start a fresh practice/assessment attempt
+ *
+ * Student-scoped: every read is bound to the resolved session's studentId, so
+ * a demo role switch can never leak another student's mistake book. Tutoring
+ * enablement is derived server-side from the attempt's mode (D1) — the client
+ * cannot claim tutoring in assessment mode.
+ */
+
+const JSON_HEADERS = {
+  'content-type': 'application/json; charset=utf-8',
+  'cache-control': 'no-store',
+  [SECURITY_WARNING_HEADER]: SECURITY_WARNING_VALUE
+} as const
+
+const MAX_BODY_BYTES = 256 * 1024
+
+const startPracticeSchema = z.object({
+  questionId: z.string().min(1).max(128),
+  teachingUnitId: z.string().min(1).max(128),
+  termId: z.string().min(1).max(128),
+  mode: z.enum(['practice', 'assessment']),
+  paperId: z.string().min(1).max(128).optional()
+})
+
+export interface StudentRouteContext {
+  sessions: PracticeSessionService
+  mistakes: MistakeBookService
+  user: SessionUser
+}
+
+export async function handleStudentApi(
+  request: IncomingMessage,
+  response: ServerResponse,
+  requestUrl: URL,
+  context: StudentRouteContext
+): Promise<boolean> {
+  const { pathname } = requestUrl
+  if (!pathname.startsWith('/api/student/')) return false
+
+  const studentId = resolveStudentId(context.user)
+  if (studentId === null) {
+    respondJson(response, 403, {
+      error: 'Forbidden: student routes require a student session'
+    })
+    return true
+  }
+
+  // GET /api/student/sessions
+  if (request.method === 'GET' && pathname === '/api/student/sessions') {
+    const sessions = await context.sessions.listSessions(studentId)
+    respondJson(response, 200, sessions)
+    return true
+  }
+
+  // GET /api/student/mistakes
+  if (request.method === 'GET' && pathname === '/api/student/mistakes') {
+    const view = await context.mistakes.view(studentId)
+    respondJson(response, 200, view)
+    return true
+  }
+
+  // POST /api/student/practice
+  if (request.method === 'POST' && pathname === '/api/student/practice') {
+    const parsed = startPracticeSchema.safeParse(await readJsonBody(request))
+    if (!parsed.success) {
+      respondJson(response, 400, {
+        error: 'Invalid start-practice request',
+        details: parsed.error.issues.map((issue) => issue.message)
+      })
+      return true
+    }
+    const input: StartPracticeRequest = parsed.data
+    const result = await context.sessions.startPractice(input, studentId)
+    respondJson(response, 201, result)
+    return true
+  }
+
+  respondJson(response, 404, { error: 'Student route not found' })
+  return true
+}
+
+function resolveStudentId(user: SessionUser): string | null {
+  // Students are scoped by studentId; admin demo falls back to userId.
+  if (user.role === 'student') return user.studentId ?? user.userId
+  // Teachers/admins have no mistake book of their own.
+  return null
+}
+
+async function readJsonBody(request: IncomingMessage): Promise<unknown> {
+  const chunks: Uint8Array[] = []
+  let size = 0
+  const declaredSize = Number(request.headers['content-length'] ?? 0)
+  if (Number.isFinite(declaredSize) && declaredSize > MAX_BODY_BYTES) {
+    throw new HttpLikeError(413, 'Request body is too large')
+  }
+  for await (const chunk of request) {
+    const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)
+    size += buffer.length
+    if (size > MAX_BODY_BYTES) {
+      throw new HttpLikeError(413, 'Request body is too large')
+    }
+    chunks.push(buffer)
+  }
+  const body = Buffer.concat(chunks).toString('utf8')
+  if (body.length === 0) return {}
+  try {
+    return JSON.parse(body) as unknown
+  } catch {
+    throw new HttpLikeError(400, 'Malformed JSON request body')
+  }
+}
+
+class HttpLikeError extends Error {
+  public constructor(
+    public readonly statusCode: number,
+    message: string
+  ) {
+    super(message)
+  }
+}
+
+function respondJson(
+  response: ServerResponse,
+  statusCode: number,
+  payload: unknown
+): void {
+  response.writeHead(statusCode, JSON_HEADERS)
+  response.end(JSON.stringify(payload))
+}
+
+export { readJsonBody as readStudentJsonBody, HttpLikeError as StudentHttpError }

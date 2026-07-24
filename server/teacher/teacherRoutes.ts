@@ -1,0 +1,277 @@
+import type { IncomingMessage, ServerResponse } from 'node:http'
+import { z } from 'zod'
+import {
+  SECURITY_WARNING_HEADER,
+  SECURITY_WARNING_VALUE
+} from '../auth/MockSessionProvider'
+import type { SessionUser } from '../auth/SessionProvider'
+import type {
+  CreateAssignmentInput,
+  CreateTeachingUnitInput,
+  GradeSubjectiveInput,
+  RosterRow
+} from '../../shared/contracts'
+import type { TeachingUnitService } from './TeachingUnitService'
+import type { StudentImportService } from './StudentImportService'
+import type { AssignmentService } from './AssignmentService'
+import type { SubjectiveGradingService } from './SubjectiveGradingService'
+
+/**
+ * HTTP surface for T08 teacher workflow.
+ *
+ * - POST /api/teacher/teaching-units          — create a teaching unit
+ * - GET  /api/teacher/teaching-units/:id        — view a teaching unit
+ * - POST /api/teacher/roster/import            — import student roster
+ * - POST /api/teacher/assignments             — create an assignment (3 shapes)
+ * - GET  /api/teacher/grading/:teachingUnitId  — subjective grading queue
+ * - POST /api/teacher/grading/:attemptId       — teacher final adjudication
+ *
+ * Teacher-scoped: every write is bound to the resolved teacher's userId, and
+ * the主观题 grading path takes exactly ONE attemptId per call (no batch —
+ * 守铁律: 主观题不可批量给分).
+ */
+
+const JSON_HEADERS = {
+  'content-type': 'application/json; charset=utf-8',
+  'cache-control': 'no-store',
+  [SECURITY_WARNING_HEADER]: SECURITY_WARNING_VALUE
+} as const
+
+const MAX_BODY_BYTES = 256 * 1024
+
+const createUnitSchema = z.object({
+  classId: z.string().min(1).max(128),
+  subjectId: z.string().min(1).max(128),
+  termId: z.string().min(1).max(128),
+  taughtKpIds: z.array(z.string().min(1).max(128)).max(500)
+})
+
+const rosterRowSchema = z.object({
+  studentNumber: z.string().min(1).max(64),
+  displayName: z.string().min(1).max(128)
+})
+
+const importRosterSchema = z.object({
+  classId: z.string().min(1).max(128),
+  termId: z.string().min(1).max(128),
+  rows: z.array(rosterRowSchema).min(1).max(1000)
+})
+
+const assignmentSchema = z.object({
+  teachingUnitId: z.string().min(1).max(128),
+  mode: z.enum(['practice', 'assessment']),
+  kind: z.enum(['handpick', 'assemble_by_kp', 'by_weakness']),
+  questionIds: z.array(z.string().min(1).max(128)).max(200).optional(),
+  kpIds: z.array(z.string().min(1).max(128)).max(200).optional(),
+  limit: z.number().int().min(1).max(50).optional(),
+  studentIds: z.array(z.string().min(1).max(128)).max(500).optional(),
+  title: z.string().min(1).max(200).optional()
+})
+
+const gradeSchema = z.object({
+  subjectiveScore: z.number().min(0).max(1000),
+  subjectiveMaxScore: z.number().int().positive().max(1000),
+  note: z.string().min(1).max(2000)
+})
+
+export interface TeacherRouteContext {
+  teachingUnits: TeachingUnitService
+  roster: StudentImportService
+  assignments: AssignmentService
+  grading: SubjectiveGradingService
+  user: SessionUser
+}
+
+export async function handleTeacherApi(
+  request: IncomingMessage,
+  response: ServerResponse,
+  requestUrl: URL,
+  context: TeacherRouteContext
+): Promise<boolean> {
+  const { pathname } = requestUrl
+  if (!pathname.startsWith('/api/teacher/')) return false
+
+  // Teacher workflow is teacher-only (admin has demo parity).
+  if (context.user.role !== 'teacher' && context.user.role !== 'admin') {
+    respondJson(response, 403, {
+      error: 'Forbidden: teacher routes require a teacher session'
+    })
+    return true
+  }
+  const teacherId = context.user.userId
+
+  // POST /api/teacher/teaching-units
+  if (request.method === 'POST' && pathname === '/api/teacher/teaching-units') {
+    const parsed = createUnitSchema.safeParse(await readJsonBody(request))
+    if (!parsed.success) {
+      respondJson(response, 400, {
+        error: 'Invalid teaching unit request',
+        details: parsed.error.issues.map((issue) => issue.message)
+      })
+      return true
+    }
+    const input: CreateTeachingUnitInput = parsed.data
+    const unit = context.teachingUnits.create(input, teacherId)
+    respondJson(response, 201, unit)
+    return true
+  }
+
+  // GET /api/teacher/teaching-units/:id
+  const unitViewMatch = pathname.match(
+    /^\/api\/teacher\/teaching-units\/([^/]+)$/
+  )
+  if (request.method === 'GET' && unitViewMatch?.[1]) {
+    try {
+      const view = context.teachingUnits.getView(
+        decodeURIComponent(unitViewMatch[1]),
+        teacherId
+      )
+      respondJson(response, 200, view)
+    } catch (error) {
+      respondJson(response, 403, {
+        error: error instanceof Error ? error.message : 'Forbidden'
+      })
+    }
+    return true
+  }
+
+  // POST /api/teacher/roster/import
+  if (request.method === 'POST' && pathname === '/api/teacher/roster/import') {
+    const parsed = importRosterSchema.safeParse(await readJsonBody(request))
+    if (!parsed.success) {
+      respondJson(response, 400, {
+        error: 'Invalid roster import request',
+        details: parsed.error.issues.map((issue) => issue.message)
+      })
+      return true
+    }
+    const rows: RosterRow[] = parsed.data.rows
+    try {
+      const result = context.roster.import(
+        { userId: teacherId, role: context.user.role },
+        parsed.data.classId,
+        parsed.data.termId,
+        rows
+      )
+      respondJson(response, 201, result)
+    } catch (error) {
+      respondJson(response, 422, {
+        error: error instanceof Error ? error.message : 'Roster import failed'
+      })
+    }
+    return true
+  }
+
+  // POST /api/teacher/assignments
+  if (request.method === 'POST' && pathname === '/api/teacher/assignments') {
+    const parsed = assignmentSchema.safeParse(await readJsonBody(request))
+    if (!parsed.success) {
+      respondJson(response, 400, {
+        error: 'Invalid assignment request',
+        details: parsed.error.issues.map((issue) => issue.message)
+      })
+      return true
+    }
+    const input: CreateAssignmentInput = parsed.data
+    try {
+      const result = await context.assignments.create(input, teacherId)
+      respondJson(response, 201, result)
+    } catch (error) {
+      respondJson(response, 422, {
+        error: error instanceof Error ? error.message : 'Assignment failed'
+      })
+    }
+    return true
+  }
+
+  // GET /api/teacher/grading/:teachingUnitId
+  const gradingQueueMatch = pathname.match(
+    /^\/api\/teacher\/grading\/([^/]+)$/
+  )
+  if (request.method === 'GET' && gradingQueueMatch?.[1]) {
+    try {
+      const items = await context.grading.queue(
+        decodeURIComponent(gradingQueueMatch[1]),
+        teacherId
+      )
+      respondJson(response, 200, items)
+    } catch (error) {
+      respondJson(response, 403, {
+        error: error instanceof Error ? error.message : 'Forbidden'
+      })
+    }
+    return true
+  }
+
+  // POST /api/teacher/grading/:attemptId — exactly ONE item per call (no batch)
+  const gradeMatch = pathname.match(/^\/api\/teacher\/grading\/([^/]+)$/)
+  if (request.method === 'POST' && gradeMatch?.[1]) {
+    const attemptId = decodeURIComponent(gradeMatch[1])
+    const parsed = gradeSchema.safeParse(await readJsonBody(request))
+    if (!parsed.success) {
+      respondJson(response, 400, {
+        error: 'Invalid grade request',
+        details: parsed.error.issues.map((issue) => issue.message)
+      })
+      return true
+    }
+    const input: GradeSubjectiveInput = {
+      attemptId,
+      ...parsed.data
+    }
+    try {
+      const result = await context.grading.grade(input, teacherId)
+      respondJson(response, 200, result)
+    } catch (error) {
+      respondJson(response, 422, {
+        error: error instanceof Error ? error.message : 'Grading failed'
+      })
+    }
+    return true
+  }
+
+  respondJson(response, 404, { error: 'Teacher route not found' })
+  return true
+}
+
+async function readJsonBody(request: IncomingMessage): Promise<unknown> {
+  const chunks: Uint8Array[] = []
+  let size = 0
+  const declaredSize = Number(request.headers['content-length'] ?? 0)
+  if (Number.isFinite(declaredSize) && declaredSize > MAX_BODY_BYTES) {
+    throw new TeacherHttpError(413, 'Request body is too large')
+  }
+  for await (const chunk of request) {
+    const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)
+    size += buffer.length
+    if (size > MAX_BODY_BYTES) {
+      throw new TeacherHttpError(413, 'Request body is too large')
+    }
+    chunks.push(buffer)
+  }
+  const body = Buffer.concat(chunks).toString('utf8')
+  if (body.length === 0) return {}
+  try {
+    return JSON.parse(body) as unknown
+  } catch {
+    throw new TeacherHttpError(400, 'Malformed JSON request body')
+  }
+}
+
+class TeacherHttpError extends Error {
+  public constructor(
+    public readonly statusCode: number,
+    message: string
+  ) {
+    super(message)
+  }
+}
+
+function respondJson(
+  response: ServerResponse,
+  statusCode: number,
+  payload: unknown
+): void {
+  response.writeHead(statusCode, JSON_HEADERS)
+  response.end(JSON.stringify(payload))
+}

@@ -4,15 +4,28 @@ import type {
   AssignmentSummary,
   AuditLogItem,
   CohortSnapshot,
+  CreateAssignmentInput,
+  CreateAssignmentResult,
+  CreateTeachingUnitInput,
   DemoRole,
   EvaluateRequest,
   EvaluationHistoryItem,
   EvaluationResult,
+  GradeSubjectiveInput,
+  GradeSubjectiveResult,
+  GradingQueueItem,
+  ImportRosterResult,
   InterventionSuggestion,
   KnowledgeGraph,
   MasteryProfileMap,
   MasteryTimelineEntry,
+  MistakeBookView,
+  PracticeSession,
   ReviewCard,
+  StartPracticeRequest,
+  StartPracticeResponse,
+  TeachingUnit,
+  TeachingUnitView,
   TutoringDialogueRequest,
   TutoringExplainRequest,
   TutoringResponse,
@@ -180,6 +193,80 @@ export function requestTutoringDialogue(
   body: TutoringDialogueRequest
 ): Promise<TutoringResponse> {
   return requestJson('/api/tutoring/dialogue', {
+    method: 'POST',
+    body: JSON.stringify(body)
+  })
+}
+
+// ---------------------------------------------------------------------------
+// T07 — student practice sessions + mistake book
+// ---------------------------------------------------------------------------
+
+export function listPracticeSessions(): Promise<PracticeSession[]> {
+  return requestJson('/api/student/sessions')
+}
+
+export function getMistakeBook(): Promise<MistakeBookView> {
+  return requestJson('/api/student/mistakes')
+}
+
+export function startPractice(
+  body: StartPracticeRequest
+): Promise<StartPracticeResponse> {
+  return requestJson('/api/student/practice', {
+    method: 'POST',
+    body: JSON.stringify(body)
+  })
+}
+
+// ---------------------------------------------------------------------------
+// T08 — teacher workflow
+// ---------------------------------------------------------------------------
+
+export function createTeachingUnit(
+  body: CreateTeachingUnitInput
+): Promise<TeachingUnit> {
+  return requestJson('/api/teacher/teaching-units', {
+    method: 'POST',
+    body: JSON.stringify(body)
+  })
+}
+
+export function getTeachingUnit(id: string): Promise<TeachingUnitView> {
+  return requestJson(`/api/teacher/teaching-units/${encodeURIComponent(id)}`)
+}
+
+export function importRoster(
+  classId: string,
+  termId: string,
+  rows: Array<{ studentNumber: string; displayName: string }>
+): Promise<ImportRosterResult> {
+  return requestJson('/api/teacher/roster/import', {
+    method: 'POST',
+    body: JSON.stringify({ classId, termId, rows })
+  })
+}
+
+export function createAssignment(
+  body: CreateAssignmentInput
+): Promise<CreateAssignmentResult> {
+  return requestJson('/api/teacher/assignments', {
+    method: 'POST',
+    body: JSON.stringify(body)
+  })
+}
+
+export function getGradingQueue(
+  teachingUnitId: string
+): Promise<GradingQueueItem[]> {
+  return requestJson(`/api/teacher/grading/${encodeURIComponent(teachingUnitId)}`)
+}
+
+export function gradeSubjective(
+  attemptId: string,
+  body: Omit<GradeSubjectiveInput, 'attemptId'>
+): Promise<GradeSubjectiveResult> {
+  return requestJson(`/api/teacher/grading/${encodeURIComponent(attemptId)}`, {
     method: 'POST',
     body: JSON.stringify(body)
   })

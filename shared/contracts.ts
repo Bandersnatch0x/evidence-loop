@@ -187,6 +187,22 @@ export interface EvaluationResult {
   mastery: MasterySignal[]
   feedbackSource: 'local-policy' | 'llm'
   rejectionReason?: string
+  /**
+   * T08 teacher final adjudication for subjective dimensions (ADR-0006 §3).
+   * DELIBERATELY separate from `score` — the automatic score reflects only
+   * reproducible objective evidence; this carries the teacher's subjective
+   * dimension grade stamped `teacher_annotation` provenance, gated by
+   * requiresTeacherConfirmation. Cohort metrics can filter to see the
+   * evidence layer vs the teacher-judgment layer distinctly. Never folded
+   * into `score`, never batch-applied (每份人工判断 — 守铁律).
+   */
+  teacherAnnotation?: {
+    teacherId: string
+    subjectiveScore: number
+    subjectiveMaxScore: number
+    note: string
+    adjudicatedAt: string
+  }
   /** Demo ownership stamp from the mock session (not real auth). */
   studentId?: string
   /** Required provenance tag (ADR-0006). Migrated rows default to evidence. */
@@ -745,4 +761,189 @@ export interface TutoringResponse {
   /** Echo of the mode gate decision for UI. */
   allowedMode: SessionMode
   layer: TutoringLayer
+}
+
+// ---------------------------------------------------------------------------
+// T07 — student practice sessions + mistake book (D1 dual-mode entry)
+// ---------------------------------------------------------------------------
+
+/**
+ * A practice session groups a student's attempts. Two entry shapes (T07):
+ * - single: one attempt per session (自由练, 一题一交一反馈)
+ * - paper:  multiple attempts bound to one paper/assignment batch (成套测评)
+ * Sessions are *derived* from Attempt metadata (teachingUnitId/mode/paperId),
+ * not a separate store — the AttemptStore is the single source of truth.
+ */
+export interface PracticeSession {
+  id: string
+  studentId: string
+  mode: SessionMode
+  teachingUnitId: string
+  termId: string
+  /** 'single' 自由练 | 'paper' 成套打包. */
+  shape: 'single' | 'paper'
+  attemptIds: string[]
+  startedAt: string
+  lastActiveAt: string
+  /** For paper sessions: the assigned paper/assignment id if known. */
+  paperId?: string
+}
+
+/** One mistake-book entry: an incorrectly-answered question, aggregatable. */
+export interface MistakeEntry {
+  questionId: string
+  teachingUnitId: string
+  subject: SubjectLanguage
+  kpIds: string[]
+  /** Most recent failed attempt for this question. */
+  attemptId: string
+  lastScore: number
+  lastActiveAt: string
+  /** Consecutive assessment-mode passes (N→mastered, moved out of active book). */
+  consecutiveAssessmentPasses: number
+  mastered: boolean
+}
+
+export interface MistakeBookView {
+  studentId: string
+  entries: MistakeEntry[]
+  /** Entries with mastered=true are history; the rest are the active book. */
+  activeCount: number
+  masteredCount: number
+}
+
+/** POST /api/student/practice — start or continue a practice attempt. */
+export interface StartPracticeRequest {
+  questionId: string
+  teachingUnitId: string
+  termId: string
+  /** D1 gate: practice opens tutoring; assessment closes it. */
+  mode: SessionMode
+  /** For paper sessions: bind the attempt to a paper batch. */
+  paperId?: string
+}
+
+export interface StartPracticeResponse {
+  attemptId: string
+  mode: SessionMode
+  /** Whether tutoring layers are available for this attempt (D1). */
+  tutoringEnabled: boolean
+}
+
+// ---------------------------------------------------------------------------
+// T08 — teacher workflow: teaching unit / roster import / assignment / grading
+// ---------------------------------------------------------------------------
+
+/** A teacher creating a teaching unit (class × subject × term, D3). */
+export interface CreateTeachingUnitInput {
+  classId: string
+  subjectId: string
+  termId: string
+  taughtKpIds: string[]
+}
+
+export interface TeachingUnitView extends TeachingUnit {
+  className: string
+  subjectName: string
+  termName: string
+  enrolledCount: number
+}
+
+/** Roster row for student import (T08 reuses AuthService.importStudents). */
+export interface RosterRow {
+  studentNumber: string
+  displayName: string
+}
+
+export interface ImportedRosterEntry {
+  userId: string
+  loginId: string
+  displayName: string
+  activationCode: string
+}
+
+export interface ImportRosterResult {
+  classId: string
+  termId: string
+  imported: ImportedRosterEntry[]
+}
+
+/** Three assignment shapes (T08): hand-pick / assemble-by-kp / by-weakness. */
+export type AssignmentKind = 'handpick' | 'assemble_by_kp' | 'by_weakness'
+
+export interface CreateAssignmentInput {
+  teachingUnitId: string
+  mode: SessionMode
+  kind: AssignmentKind
+  /** handpick: explicit question ids. */
+  questionIds?: string[]
+  /** assemble_by_kp: KP filter for QuestionBankService.assembleByKnowledgePoints. */
+  kpIds?: string[]
+  limit?: number
+  /** Optional target students; omitted = whole class. */
+  studentIds?: string[]
+  /** Paper/assignment title for the batch. */
+  title?: string
+}
+
+export interface CreateAssignmentResult {
+  teachingUnitId: string
+  kind: AssignmentKind
+  paperId: string
+  attemptIds: string[]
+  studentIds: string[]
+  questionIds: string[]
+  mode: SessionMode
+  createdAt: string
+}
+
+/**
+ * A subjective (essay) item awaiting teacher final adjudication (T08).
+ * The objective evidence (~40% reproducible) already entered the score;
+ * the advisory AI suggestions (立意/论证) are displayed but NOT scored;
+ * the teacher writes the final subjective dimension score as
+ * `teacher_annotation` provenance (ADR-0006), gated by
+ * requiresTeacherConfirmation. Batch grading is forbidden (守铁律).
+ */
+export interface GradingQueueItem {
+  attemptId: string
+  studentId: string
+  questionId: string
+  teachingUnitId: string
+  stem: string
+  submittedAt: string
+  /** Objective evidence already scored (字数/结构/语法) — reproducible. */
+  objectiveScore: number
+  objectiveMaxScore: number
+  /** AI advisory suggestions (灰色"AI 推断"徽章) — never scored. */
+  advisory: AdvisorySuggestion[]
+  /** Student's submitted answer text for the teacher to read. */
+  submissionText: string
+  /** Present when a teacher has already adjudicated this item. */
+  teacherAnnotation?: {
+    teacherId: string
+    subjectiveScore: number
+    subjectiveMaxScore: number
+    note: string
+    adjudicatedAt: string
+  }
+}
+
+export interface GradeSubjectiveInput {
+  attemptId: string
+  subjectiveScore: number
+  subjectiveMaxScore: number
+  note: string
+}
+
+export interface GradeSubjectiveResult {
+  attemptId: string
+  /** teacher_annotation provenance — never folded into the automatic score. */
+  teacherAnnotation: {
+    teacherId: string
+    subjectiveScore: number
+    subjectiveMaxScore: number
+    note: string
+    adjudicatedAt: string
+  }
 }
