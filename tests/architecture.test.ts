@@ -144,6 +144,107 @@ describe('architecture guard: ADR-0006 hard-fact isolation', () => {
   })
 })
 
+describe('architecture guard: T01 practice evidence never enters formal mastery', () => {
+  it('computeMastery accepts only MasteryEvidence[] (no SessionMode / practice channel)', () => {
+    // Type-level: MasteryEvidence has no mode field, so practice cannot be
+    // smuggled into computeMastery without a projection filter upstream.
+    type MasteryEvidenceKeys = keyof MasteryEvidence
+    type ForbiddenKeys = Extract<MasteryEvidenceKeys, 'mode' | 'sessionMode'>
+    const noModeChannel: ForbiddenKeys extends never ? true : false = true
+    expect(noModeChannel).toBe(true)
+
+    // Signature arity is exactly one evidence array — not (evidences, mode).
+    expect(computeMastery.length).toBe(1)
+    const source = readFileSync(
+      resolve(projectRoot, 'server/mastery/computeMastery.ts'),
+      'utf8'
+    )
+    expect(source).not.toMatch(/practice/)
+    expect(source).not.toMatch(/SessionMode/)
+  })
+
+  it('MasteryService.collectEvidence filters attempt.mode !== assessment', () => {
+    const source = readFileSync(
+      resolve(projectRoot, 'server/mastery/MasteryService.ts'),
+      'utf8'
+    )
+    // Projector must skip practice before calling computeMastery.
+    expect(source).toMatch(/mode\s*!==\s*['"]assessment['"]/)
+    expect(source).toMatch(/isAttemptStore/)
+    expect(source).toMatch(/listAttempts/)
+    // Guard comment / iron rule present for future maintainers.
+    expect(source).toMatch(/Practice evidence is excluded/)
+  })
+})
+
+describe('architecture guard: T05 tutoring physical isolation', () => {
+  const TUTORING_DIRS = ['server/tutoring']
+  const SCORING_PATH_PATTERNS = [
+    /(^|\/)domain\/EvaluationAgent/,
+    /(^|\/)mastery(\/|$)/,
+    /(^|\/)review(\/|$)/,
+    /(^|\/)runner(\/|$)/,
+    /computeMastery/
+  ]
+
+  it('server/tutoring never imports scoring/mastery/runner paths', () => {
+    const violations = findForbiddenImports(TUTORING_DIRS, SCORING_PATH_PATTERNS)
+
+    expect(
+      violations,
+      violations.length === 0
+        ? ''
+        : [
+            'T05 违规：server/tutoring 必须与打分路径物理隔离，',
+            '不得 import EvaluationAgent / mastery / review / runner。',
+            '辅导只读消费 FeedbackContext，不回写 score/evidence。违规：',
+            formatViolations(violations)
+          ].join('\n')
+    ).toEqual([])
+  })
+
+  it('server/tutoring never constructs EvidenceItem for scoring', () => {
+    const violations: string[] = []
+    for (const filePath of collectSourceFiles('server/tutoring')) {
+      const source = readFileSync(filePath, 'utf8')
+      if (
+        /as EvidenceItem/.test(source) ||
+        /:\s*EvidenceItem\s*=/.test(source) ||
+        /EvidenceItem\s*=\s*\{/.test(source)
+      ) {
+        violations.push(
+          filePath.slice(projectRoot.length + 1).replace(/\\/g, '/')
+        )
+      }
+    }
+    expect(
+      violations,
+      violations.length === 0
+        ? ''
+        : [
+            'T05 违规：tutoring 不得产出 EvidenceItem。',
+            `违规文件：${violations.join(', ')}`
+          ].join('\n')
+    ).toEqual([])
+  })
+
+  it('TutoringMessage interface has no score/evidence/weight fields', () => {
+    const source = readFileSync(
+      resolve(projectRoot, 'shared/contracts.ts'),
+      'utf8'
+    )
+    const start = source.indexOf('export interface TutoringMessage')
+    expect(start).toBeGreaterThanOrEqual(0)
+    const end = source.indexOf('export interface TutoringTurn', start)
+    const block = source.slice(start, end === -1 ? start + 800 : end)
+    expect(block).toMatch(/llm_inference/)
+    // Field declarations only — comments may mention the scoring vocabulary.
+    expect(block).not.toMatch(/^\s*(readonly\s+)?score\s*[?:]/m)
+    expect(block).not.toMatch(/^\s*(readonly\s+)?evidence\s*[?:]/m)
+    expect(block).not.toMatch(/^\s*(readonly\s+)?weight\s*[?:]/m)
+  })
+})
+
 describe('architecture guard: ADR-0005 multimodal feature-flag red line', () => {
   const MULTIMODAL_PATTERNS = [
     /(^|\/)multimodal(\/|$)/,
