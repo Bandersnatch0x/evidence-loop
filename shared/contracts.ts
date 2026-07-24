@@ -340,8 +340,17 @@ export interface CohortSnapshot {
   cohortName: string
   generatedAt: string
   completionRate: number
+  /**
+   * Formal median — excludes subjective submissions still awaiting
+   * teacherAnnotation (T08/T11 P4: 终裁后才入 Cohort).
+   */
   medianScore: number
   needsAttention: number
+  /**
+   * Count of completed results with requiresTeacherConfirmation advisory
+   * but no teacherAnnotation yet (T11 P4).
+   */
+  pendingAdjudication: number
   learners: CohortLearner[]
 }
 

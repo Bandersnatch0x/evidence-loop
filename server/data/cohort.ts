@@ -1,31 +1,110 @@
-import type { CohortSnapshot, EvaluationHistoryItem } from '../../shared/contracts'
+import type {
+  CohortSnapshot,
+  EvaluationHistoryItem,
+  EvaluationResult
+} from '../../shared/contracts'
+
+/**
+ * T08/T11 P4 — formal cohort eligibility.
+ *
+ * A completed result is formal-eligible when either:
+ *   - it has no teacher-gated advisory (pure objective path), or
+ *   - a teacher has written teacherAnnotation (终裁后才入 Cohort).
+ *
+ * Pending subjective submissions (requiresTeacherConfirmation advisory,
+ * no teacherAnnotation yet) are excluded from formal median / completion
+ * aggregates. result.score itself stays objective-only (铁律不变).
+ */
+export function isAwaitingTeacherAdjudication(
+  result: Pick<EvaluationResult, 'advisory' | 'teacherAnnotation' | 'status'>
+): boolean {
+  if (result.status !== 'completed') return false
+  if (result.teacherAnnotation !== undefined) return false
+  return (result.advisory ?? []).some((a) => a.requiresTeacherConfirmation)
+}
+
+/** Formal score for cohort aggregates, or undefined if not yet eligible. */
+export function formalScoreForCohort(
+  result: Pick<
+    EvaluationResult,
+    'score' | 'status' | 'advisory' | 'teacherAnnotation'
+  >
+): number | undefined {
+  if (result.status !== 'completed') return undefined
+  if (isAwaitingTeacherAdjudication(result)) return undefined
+  return result.score
+}
 
 export function createCohortSnapshot(
-  history: EvaluationHistoryItem[]
+  history: EvaluationHistoryItem[],
+  /** Full results when available — enables T11 teacherAnnotation gate. */
+  results: EvaluationResult[] = []
 ): CohortSnapshot {
   const latestDemo = history.find((item) => item.assignmentId === 'python-average')
   const demoAttempts = history.filter(
     (item) => item.assignmentId === 'python-average'
   ).length
 
+  const completedResults = results.filter((r) => r.status === 'completed')
+  const pendingAdjudication = completedResults.filter((r) =>
+    isAwaitingTeacherAdjudication(r)
+  ).length
+
+  const formalScores = completedResults
+    .map((r) => formalScoreForCohort(r))
+    .filter((s): s is number => s !== undefined)
+
+  // Prefer real formal median when we have gated results; else legacy demo fallback.
+  const medianScore =
+    formalScores.length > 0
+      ? medianOf(formalScores)
+      : (latestDemo?.score ?? 82)
+
+  // Demo learner: if their latest full result is pending adjudication, do not
+  // treat the raw objective score as a formal "on-track" signal.
+  const latestDemoResult = results
+    .filter((r) => r.assignmentId === 'python-average')
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0]
+  const demoPending =
+    latestDemoResult !== undefined &&
+    isAwaitingTeacherAdjudication(latestDemoResult)
+  const demoFormalScore =
+    latestDemoResult !== undefined
+      ? formalScoreForCohort(latestDemoResult)
+      : latestDemo?.score
+
+  const needsAttentionFromPending = pendingAdjudication > 0 ? 1 : 0
+  const baseNeedsAttention =
+    demoFormalScore !== undefined && demoFormalScore < 70
+      ? 4
+      : demoPending
+        ? 4
+        : 3
+
   return {
     cohortName: 'Python 入门营 · 7 月班',
     generatedAt: new Date().toISOString(),
     completionRate: 78,
-    medianScore: latestDemo?.score ?? 82,
-    needsAttention: latestDemo && latestDemo.score < 70 ? 4 : 3,
+    medianScore,
+    needsAttention: baseNeedsAttention + needsAttentionFromPending,
+    pendingAdjudication,
     learners: [
       {
         id: 'learner-demo',
         displayName: '当前演示学员',
         assignmentTitle: '边界条件诊断：平均分函数',
         attempts: Math.max(1, demoAttempts),
+        // Show objective score for visibility, but state respects formal gate.
         latestScore: latestDemo?.score ?? 80,
         delta: latestDemo?.scoreDelta ?? 0,
-        focusConcept:
-          latestDemo?.score === 100 ? '已掌握全部目标' : '空序列边界',
-        state:
-          latestDemo?.score === undefined || latestDemo.score >= 80
+        focusConcept: demoPending
+          ? '待教师终裁（主观题）'
+          : demoFormalScore === 100
+            ? '已掌握全部目标'
+            : '空序列边界',
+        state: demoPending
+          ? 'needs-attention'
+          : demoFormalScore === undefined || demoFormalScore >= 80
             ? 'on-track'
             : 'needs-attention',
         lastActiveAt: latestDemo?.createdAt ?? new Date().toISOString()
@@ -65,4 +144,16 @@ export function createCohortSnapshot(
       }
     ]
   }
+}
+
+function medianOf(values: number[]): number {
+  const sorted = [...values].sort((a, b) => a - b)
+  const mid = Math.floor(sorted.length / 2)
+  const even = sorted.length % 2 === 0
+  if (even) {
+    const lo = sorted[mid - 1] ?? 0
+    const hi = sorted[mid] ?? 0
+    return Math.round((lo + hi) / 2)
+  }
+  return sorted[mid] ?? 0
 }

@@ -181,11 +181,22 @@ export class AssignmentService {
     input: CreateAssignmentInput,
     unit: { classId: string; termId: string }
   ): string[] {
+    const enrolled = new Set(
+      this.org.listEnrolledStudentIds(unit.classId, unit.termId)
+    )
     if (input.studentIds && input.studentIds.length > 0) {
-      return [...new Set(input.studentIds.filter((id) => id.trim() !== ''))]
+      // T11/S2: explicit targets must already be enrolled on this unit's class×term.
+      const ids = [...new Set(input.studentIds.filter((id) => id.trim() !== ''))]
+      const foreign = ids.filter((id) => !enrolled.has(id))
+      if (foreign.length > 0) {
+        throw new AssignmentError(
+          `Students not enrolled in this teaching unit: ${foreign.join(', ')}`
+        )
+      }
+      return ids
     }
     // Whole-class default for handpick/assemble (mirrors by_weakness).
-    return this.org.listEnrolledStudentIds(unit.classId, unit.termId)
+    return [...enrolled]
   }
 }
 

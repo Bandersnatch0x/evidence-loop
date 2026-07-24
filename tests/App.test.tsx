@@ -171,6 +171,7 @@ describe('App', () => {
       completionRate: 78,
       medianScore: 82,
       needsAttention: 3,
+      pendingAdjudication: 0,
       learners: []
     } satisfies CohortSnapshot)
     vi.mocked(api.evaluateCode).mockResolvedValue(evaluation)

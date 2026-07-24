@@ -161,10 +161,21 @@ export class AssignByWeaknessService {
     unit: TeachingUnit,
     explicit: string[] | undefined
   ): string[] {
+    const enrolled = new Set(
+      this.org.listEnrolledStudentIds(unit.classId, unit.termId)
+    )
     if (explicit && explicit.length > 0) {
-      return [...new Set(explicit.filter((id) => id.trim() !== ''))]
+      // T11/S2: same enrollment gate as AssignmentService.
+      const ids = [...new Set(explicit.filter((id) => id.trim() !== ''))]
+      const foreign = ids.filter((id) => !enrolled.has(id))
+      if (foreign.length > 0) {
+        throw new AssignByWeaknessError(
+          `Students not enrolled in this teaching unit: ${foreign.join(', ')}`
+        )
+      }
+      return ids
     }
-    return this.org.listEnrolledStudentIds(unit.classId, unit.termId)
+    return [...enrolled]
   }
 
   /**

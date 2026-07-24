@@ -63,14 +63,22 @@ export function CohortView({ cohort, isLoading }: CohortViewProps) {
         </article>
         <article>
           <div className="metric-icon"><UsersRound size={19} /></div>
-          <span>最近中位分</span><strong>{cohort.medianScore}</strong>
-          <small>只统计有效提交</small>
+          <span>正式中位分</span><strong>{cohort.medianScore}</strong>
+          <small>终裁后才计入（客观题直接入）</small>
         </article>
         <article className="attention-metric">
           <div className="metric-icon"><CircleAlert size={19} /></div>
           <span>建议优先关注</span><strong>{cohort.needsAttention}</strong>
           <small>由证据规则筛选</small>
         </article>
+        {(cohort.pendingAdjudication ?? 0) > 0 ? (
+          <article className="attention-metric">
+            <div className="metric-icon"><CircleAlert size={19} /></div>
+            <span>待教师终裁</span>
+            <strong>{cohort.pendingAdjudication}</strong>
+            <small>主观题未入正式学情</small>
+          </article>
+        ) : null}
       </section>
 
       <section className="cohort-table-section">

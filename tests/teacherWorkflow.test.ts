@@ -346,6 +346,27 @@ describe('T08 AssignmentService (three shapes)', () => {
     expect(result.paperId.startsWith('paper_')).toBe(true)
   })
 
+  it('rejects studentIds not enrolled on the teaching unit (T11/S2)', async () => {
+    const service = new AssignmentService({
+      questionBank: bank,
+      attempts,
+      org,
+      now: NOW
+    })
+    await expect(
+      service.create(
+        {
+          teachingUnitId: 'tu-1',
+          mode: 'assessment',
+          kind: 'handpick',
+          questionIds: [...choiceQuestionIds],
+          studentIds: ['student-a', 'not-enrolled']
+        },
+        teacherId
+      )
+    ).rejects.toThrow(/not enrolled/)
+  })
+
   it('handpick accepts system seed-bank questions (预置库)', async () => {
     // Seed a system-builtin question the demo teacher does not own privately.
     const seedId = 'seed:essay-demo'

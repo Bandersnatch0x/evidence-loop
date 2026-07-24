@@ -816,7 +816,12 @@ async function handleApi(
       resourceType: 'cohort',
       result: 'success'
     })
-    respondJson(response, 200, createCohortSnapshot(await store.list()))
+    // Pass full results so T11 P4 can gate formal metrics on teacherAnnotation.
+    const [history, results] = await Promise.all([
+      store.list(),
+      store.listResults()
+    ])
+    respondJson(response, 200, createCohortSnapshot(history, results))
     return
   }
 

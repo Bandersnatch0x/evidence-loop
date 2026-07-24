@@ -229,8 +229,8 @@ export class QuestionBankService {
 
   /**
    * Manual assembly: compose a paper from a teacher-chosen, ordered set of
-   * question ids. Every id must be owned by the teacher — a foreign or missing
-   * id is refused so a paper can never leak another teacher's private bank.
+   * question ids. Same assignability rule as handpick (T11/S1): own private
+   * bank OR system seed bank. Another teacher's private id is still refused.
    */
   public assembleManual(
     authorId: string,
@@ -246,8 +246,8 @@ export class QuestionBankService {
         throw new QuestionValidationError(`Duplicate question in paper: ${id}`)
       }
       seen.add(id)
-      // Ownership + existence check (throws on foreign / missing id).
-      this.get(id, authorId)
+      // Assignable check (throws on foreign / missing id).
+      this.getAssignable(id, authorId)
     }
     return this.makePaper(authorId, [...questionIds], title)
   }

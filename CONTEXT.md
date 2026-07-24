@@ -59,6 +59,7 @@
 - **T06 学情自动闭环**（已实施）：`NextPracticeService` = FSRS due ∩ 依赖链薄弱点 ∩ D4 已教进度；`AssignByWeaknessService` 聚合班级薄弱 KP → 组卷 → 批量布置占位 Attempt（未提交不入掌握度）。
 - **T07 学生刷题体验**（已实施，报告见 `docs/product-roadmap/reports/T07-implementation-report.md`）：`PracticeSessionService` + `MistakeBookService` + 前端 `StudentWorkbench`（今日该练 / 双模入口 / 错题重练 / 练习态提交前求助）。成套计时交卷 UI 仍为增强项。
 - **T08 教师工作流**（已实施，报告见 `docs/product-roadmap/reports/T08-implementation-report.md`）：`TeachingUnitService`（D3 + 列表）+ `StudentImportService`（T02 激活码）+ `AssignmentService`（三布置；预置库可布置）+ `SubjectiveGradingService`（终裁不进 score）+ 前端 `TeacherWorkbench`（选/建单元→题库→名单→布置→批改）。Demo：`tu-demo` 归属 `teacher-demo`。
+- **T11 T08 评审扫尾**（P4/S2/S1）：Cohort 正式中位分排除待终裁主观题（`pendingAdjudication`）；布置 `studentIds` 必须在 enrollment 内；`assembleManual` 认预置库。
 - **接线闭环**（已实施）：`server/index.ts` 主路由挂载 7 个 `handle*Api`（auth/questions/tutoring/import/adaptive/student/teacher）；`productDb` 独立 SQLite 连接承载 questions/auth/org 表；前端 Sidebar 新增学生/教师工作台入口。烟测 `tests/routeWiring.test.ts` + 端到端链路验证。
 - **attemptId 评价贯通**（已实施）：`POST /api/evaluations` 接受可选 `attemptId`，就地更新 Attempt 并保留 mode/paperId；`EvidenceProjector` 按 D1 分流（practice 只喂 FSRS，assessment 才重算正式 MasteryProfile）。学生工作台双模入口 → 工作台提交自动带 attemptId。
 - **验证基线**：tsc 0 / lint 0 / vitest 442 tests green / vite build ✓。

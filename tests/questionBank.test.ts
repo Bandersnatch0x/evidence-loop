@@ -238,6 +238,13 @@ describe('QuestionBankService 组卷 (paper assembly)', () => {
     ).toThrow(QuestionOwnershipError)
   })
 
+  it('assembleManual accepts system seed-bank questions (T11/S1)', () => {
+    seedQuestionsFromAssignments(store, FIXED_NOW)
+    const seedId = seedQuestionId('choice-algebra-simplify')
+    const paper = service.assembleManual(TEACHER, [seedId], '预置组卷')
+    expect(paper.questionIds).toEqual([seedId])
+  })
+
   it('refuses a manual paper with duplicate ids', () => {
     const a = service.create(choiceDraft())
     expect(() => service.assembleManual(TEACHER, [a.id, a.id])).toThrow(
