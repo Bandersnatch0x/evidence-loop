@@ -10,10 +10,8 @@ interface StudentImportProps {
 /**
  * T08 student roster import (T02 activation-code flow).
  *
- * Teacher pastes a name+studentNumber roster → backend creates Student Users
- * + activation codes + binds Enrollments scoped to the owned TeachingUnit.
- * The returned manifest is shown for offline distribution. Demo compliance:
- * test roster data only, never real 学籍 (守 CONTEXT 边界).
+ * Teacher pastes a name+studentNumber roster or uploads a CSV → backend creates
+ * Student Users + activation codes + binds Enrollments. Demo: test roster only.
  */
 export function StudentImport({ teachingUnitId }: StudentImportProps) {
   const [roster, setRoster] = useState('2026001,张三\n2026002,李四')
@@ -21,20 +19,33 @@ export function StudentImport({ teachingUnitId }: StudentImportProps) {
   const [error, setError] = useState<string>()
   const [submitting, setSubmitting] = useState(false)
 
+  const onCsvFile = async (file: File | undefined) => {
+    if (file === undefined) return
+    try {
+      const text = await file.text()
+      // Strip BOM; keep raw lines for the existing paste parser.
+      setRoster(text.replace(/^\uFEFF/, '').trimEnd())
+      setError(undefined)
+    } catch {
+      setError('读取 CSV 失败')
+    }
+  }
+
   const submit = async () => {
     const rows = roster
-      .split('\n')
+      .split(/\r?\n/)
       .map((line) => line.trim())
       .filter(Boolean)
       .map((line) => {
-        const [studentNumber, ...rest] = line.split(',').map((s) => s.trim())
-        const fallbackName = studentNumber ?? ''
-        return {
-          studentNumber: fallbackName,
-          displayName: rest.join(',').trim() || fallbackName
-        }
+        // Support comma or tab separators (Excel CSV / TSV).
+        const parts = line.includes('\t')
+          ? line.split('\t').map((s) => s.trim())
+          : line.split(',').map((s) => s.trim())
+        const studentNumber = parts[0] ?? ''
+        const displayName = parts.slice(1).join(',').trim() || studentNumber
+        return { studentNumber, displayName }
       })
-      .filter((r) => r.studentNumber !== '')
+      .filter((r) => r.studentNumber !== '' && !isHeaderRow(r.studentNumber))
 
     if (rows.length === 0) {
       setError('至少需要一行名单')
@@ -55,7 +66,17 @@ export function StudentImport({ teachingUnitId }: StudentImportProps) {
   return (
     <section className="student-import">
       <h3>导入学生名单</h3>
-      <p className="muted">每行：学号,姓名（逗号分隔）</p>
+      <p className="muted">每行：学号,姓名（逗号或制表符分隔）</p>
+      <label className="csv-upload">
+        上传 CSV：
+        <input
+          type="file"
+          accept=".csv,text/csv,text/plain"
+          disabled={submitting}
+          onChange={(e) => void onCsvFile(e.target.files?.[0])}
+          aria-label="上传名单 CSV"
+        />
+      </label>
       <textarea
         rows={6}
         value={roster}
@@ -98,5 +119,15 @@ export function StudentImport({ teachingUnitId }: StudentImportProps) {
         </div>
       ) : null}
     </section>
+  )
+}
+
+function isHeaderRow(firstCell: string): boolean {
+  const lower = firstCell.toLowerCase()
+  return (
+    lower === '学号' ||
+    lower === 'studentnumber' ||
+    lower === 'student_number' ||
+    lower === 'id'
   )
 }

@@ -25,6 +25,8 @@ export function AssignmentComposer({ teachingUnitId }: AssignmentComposerProps) 
   const [questionIds, setQuestionIds] = useState('')
   const [kpIds, setKpIds] = useState('')
   const [studentIds, setStudentIds] = useState('')
+  /** datetime-local value (no timezone); empty = no deadline. */
+  const [dueLocal, setDueLocal] = useState('')
   const [result, setResult] = useState<CreateAssignmentResult>()
   const [error, setError] = useState<string>()
   const [submitting, setSubmitting] = useState(false)
@@ -33,6 +35,10 @@ export function AssignmentComposer({ teachingUnitId }: AssignmentComposerProps) 
     setSubmitting(true)
     setError(undefined)
     try {
+      const dueAt =
+        dueLocal.trim() !== ''
+          ? new Date(dueLocal).toISOString()
+          : undefined
       const out = await createAssignment({
         teachingUnitId,
         mode,
@@ -50,7 +56,8 @@ export function AssignmentComposer({ teachingUnitId }: AssignmentComposerProps) 
         studentIds:
           studentIds.trim() !== ''
             ? studentIds.split(',').map((s) => s.trim()).filter(Boolean)
-            : undefined
+            : undefined,
+        dueAt
       })
       setResult(out)
     } catch (submitError: unknown) {
@@ -118,6 +125,16 @@ export function AssignmentComposer({ teachingUnitId }: AssignmentComposerProps) 
         </label>
       ) : null}
 
+      <label>
+        截止时间（可选）：
+        <input
+          type="datetime-local"
+          value={dueLocal}
+          onChange={(e) => setDueLocal(e.target.value)}
+          disabled={submitting}
+        />
+      </label>
+
       <button type="button" onClick={() => void submit()} disabled={submitting}>
         <Send size={16} /> 布置
       </button>
@@ -130,7 +147,8 @@ export function AssignmentComposer({ teachingUnitId }: AssignmentComposerProps) 
 
       {result !== undefined ? (
         <div className="success-banner">
-          已布置 {result.attemptIds.length} 个占位尝试（paper {result.paperId}）
+          已布置 {result.attemptIds.length} 个占位尝试（paper {result.paperId}
+          {result.dueAt !== undefined ? ` · 截止 ${result.dueAt}` : ''}）
         </div>
       ) : null}
     </section>

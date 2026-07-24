@@ -77,6 +77,8 @@ describe('Gradebook (T08 主观题终裁)', () => {
     })
 
     await user.type(screen.getByLabelText('主观分'), '8')
+    await user.clear(screen.getByLabelText('主观满分'))
+    await user.type(screen.getByLabelText('主观满分'), '20')
     await user.type(screen.getByLabelText('批改说明'), '立意深刻，论证可加强')
     await user.click(screen.getByRole('button', { name: /提交终裁/ }))
 
@@ -87,7 +89,7 @@ describe('Gradebook (T08 主观题终裁)', () => {
     expect(screen.queryByRole('button', { name: /提交终裁/ })).toBeNull()
     expect(api.gradeSubjective).toHaveBeenCalledWith('att-essay-1', {
       subjectiveScore: 8,
-      subjectiveMaxScore: 10,
+      subjectiveMaxScore: 20,
       note: '立意深刻，论证可加强'
     })
   })

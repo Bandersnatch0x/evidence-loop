@@ -124,14 +124,29 @@ interface GradingRowProps {
 
 function GradingRow({ item, onGraded }: GradingRowProps) {
   const [score, setScore] = useState('')
+  /** T12/S3: teacher-editable max (default 10, not hard-wired on submit). */
+  const [maxScore, setMaxScore] = useState('10')
   const [note, setNote] = useState('')
   const [error, setError] = useState<string>()
   const [submitting, setSubmitting] = useState(false)
 
   const submit = async () => {
     const subjectiveScore = Number(score)
+    const subjectiveMaxScore = Number(maxScore)
     if (!Number.isFinite(subjectiveScore) || subjectiveScore < 0) {
       setError('请输入有效分数')
+      return
+    }
+    if (
+      !Number.isFinite(subjectiveMaxScore) ||
+      subjectiveMaxScore <= 0 ||
+      !Number.isInteger(subjectiveMaxScore)
+    ) {
+      setError('请输入有效满分（正整数）')
+      return
+    }
+    if (subjectiveScore > subjectiveMaxScore) {
+      setError(`分数不能超过满分 ${subjectiveMaxScore}`)
       return
     }
     if (note.trim() === '') {
@@ -143,7 +158,7 @@ function GradingRow({ item, onGraded }: GradingRowProps) {
     try {
       const result = await gradeSubjective(item.attemptId, {
         subjectiveScore,
-        subjectiveMaxScore: 10,
+        subjectiveMaxScore,
         note: note.trim()
       })
       onGraded(item.attemptId, result.teacherAnnotation)
@@ -205,15 +220,25 @@ function GradingRow({ item, onGraded }: GradingRowProps) {
       ) : (
         <div className="grading-form">
           <label>
-            主观分（0-10）：
+            主观分：
             <input
               type="number"
               min={0}
-              max={10}
               value={score}
               onChange={(e) => setScore(e.target.value)}
               disabled={submitting}
               aria-label="主观分"
+            />
+          </label>
+          <label>
+            满分：
+            <input
+              type="number"
+              min={1}
+              value={maxScore}
+              onChange={(e) => setMaxScore(e.target.value)}
+              disabled={submitting}
+              aria-label="主观满分"
             />
           </label>
           <label>

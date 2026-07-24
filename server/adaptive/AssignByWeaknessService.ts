@@ -38,6 +38,8 @@ export interface AssignByWeaknessInput {
   limit?: number
   /** Default practice (巩固). Assessment when the teacher wants formal作业. */
   mode?: SessionMode
+  /** T12/P1 optional deadline (ISO-8601). */
+  dueAt?: string
 }
 
 export class AssignByWeaknessError extends Error {
@@ -138,7 +140,8 @@ export class AssignByWeaknessService {
           termId: unit.termId,
           mode,
           paperId: paper.id,
-          createdAt
+          createdAt,
+          dueAt: input.dueAt
         })
         await this.attempts.saveAttempt(attempt)
         attemptIds.push(attemptId)
@@ -153,7 +156,8 @@ export class AssignByWeaknessService {
       attemptIds,
       paperId: paper.id,
       mode,
-      createdAt
+      createdAt,
+      ...(input.dueAt !== undefined ? { dueAt: input.dueAt } : {})
     }
   }
 
@@ -232,6 +236,7 @@ function makePlaceholderAttempt(input: {
   mode: SessionMode
   paperId: string
   createdAt: string
+  dueAt?: string
 }): Attempt {
   const result: EvaluationResult = {
     id: input.id,
@@ -265,6 +270,7 @@ function makePlaceholderAttempt(input: {
     mode: input.mode,
     createdAt: input.createdAt,
     paperId: input.paperId,
+    ...(input.dueAt !== undefined ? { dueAt: input.dueAt } : {}),
     result
   }
 }

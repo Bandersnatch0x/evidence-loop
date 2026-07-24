@@ -71,7 +71,9 @@ const assignmentSchema = z.object({
   kpIds: z.array(z.string().min(1).max(128)).max(200).optional(),
   limit: z.number().int().min(1).max(50).optional(),
   studentIds: z.array(z.string().min(1).max(128)).max(500).optional(),
-  title: z.string().min(1).max(200).optional()
+  title: z.string().min(1).max(200).optional(),
+  /** ISO-8601 deadline (T12/P1). */
+  dueAt: z.string().min(1).max(64).optional()
 })
 
 const gradeSchema = z.object({

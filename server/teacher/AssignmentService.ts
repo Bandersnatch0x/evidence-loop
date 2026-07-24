@@ -74,6 +74,8 @@ export class AssignmentService {
       )
     }
 
+    const dueAt = normalizeDueAt(input.dueAt)
+
     if (input.kind === 'by_weakness') {
       if (!this.weakness) {
         throw new AssignmentError(
@@ -86,7 +88,8 @@ export class AssignmentService {
         kpIds: input.kpIds,
         studentIds: input.studentIds,
         limit: input.limit,
-        mode: input.mode
+        mode: input.mode,
+        dueAt
       })
       return {
         teachingUnitId: result.teachingUnitId,
@@ -96,7 +99,8 @@ export class AssignmentService {
         studentIds: result.studentIds,
         questionIds: result.questionIds,
         mode: result.mode,
-        createdAt
+        createdAt,
+        ...(dueAt !== undefined ? { dueAt } : {})
       }
     }
 
@@ -123,7 +127,8 @@ export class AssignmentService {
           termId: unit.termId,
           mode: input.mode,
           paperId: paper.id,
-          createdAt
+          createdAt,
+          dueAt
         })
         await this.attempts.saveAttempt(attempt)
         attemptIds.push(attemptId)
@@ -138,7 +143,8 @@ export class AssignmentService {
       studentIds,
       questionIds: [...paper.questionIds],
       mode: input.mode,
-      createdAt
+      createdAt,
+      ...(dueAt !== undefined ? { dueAt } : {})
     }
   }
 
@@ -213,6 +219,7 @@ function makePlaceholderForAssignment(input: {
   mode: SessionMode
   paperId: string
   createdAt: string
+  dueAt?: string
 }): Attempt {
   const result: EvaluationResult = {
     id: input.id,
@@ -245,6 +252,17 @@ function makePlaceholderForAssignment(input: {
     mode: input.mode,
     createdAt: input.createdAt,
     paperId: input.paperId,
+    ...(input.dueAt !== undefined ? { dueAt: input.dueAt } : {}),
     result
   }
+}
+
+/** Empty / invalid → undefined; valid ISO date string kept as-is. */
+function normalizeDueAt(raw: string | undefined): string | undefined {
+  if (raw === undefined || raw.trim() === '') return undefined
+  const ms = Date.parse(raw)
+  if (Number.isNaN(ms)) {
+    throw new AssignmentError(`Invalid dueAt: ${raw}`)
+  }
+  return new Date(ms).toISOString()
 }

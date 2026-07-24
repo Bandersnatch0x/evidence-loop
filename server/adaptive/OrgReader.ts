@@ -1,5 +1,5 @@
 import type Database from 'better-sqlite3'
-import type { Enrollment, TeachingUnit } from '../../shared/contracts'
+import type { Class, Enrollment, TeachingUnit } from '../../shared/contracts'
 
 /**
  * Minimal org read surface for the T06 adaptive loop.
@@ -132,6 +132,25 @@ export class SqliteOrgReader implements OrgReader {
         term_id: enrollment.termId
       })
   }
+
+  public listClasses(): Class[] {
+    const rows = this.db
+      .prepare(`SELECT id, name FROM classes ORDER BY id ASC`)
+      .all() as Array<{ id: string; name: string }>
+    return rows.map((row) => ({ id: row.id, name: row.name }))
+  }
+
+  /** T12/P2: upsert administrative class (create-if-missing for teaching unit). */
+  public saveClass(cls: Class): void {
+    this.db
+      .prepare(
+        `
+        INSERT INTO classes (id, name) VALUES (@id, @name)
+        ON CONFLICT(id) DO UPDATE SET name = excluded.name
+        `
+      )
+      .run({ id: cls.id, name: cls.name })
+  }
 }
 
 /**
@@ -140,6 +159,7 @@ export class SqliteOrgReader implements OrgReader {
 export class InMemoryOrgReader implements OrgReader {
   private readonly units = new Map<string, TeachingUnit>()
   private readonly enrollments: Enrollment[] = []
+  private readonly classes = new Map<string, Class>()
 
   public saveTeachingUnit(unit: TeachingUnit): void {
     this.units.set(unit.id, {
@@ -160,6 +180,16 @@ export class InMemoryOrgReader implements OrgReader {
     } else {
       this.enrollments.push(enrollment)
     }
+  }
+
+  public listClasses(): Class[] {
+    return [...this.classes.values()]
+      .map((cls) => ({ ...cls }))
+      .sort((a, b) => a.id.localeCompare(b.id))
+  }
+
+  public saveClass(cls: Class): void {
+    this.classes.set(cls.id, { ...cls })
   }
 
   public getTeachingUnit(id: string): TeachingUnit | undefined {

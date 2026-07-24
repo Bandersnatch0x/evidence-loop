@@ -29,6 +29,8 @@ export interface TeachingUnitServiceOptions {
       classId: string
       termId: string
     }): void
+    /** T12/P2: create administrative class when missing. */
+    saveClass?(cls: Class): void
     listClasses?: () => Class[]
     listSubjects?: () => Subject[]
     listTerms?: () => Term[]
@@ -61,16 +63,28 @@ export class TeachingUnitService {
         'classId, subjectId and termId are required'
       )
     }
+    // T12/P2: 行政班不存在则先建班 (name defaults to classId).
+    this.ensureClass(input.classId.trim())
     const unit: TeachingUnit = {
       id: `tu_${randomUUID()}`,
       teacherId,
-      classId: input.classId,
-      subjectId: input.subjectId,
-      termId: input.termId,
+      classId: input.classId.trim(),
+      subjectId: input.subjectId.trim(),
+      termId: input.termId.trim(),
       taughtKpIds: [...new Set(input.taughtKpIds)]
     }
     this.org.saveTeachingUnit(unit)
     return unit
+  }
+
+  private ensureClass(classId: string): void {
+    const existing = this.org.listClasses?.().find((c) => c.id === classId)
+    if (existing) return
+    if (!this.org.saveClass) {
+      // Catalog write not wired — unit still creates with raw classId.
+      return
+    }
+    this.org.saveClass({ id: classId, name: classId })
   }
 
   public getView(id: string, teacherId: string): TeachingUnitView {

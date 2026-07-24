@@ -449,6 +449,8 @@ export interface Attempt {
    * submit (which overwrites assignmentId with the question id).
    */
   paperId?: string
+  /** T12/P1 assignment deadline (ISO-8601). Optional on free practice. */
+  dueAt?: string
   /** Embedded evaluation payload (existing EvaluationResult shape). */
   result: EvaluationResult
 }
@@ -758,6 +760,8 @@ export interface AssignWeaknessResult {
   paperId: string
   mode: SessionMode
   createdAt: string
+  /** T12/P1 optional deadline echoed from assignment input. */
+  dueAt?: string
 }
 
 // ---------------------------------------------------------------------------
@@ -963,6 +967,8 @@ export interface CreateAssignmentInput {
   studentIds?: string[]
   /** Paper/assignment title for the batch. */
   title?: string
+  /** T12/P1 deadline (ISO-8601). Optional. */
+  dueAt?: string
 }
 
 export interface CreateAssignmentResult {
@@ -974,6 +980,8 @@ export interface CreateAssignmentResult {
   questionIds: string[]
   mode: SessionMode
   createdAt: string
+  /** Echo of input dueAt when set (T12/P1). */
+  dueAt?: string
 }
 
 /**

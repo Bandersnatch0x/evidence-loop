@@ -203,6 +203,22 @@ describe('T08 TeachingUnitService (D3)', () => {
     expect(unit.taughtKpIds).toEqual(['kp-A', 'kp-B'])
   })
 
+  it('auto-creates missing administrative class (T12/P2)', () => {
+    const service = new TeachingUnitService({ org })
+    expect(org.listClasses().some((c) => c.id === 'cls-new-auto')).toBe(false)
+    service.create(
+      {
+        classId: 'cls-new-auto',
+        subjectId: 'subj-math',
+        termId: 'term-1',
+        taughtKpIds: []
+      },
+      teacherId
+    )
+    const created = org.listClasses().find((c) => c.id === 'cls-new-auto')
+    expect(created?.name).toBe('cls-new-auto')
+  })
+
   it('lists only units owned by the teacher', () => {
     const service = new TeachingUnitService({ org })
     service.create(
@@ -344,6 +360,30 @@ describe('T08 AssignmentService (three shapes)', () => {
     )
     expect(result.questionIds.length).toBeGreaterThan(0)
     expect(result.paperId.startsWith('paper_')).toBe(true)
+  })
+
+  it('writes dueAt onto placeholder attempts (T12/P1)', async () => {
+    const service = new AssignmentService({
+      questionBank: bank,
+      attempts,
+      org,
+      now: NOW
+    })
+    const dueAt = '2026-07-31T16:00:00.000Z'
+    const result = await service.create(
+      {
+        teachingUnitId: 'tu-1',
+        mode: 'assessment',
+        kind: 'handpick',
+        questionIds: [choiceQuestionIds[0] ?? ''],
+        studentIds: ['student-a'],
+        dueAt
+      },
+      teacherId
+    )
+    expect(result.dueAt).toBe(dueAt)
+    const saved = await attempts.getAttempt(result.attemptIds[0] ?? '')
+    expect(saved?.dueAt).toBe(dueAt)
   })
 
   it('rejects studentIds not enrolled on the teaching unit (T11/S2)', async () => {

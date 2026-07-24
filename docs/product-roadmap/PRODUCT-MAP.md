@@ -47,6 +47,7 @@
 - [T07 学生刷题体验](tickets/T07-student-experience.md) — 补充刚需1。**练习场次模型**：支持一题一交（快速练）+ 一套卷打包（计时/交卷/统一看，测评态默认打包）。**错题本**：错题自动归集（按 KP/学科/时间聚合），支持重刷（重刷进练习态）。入口区分练习态/测评态（D1，UI 明确标识 + 不同视觉）。求助中间态：不会做→先要提示（联动 T05 苏格拉底），非直接看答案。移动端：拉进范围（响应式优先，学生刷题手机场景），复用已有 mobile 痕迹。
 - [T08 教师工作流](tickets/T08-teacher-workflow.md) — 补充刚需2。建教学单元（班级×学科，D3）+ 导入学生名单批量分配账号（T02 激活码流）。布置作业：单题/组卷/按薄弱点（联动 T06）。**主观题批改界面**（补 AdvisoryLayer 缺失的人工终裁环）：展示 EssayRunner 客观指标 + AdvisoryService 的 AI 建议（灰色"AI 推断"标识）+ 教师打终裁分（`teacher_annotation` provenance，`requiresTeacherConfirmation` 门），终裁后才入 Cohort 指标。批量操作限本教学单元。
 - [T11 T08 评审扫尾](decisions/T11-t08-review-sweep.md) — 仅三项：P4 Cohort 消费 teacherAnnotation 门 / S2 布置 enrollment 校验 / S1 assembleManual 认预置库。其余评审 fog 后置。
+- [T12 T08 评审剩余项](decisions/T12-t08-review-remainder.md) — P1 截止时间 / P2 先建班 / P3 CSV 上传 / S3 主观满分可编辑。P5 签名、P6 导出/发提示仍出界。
 
 ## Not yet specified
 
