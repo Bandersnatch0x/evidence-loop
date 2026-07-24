@@ -32,6 +32,11 @@ interface ResultsPanelProps {
   sessionMode?: SessionMode
   /** Attempt id when the evaluate path has been migrated to AttemptStore. */
   attemptId?: string
+  /**
+   * T07 mid-problem help: show Socratic/tutoring shell before first submit
+   * when the student is in practice mode (D1). Assessment never opens this.
+   */
+  showMidProblemHelp?: boolean
 }
 
 function StateIcon({ state }: { state: ResultState }) {
@@ -60,7 +65,8 @@ export function ResultsPanel({
   history,
   onApplyRepair,
   sessionMode = 'practice',
-  attemptId
+  attemptId,
+  showMidProblemHelp = false
 }: ResultsPanelProps) {
   return (
     <section className="results-panel" aria-labelledby="result-title">
@@ -73,7 +79,21 @@ export function ResultsPanel({
       </header>
 
       {!evaluation ? (
-        <EmptyResult />
+        <>
+          <EmptyResult />
+          {showMidProblemHelp && attemptId !== undefined ? (
+            <div className="mid-problem-help">
+              <p className="muted mid-problem-help-caption">
+                练习态可在提交前求助：苏格拉底引导一次一问，不直接给答案。
+              </p>
+              <TutoringPanel
+                attemptId={attemptId}
+                mode={sessionMode}
+                evaluationCompleted={false}
+              />
+            </div>
+          ) : null}
+        </>
       ) : (
         <div className="result-content" aria-live="polite">
           <div className="score-block">

@@ -509,6 +509,54 @@ export interface QuestionSummary {
   hasSolution: boolean
 }
 
+/**
+ * Teacher hand-entry draft for POST /api/questions (T03).
+ * `authorId` is stamped server-side from the session — never trust the client.
+ */
+export interface CreateQuestionInput {
+  questionBankId: string
+  subject: SubjectLanguage
+  questionType: QuestionType
+  stem: string
+  /** RunnerSpec payload matching questionType. */
+  payload: unknown
+  kpIds?: string[]
+  difficulty?: number
+  source?: EvidenceSource
+  termId?: string
+  /** Optional T09 standard solution (teacher-authored). */
+  solution?: Omit<StandardSolution, 'authorId' | 'source'> & {
+    authorId?: string
+    source?: 'authored'
+  }
+}
+
+/** PATCH /api/questions/:id — partial update of an owned question. */
+export type UpdateQuestionInput = Omit<Partial<CreateQuestionInput>, 'solution'> & {
+  /** null clears an existing standard solution (待补). */
+  solution?: CreateQuestionInput['solution'] | null
+}
+
+/**
+ * POST /api/questions/:id/adopt-solution (T09).
+ * Promote an AI (or free-text) draft into a teacher-authored standard solution.
+ */
+export interface AdoptSolutionInput {
+  content: string
+  latex?: string
+  keyPoints?: string[]
+}
+
+export interface AdoptSolutionResult {
+  question: Question
+  solution: StandardSolution | null
+  tutoring: {
+    mode: 'rag_restate' | 'llm_generate'
+    needsSolution: boolean
+    requiresDisclaimer: boolean
+  }
+}
+
 export interface KnowledgePoint {
   id: string
   name: string

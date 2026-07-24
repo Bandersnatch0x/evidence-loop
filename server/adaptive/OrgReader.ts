@@ -10,6 +10,8 @@ export interface OrgReader {
   getTeachingUnit(id: string): TeachingUnit | undefined
   listEnrollments(classId: string, termId: string): Enrollment[]
   listEnrolledStudentIds(classId: string, termId: string): string[]
+  /** Optional: list units owned by a teacher (T08 workbench unit picker). */
+  listTeachingUnitsByTeacher?(teacherId: string): TeachingUnit[]
 }
 
 export class TeachingUnitNotFoundError extends Error {
@@ -69,6 +71,19 @@ export class SqliteOrgReader implements OrgReader {
 
   public listEnrolledStudentIds(classId: string, termId: string): string[] {
     return this.listEnrollments(classId, termId).map((row) => row.studentId)
+  }
+
+  public listTeachingUnitsByTeacher(teacherId: string): TeachingUnit[] {
+    const rows = this.db
+      .prepare(
+        `
+        SELECT * FROM teaching_units
+        WHERE teacher_id = ?
+        ORDER BY id ASC
+        `
+      )
+      .all(teacherId) as TeachingUnitRow[]
+    return rows.map(rowToTeachingUnit)
   }
 
   /** Test / seed helper: upsert a teaching unit. */
@@ -162,6 +177,13 @@ export class InMemoryOrgReader implements OrgReader {
 
   public listEnrolledStudentIds(classId: string, termId: string): string[] {
     return this.listEnrollments(classId, termId).map((row) => row.studentId)
+  }
+
+  public listTeachingUnitsByTeacher(teacherId: string): TeachingUnit[] {
+    return [...this.units.values()]
+      .filter((unit) => unit.teacherId === teacherId)
+      .map((unit) => ({ ...unit, taughtKpIds: [...unit.taughtKpIds] }))
+      .sort((a, b) => a.id.localeCompare(b.id))
   }
 }
 

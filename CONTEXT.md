@@ -53,12 +53,12 @@
 决策地图见 `docs/product-roadmap/PRODUCT-MAP.md`（状态 IMPLEMENTED ✅）。四波编排 + 接线闭环：
 - **T01 数据模型地基**（已实施）：`Attempt` 聚合根 + Drizzle schema + 迁移；四判别字段承载 D1-D4；`JsonEvaluationStore→JsonAttemptStore` expand-contract；架构测试守护"练习态证据字节级不进正式掌握度"。
 - **T02 认证会话**（已实施）：学号/邮箱+密码，scrypt 加盐，HTTP-only cookie + 服务端 session；学生账号老师批量导入 + 激活码强制改密；`RealSessionProvider`（生产）/ `MockSessionProvider`（dev-only）。
-- **T03 题库 + T09 标准解析**（已实施）：老师私有题库（共享出界），7 题型表单，智能组卷；`Question.solution` 可选，AI 辅导 RAG 挂解析降幻觉，无解析标 `llm_inference` + 免责徽章。
+- **T03 题库 + T09 标准解析**（已闭合，报告见 `docs/product-roadmap/reports/T03|T09-implementation-report.md`）：老师私有题库（共享出界），7 题型校验+组卷+教师手录 UI（工作台「题库录入」）；`Question.solution` 可选，AI 辅导 RAG 挂解析降幻觉，无解析标 `llm_inference` + 免责徽章；老师可「采纳 AI 讲解」为 `source:authored` 标准解析。主进程 `seedDemoProduct` 冷启动灌预置库。
 - **T04 扫描导入 OCR**（已实施）：纯 Node 文档解析（.docx/PDF 文本层，无出境）+ `OcrProvider` 接口（Mathpix 可出境/Paddle 本地/Mock），草稿→教师逐题确认→入库闸门（D2）。
 - **T05 三层 AI 辅导**（已实施，骨架待通电）：讲解/苏格拉底/对话；D1 仅练习态开放（mode gate 403）；物理隔离——辅导 generator 不接触打分路径，产物 `llm_inference`，永不回写 score/evidence；模板 fallback。`OpenAICompatible` 骨架待配 `LLM_API_KEY`。
 - **T06 学情自动闭环**（已实施）：`NextPracticeService` = FSRS due ∩ 依赖链薄弱点 ∩ D4 已教进度；`AssignByWeaknessService` 聚合班级薄弱 KP → 组卷 → 批量布置占位 Attempt（未提交不入掌握度）。
-- **T07 学生刷题体验**（已实施）：`PracticeSessionService`（session 由 Attempt 派生）+ `MistakeBookService`（D1 掌握规则）+ 前端 `StudentWorkbench`（双模入口 + 错题本）。
-- **T08 教师工作流**（已实施）：`TeachingUnitService`（D3）+ `StudentImportService`（复用 T02 导入 + 补 Enrollment）+ `AssignmentService`（三布置 shape）+ `SubjectiveGradingService`（主观题终裁环，守铁律）+ 前端 `TeacherWorkbench`（建单元→导名单→布置→批改四标签）。
+- **T07 学生刷题体验**（已实施，报告见 `docs/product-roadmap/reports/T07-implementation-report.md`）：`PracticeSessionService` + `MistakeBookService` + 前端 `StudentWorkbench`（今日该练 / 双模入口 / 错题重练 / 练习态提交前求助）。成套计时交卷 UI 仍为增强项。
+- **T08 教师工作流**（已实施，报告见 `docs/product-roadmap/reports/T08-implementation-report.md`）：`TeachingUnitService`（D3 + 列表）+ `StudentImportService`（T02 激活码）+ `AssignmentService`（三布置；预置库可布置）+ `SubjectiveGradingService`（终裁不进 score）+ 前端 `TeacherWorkbench`（选/建单元→题库→名单→布置→批改）。Demo：`tu-demo` 归属 `teacher-demo`。
 - **接线闭环**（已实施）：`server/index.ts` 主路由挂载 7 个 `handle*Api`（auth/questions/tutoring/import/adaptive/student/teacher）；`productDb` 独立 SQLite 连接承载 questions/auth/org 表；前端 Sidebar 新增学生/教师工作台入口。烟测 `tests/routeWiring.test.ts` + 端到端链路验证。
 - **attemptId 评价贯通**（已实施）：`POST /api/evaluations` 接受可选 `attemptId`，就地更新 Attempt 并保留 mode/paperId；`EvidenceProjector` 按 D1 分流（practice 只喂 FSRS，assessment 才重算正式 MasteryProfile）。学生工作台双模入口 → 工作台提交自动带 attemptId。
 - **验证基线**：tsc 0 / lint 0 / vitest 442 tests green / vite build ✓。

@@ -81,10 +81,28 @@ export class TeachingUnitService {
         'Forbidden: only the teaching-unit teacher may view it'
       )
     }
-    const className = this.org.listClasses?.().find((c) => c.id === unit.classId)?.name ?? unit.classId
+    return this.toView(unit)
+  }
+
+  /**
+   * List teaching units owned by this teacher (T08 workbench unit picker).
+   * Empty when the org reader has no listTeachingUnitsByTeacher helper.
+   */
+  public listForTeacher(teacherId: string): TeachingUnitView[] {
+    const units = this.org.listTeachingUnitsByTeacher?.(teacherId) ?? []
+    return units.map((unit) => this.toView(unit))
+  }
+
+  private toView(unit: TeachingUnit): TeachingUnitView {
+    const className =
+      this.org.listClasses?.().find((c) => c.id === unit.classId)?.name ??
+      unit.classId
     const subjectName =
-      this.org.listSubjects?.().find((s) => s.id === unit.subjectId)?.name ?? unit.subjectId
-    const termName = this.org.listTerms?.().find((t) => t.id === unit.termId)?.name ?? unit.termId
+      this.org.listSubjects?.().find((s) => s.id === unit.subjectId)?.name ??
+      unit.subjectId
+    const termName =
+      this.org.listTerms?.().find((t) => t.id === unit.termId)?.name ??
+      unit.termId
     const enrolledCount = this.org.listEnrolledStudentIds(
       unit.classId,
       unit.termId

@@ -1,4 +1,6 @@
 import type {
+  AdoptSolutionInput,
+  AdoptSolutionResult,
   ApiError,
   Assignment,
   AssignmentSummary,
@@ -6,6 +8,7 @@ import type {
   CohortSnapshot,
   CreateAssignmentInput,
   CreateAssignmentResult,
+  CreateQuestionInput,
   CreateTeachingUnitInput,
   DemoRole,
   EvaluateRequest,
@@ -20,7 +23,10 @@ import type {
   MasteryProfileMap,
   MasteryTimelineEntry,
   MistakeBookView,
+  NextPracticePlan,
   PracticeSession,
+  Question,
+  QuestionSummary,
   ReviewCard,
   StartPracticeRequest,
   StartPracticeResponse,
@@ -29,7 +35,8 @@ import type {
   TutoringDialogueRequest,
   TutoringExplainRequest,
   TutoringResponse,
-  TutoringSocraticRequest
+  TutoringSocraticRequest,
+  UpdateQuestionInput
 } from '../../shared/contracts'
 import { DEMO_ROLE_HEADER, readStoredDemoRole } from './demoRole'
 
@@ -219,6 +226,96 @@ export function startPractice(
   })
 }
 
+/** T06/T07 — student's "today" queue (FSRS due ∩ dependency gaps ∩ D4 taught). */
+export function getNextPracticePlan(
+  studentId: string,
+  teachingUnitId: string
+): Promise<NextPracticePlan> {
+  const params = new URLSearchParams({
+    studentId,
+    unitId: teachingUnitId
+  })
+  return requestJson(`/api/adaptive/next?${params.toString()}`)
+}
+
+/**
+ * Map a product Question id back to a workspace Assignment id.
+ * Seed bank rows use `seed:<assignmentId>` (T03 expand-contract).
+ */
+export function questionIdToAssignmentId(questionId: string): string {
+  return questionId.startsWith('seed:') ? questionId.slice('seed:'.length) : questionId
+}
+
+/**
+ * Inverse of questionIdToAssignmentId: demo assignments enter the bank as
+ * `seed:<assignmentId>`, so Attempts started from the workspace must use the
+ * bank id — otherwise the mistake book splits one question into two rows
+ * (bare vs seed:) and cannot resolve subject/kpIds for the bare form.
+ */
+export function assignmentIdToQuestionId(assignmentId: string): string {
+  return assignmentId.startsWith('seed:') ? assignmentId : `seed:${assignmentId}`
+}
+
+// ---------------------------------------------------------------------------
+// T03 — teacher-private question bank
+// ---------------------------------------------------------------------------
+
+export function listQuestions(filters?: {
+  subject?: string
+  questionType?: string
+  kpIds?: string[]
+}): Promise<QuestionSummary[]> {
+  const params = new URLSearchParams()
+  if (filters?.subject) params.set('subject', filters.subject)
+  if (filters?.questionType) params.set('questionType', filters.questionType)
+  if (filters?.kpIds && filters.kpIds.length > 0) {
+    params.set('kpIds', filters.kpIds.join(','))
+  }
+  const qs = params.toString()
+  return requestJson(`/api/questions${qs ? `?${qs}` : ''}`)
+}
+
+export function createQuestion(body: CreateQuestionInput): Promise<Question> {
+  return requestJson('/api/questions', {
+    method: 'POST',
+    body: JSON.stringify(body)
+  })
+}
+
+export function getQuestion(id: string): Promise<Question> {
+  return requestJson(`/api/questions/${encodeURIComponent(id)}`)
+}
+
+export function updateQuestion(
+  id: string,
+  body: UpdateQuestionInput
+): Promise<Question> {
+  return requestJson(`/api/questions/${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    body: JSON.stringify(body)
+  })
+}
+
+export function deleteQuestion(id: string): Promise<{ id: string; deleted: boolean }> {
+  return requestJson(`/api/questions/${encodeURIComponent(id)}`, {
+    method: 'DELETE'
+  })
+}
+
+/** T09 — promote AI/free-text draft into teacher-authored standard solution. */
+export function adoptSolution(
+  questionId: string,
+  body: AdoptSolutionInput
+): Promise<AdoptSolutionResult> {
+  return requestJson(
+    `/api/questions/${encodeURIComponent(questionId)}/adopt-solution`,
+    {
+      method: 'POST',
+      body: JSON.stringify(body)
+    }
+  )
+}
+
 // ---------------------------------------------------------------------------
 // T08 — teacher workflow
 // ---------------------------------------------------------------------------
@@ -230,6 +327,10 @@ export function createTeachingUnit(
     method: 'POST',
     body: JSON.stringify(body)
   })
+}
+
+export function listTeachingUnits(): Promise<TeachingUnitView[]> {
+  return requestJson('/api/teacher/teaching-units')
 }
 
 export function getTeachingUnit(id: string): Promise<TeachingUnitView> {

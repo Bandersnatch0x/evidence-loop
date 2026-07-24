@@ -98,7 +98,7 @@ export async function handleQuestionBankApi(
       }
       if (request.method === 'PATCH' || request.method === 'PUT') {
         const body = await readJsonBody(request)
-        const patch = toPatch(body)
+        const patch = toPatch(body, authorId)
         respondJson(response, 200, context.questionBank.update(id, authorId, patch))
         return true
       }
@@ -110,12 +110,54 @@ export async function handleQuestionBankApi(
     }
 
     const solutionMatch = pathname.match(/^\/api\/questions\/([^/]+)\/solution$/)
-    if (request.method === 'GET' && solutionMatch?.[1]) {
+    if (solutionMatch?.[1]) {
       const id = decodeURIComponent(solutionMatch[1])
-      const solution = context.questionBank.getSolution(id, authorId)
-      // No solution → 待补; report the tutoring degradation explicitly (T09).
+      if (request.method === 'GET') {
+        const solution = context.questionBank.getSolution(id, authorId)
+        // No solution → 待补; report the tutoring degradation explicitly (T09).
+        respondJson(response, 200, {
+          solution: solution ?? null,
+          tutoring: context.questionBank.tutoringContextFor(id, authorId)
+        })
+        return true
+      }
+    }
+
+    // POST /api/questions/:id/adopt-solution — T09 promote AI draft → authored.
+    const adoptMatch = pathname.match(
+      /^\/api\/questions\/([^/]+)\/adopt-solution$/
+    )
+    if (request.method === 'POST' && adoptMatch?.[1]) {
+      const id = decodeURIComponent(adoptMatch[1])
+      const body = await readJsonBody(request)
+      if (typeof body !== 'object' || body === null) {
+        throw new QuestionValidationError('Request body must be a JSON object')
+      }
+      const record = body as Record<string, unknown>
+      if (typeof record.content !== 'string' || record.content.trim() === '') {
+        throw new QuestionValidationError(
+          'adopt-solution requires a non-empty content string'
+        )
+      }
+      let keyPoints: string[] | undefined
+      if (Array.isArray(record.keyPoints)) {
+        const points = record.keyPoints.filter(
+          (point): point is string => typeof point === 'string'
+        )
+        if (points.length === record.keyPoints.length) {
+          keyPoints = points
+        }
+      }
+      const latex =
+        typeof record.latex === 'string' ? record.latex : undefined
+      const updated = context.questionBank.adoptSolution(id, authorId, {
+        content: record.content,
+        latex,
+        keyPoints
+      })
       respondJson(response, 200, {
-        solution: solution ?? null,
+        question: updated,
+        solution: updated.solution ?? null,
         tutoring: context.questionBank.tutoringContextFor(id, authorId)
       })
       return true
@@ -173,7 +215,7 @@ function toDraft(body: unknown, authorId: string): QuestionDraft {
     difficulty: record.difficulty,
     source: record.source,
     termId: typeof record.termId === 'string' ? record.termId : undefined,
-    solution: record.solution
+    solution: stampSolutionAuthor(record.solution, authorId)
   }
 }
 
@@ -182,7 +224,7 @@ function asString(value: unknown): string {
   return typeof value === 'string' ? value : ''
 }
 
-function toPatch(body: unknown): Partial<QuestionDraft> {
+function toPatch(body: unknown, authorId: string): Partial<QuestionDraft> {
   if (typeof body !== 'object' || body === null) {
     throw new QuestionValidationError('Request body must be a JSON object')
   }
@@ -197,9 +239,30 @@ function toPatch(body: unknown): Partial<QuestionDraft> {
   if ('difficulty' in record) patch.difficulty = record.difficulty
   if ('source' in record) patch.source = record.source
   if (typeof record.termId === 'string') patch.termId = record.termId
-  // Distinguish "unset solution" (explicit null) from "leave unchanged".
-  if ('solution' in record) patch.solution = record.solution
+  // Distinguish "clear solution" (explicit null) from "leave unchanged".
+  // Stamp session authorId so clients need not (and cannot) spoof solution ownership.
+  if ('solution' in record) {
+    patch.solution =
+      record.solution === null
+        ? undefined
+        : stampSolutionAuthor(record.solution, authorId)
+  }
   return patch
+}
+
+/**
+ * Force StandardSolution.authorId to the session teacher. Clients may omit it
+ * or send a placeholder; never trust a foreign authorId on the solution.
+ * null/undefined pass through (clear / leave-unset semantics).
+ */
+function stampSolutionAuthor(solution: unknown, authorId: string): unknown {
+  if (solution === null || solution === undefined) return solution
+  if (typeof solution !== 'object') return solution
+  return {
+    ...(solution as Record<string, unknown>),
+    authorId,
+    source: 'authored'
+  }
 }
 
 function assemble(

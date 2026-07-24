@@ -51,6 +51,7 @@ import {
 } from './import'
 import { QuestionBankService } from './questionbank/QuestionBankService'
 import { QuestionStore } from './questionbank/QuestionStore'
+import { seedDemoProduct } from './questionbank/seedDemoProduct'
 import {
   AssignmentService,
   SubjectiveGradingService,
@@ -276,6 +277,9 @@ export async function createEvidenceLoopServer(
   const authStore = new AuthStore(productDb)
   const auth = new AuthService(authStore)
   const org = new SqliteOrgReader(productDb)
+  // T03 tail + T07 demo: seed built-in bank + tu-demo unit so "今日该练"
+  // and mistake repractice have real question/KP rows on cold start.
+  seedDemoProduct({ questions: questionStore, org })
   // Session provider: real (cookie→auth_sessions) in production, mock
   // (X-Demo-Role header) in dev/test. AUTH_MODE / DEMO_AUTH override.
   // ponytail: default shifts to real under NODE_ENV=production (authMode.ts),

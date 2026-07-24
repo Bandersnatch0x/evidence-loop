@@ -150,11 +150,11 @@ export class AssignmentService {
       if (!input.questionIds || input.questionIds.length === 0) {
         throw new AssignmentError('handpick requires questionIds')
       }
-      // Validate each id is owned by the teacher (teacher-private bank).
+      // Own private bank OR system seed bank (预置库) — not another teacher.
       const ids = [...new Set(input.questionIds)]
       for (const id of ids) {
         // Throws QuestionNotFoundError / QuestionOwnershipError on miss.
-        this.questionBank.get(id, teacherId)
+        this.questionBank.getAssignable(id, teacherId)
       }
       return {
         id: `paper_${randomUUID()}`,

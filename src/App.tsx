@@ -28,6 +28,7 @@ import { TransparencyView } from './components/TransparencyView'
 import { VoiceCompanion } from './components/VoiceCompanion'
 import { isMultimodalEnabled } from './config/features'
 import {
+  assignmentIdToQuestionId,
   evaluateCode,
   getActiveDemoRole,
   getAssignment,
@@ -35,6 +36,7 @@ import {
   getKnowledgeGraph,
   listAssignments,
   listEvaluations,
+  questionIdToAssignmentId,
   setActiveDemoRole,
   startPractice
 } from './lib/api'
@@ -239,7 +241,7 @@ export function App() {
       let attemptId = activeAttempt?.attemptId
       if (attemptId === undefined && demoRole === 'student') {
         const started = await startPractice({
-          questionId: assignment.id,
+          questionId: assignmentIdToQuestionId(assignment.id),
           teachingUnitId: 'tu-demo',
           termId: 'term-demo',
           mode: 'practice'
@@ -308,6 +310,31 @@ export function App() {
     if (!repair) return
     setSelectedVariantId(repair.id)
     setSubmission(repair.code)
+  }
+
+  /**
+   * T07: open a practice/assessment attempt for a bank question id, switch the
+   * workspace to the matching demo assignment (seed:xxx → assignment id), and
+   * land on the submission surface with the D1 mode badge visible.
+   */
+  const handleStartQuestion = async (
+    questionId: string,
+    mode: SessionMode = 'practice'
+  ) => {
+    const assignmentId = questionIdToAssignmentId(questionId)
+    const nextAssignment = await getAssignment(assignmentId)
+    const nextHistory = await listEvaluations(assignmentId)
+    applyAssignment(nextAssignment)
+    setHistory(nextHistory)
+    const started = await startPractice({
+      questionId,
+      teachingUnitId: 'tu-demo',
+      termId: 'term-demo',
+      mode
+    })
+    setActiveAttempt({ attemptId: started.attemptId, mode: started.mode })
+    setEvaluation(undefined)
+    setActiveView('workspace')
   }
 
   if (error && !assignment && !isLoading) {
@@ -379,6 +406,9 @@ export function App() {
             onApplyRepair={handleApplyRepair}
             sessionMode={activeAttempt?.mode}
             attemptId={activeAttempt?.attemptId}
+            showMidProblemHelp={
+              activeAttempt?.mode === 'practice' && evaluation === undefined
+            }
           />
         </div>
         {multimodalEnabled && (
@@ -412,14 +442,16 @@ export function App() {
     mainBody =
       demoRole === 'student' ? (
         <StudentWorkbench
-          questionId={assignment.id}
+          questionId={assignmentIdToQuestionId(assignment.id)}
           teachingUnitId="tu-demo"
           termId="term-demo"
+          studentId={DEMO_STUDENT_ID}
           onAttemptStarted={(attemptId, mode) => {
             setActiveAttempt({ attemptId, mode })
             setEvaluation(undefined)
             setActiveView('workspace')
           }}
+          onStartQuestion={handleStartQuestion}
         />
       ) : (
         <div className="view-loading role-denied" role="status">

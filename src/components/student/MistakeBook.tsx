@@ -1,11 +1,18 @@
 import { useEffect, useState } from 'react'
-import { AlertTriangle, BookOpen, CheckCircle2 } from 'lucide-react'
+import { AlertTriangle, BookOpen, CheckCircle2, RotateCcw } from 'lucide-react'
 import type { MistakeBookView } from '../../../shared/contracts'
 import { getMistakeBook } from '../../lib/api'
 
 interface MistakeBookProps {
   /** Refresh trigger — parent bumps this after a re-attempt to reload. */
   refreshKey: number
+  /**
+   * T07 重练: open a new practice-mode attempt for this question id.
+   * Only active (non-mastered) rows expose the button.
+   */
+  onRepractice?: (questionId: string) => void
+  /** Disable repractice while a start is in flight. */
+  repracticeBusy?: boolean
 }
 
 /**
@@ -13,9 +20,13 @@ interface MistakeBookProps {
  *
  * Shows incorrectly-answered questions grouped active vs mastered. Practice
  * passes do NOT clear a mistake (D1); only consecutive assessment passes do.
- * Each row carries a "重练" button that re-enters practice mode.
+ * Each active row carries a "重练" button that re-enters practice mode.
  */
-export function MistakeBook({ refreshKey }: MistakeBookProps) {
+export function MistakeBook({
+  refreshKey,
+  onRepractice,
+  repracticeBusy = false
+}: MistakeBookProps) {
   const [book, setBook] = useState<MistakeBookView>()
   const [error, setError] = useState<string>()
   const [isLoading, setIsLoading] = useState(true)
@@ -58,13 +69,16 @@ export function MistakeBook({ refreshKey }: MistakeBookProps) {
   }
 
   return (
-    <section className="mistake-book">
-      <header>
-        <h3>错题本</h3>
+    <section className="mistake-book" aria-labelledby="mistake-book-title">
+      <header className="mistake-book-header">
+        <h3 id="mistake-book-title">错题本</h3>
         <span className="muted">
           活跃 {book.activeCount} · 已掌握 {book.masteredCount}
         </span>
       </header>
+      <p className="muted mistake-book-hint">
+        仅连续测评态通过才移出活跃本；练习态重练可巩固，不计入正式掌握度（D1）。
+      </p>
       <ul className="mistake-list">
         {book.entries.map((entry) => (
           <li
@@ -74,15 +88,26 @@ export function MistakeBook({ refreshKey }: MistakeBookProps) {
             <div className="mistake-meta">
               <span className="subject-tag">{entry.subject}</span>
               {entry.mastered ? (
-                <CheckCircle2 size={16} className="mastered-icon" />
+                <CheckCircle2 size={16} className="mastered-icon" aria-label="已掌握" />
               ) : null}
             </div>
             <div className="mistake-body">
               <div>题 {entry.questionId}</div>
               <div className="muted">
-                最近得分 {entry.lastScore} · 连续测评通过 {entry.consecutiveAssessmentPasses} 次
+                最近得分 {entry.lastScore} · 连续测评通过{' '}
+                {entry.consecutiveAssessmentPasses} 次
               </div>
             </div>
+            {!entry.mastered && onRepractice !== undefined ? (
+              <button
+                type="button"
+                className="secondary-button repractice-button"
+                disabled={repracticeBusy}
+                onClick={() => onRepractice(entry.questionId)}
+              >
+                <RotateCcw size={14} aria-hidden="true" /> 重练
+              </button>
+            ) : null}
           </li>
         ))}
       </ul>

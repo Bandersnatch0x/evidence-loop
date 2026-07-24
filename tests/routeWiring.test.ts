@@ -71,6 +71,48 @@ describe('module route wiring', () => {
     expect(response.status).toBe(403)
   })
 
+  it('mounts adopt-solution (T09) for teachers', async () => {
+    // Create a question first so adopt has a target.
+    const created = await fetch(`${baseUrl}/api/questions`, {
+      method: 'POST',
+      headers: {
+        'x-demo-role': 'teacher',
+        'content-type': 'application/json'
+      },
+      body: JSON.stringify({
+        questionBankId: 'wiring-bank',
+        subject: 'math',
+        questionType: 'choice',
+        stem: 'wiring 1+1=?',
+        payload: { kind: 'choice', correctOptionIds: ['B'] },
+        kpIds: ['kp.wiring'],
+        difficulty: 1
+      })
+    })
+    expect(created.status).toBe(201)
+    const question = (await created.json()) as { id: string }
+
+    const adopted = await fetch(
+      `${baseUrl}/api/questions/${encodeURIComponent(question.id)}/adopt-solution`,
+      {
+        method: 'POST',
+        headers: {
+          'x-demo-role': 'teacher',
+          'content-type': 'application/json'
+        },
+        body: JSON.stringify({ content: '标准解：选 B' })
+      }
+    )
+    expect(adopted.status).toBe(200)
+    const body = (await adopted.json()) as {
+      solution: { content: string; source: string } | null
+      tutoring: { mode: string }
+    }
+    expect(body.solution?.content).toContain('选 B')
+    expect(body.solution?.source).toBe('authored')
+    expect(body.tutoring.mode).toBe('rag_restate')
+  })
+
   it('mounts student routes (mistakes returns 200 for a student)', async () => {
     const response = await fetch(`${baseUrl}/api/student/mistakes`, {
       headers: { 'x-demo-role': 'student' }
@@ -135,5 +177,20 @@ describe('module route wiring', () => {
     const unit = (await response.json()) as { id: string; taughtKpIds: string[] }
     expect(unit.id.startsWith('tu_')).toBe(true)
     expect(unit.taughtKpIds).toEqual(['kp-A'])
+  })
+
+  it('lists teaching units for the demo teacher (incl. tu-demo seed)', async () => {
+    const response = await fetch(`${baseUrl}/api/teacher/teaching-units`, {
+      headers: { 'x-demo-role': 'teacher' }
+    })
+    expect(response.status).toBe(200)
+    const units = (await response.json()) as Array<{
+      id: string
+      teacherId: string
+    }>
+    expect(Array.isArray(units)).toBe(true)
+    // seedDemoProduct owns tu-demo as teacher-demo
+    expect(units.some((u) => u.id === 'tu-demo')).toBe(true)
+    expect(units.every((u) => u.teacherId === 'teacher-demo')).toBe(true)
   })
 })

@@ -1,8 +1,7 @@
 import { useState } from 'react'
-import { AlertTriangle, BookOpen, GraduationCap, PenLine } from 'lucide-react'
+import { AlertTriangle, GraduationCap, PenLine } from 'lucide-react'
 import type { SessionMode } from '../../../shared/contracts'
 import { startPractice } from '../../lib/api'
-import { MistakeBook } from './MistakeBook'
 
 interface PracticeViewProps {
   questionId: string
@@ -29,7 +28,6 @@ export function PracticeView({
 }: PracticeViewProps) {
   const [error, setError] = useState<string>()
   const [starting, setStarting] = useState(false)
-  const [refreshKey, setRefreshKey] = useState(0)
 
   const begin = async (mode: SessionMode) => {
     setStarting(true)
@@ -42,7 +40,6 @@ export function PracticeView({
         mode
       })
       onAttemptStarted(out.attemptId, out.mode)
-      setRefreshKey((k) => k + 1)
     } catch (startError: unknown) {
       setError(startError instanceof Error ? startError.message : '无法开始练习')
     } finally {
@@ -51,10 +48,11 @@ export function PracticeView({
   }
 
   return (
-    <section className="practice-view">
-      <h3>开始练习</h3>
+    <section className="practice-view" aria-labelledby="practice-view-title">
+      <h3 id="practice-view-title">自由练 · 双模入口</h3>
       <p className="muted">
         选择模式：练习态开启 AI 辅导（不计入正式掌握度），测评态独立完成（计入正式掌握度）。
+        当前题目：<code>{questionId}</code>
       </p>
 
       <div className="mode-cards">
@@ -64,7 +62,7 @@ export function PracticeView({
           disabled={starting}
           onClick={() => void begin('practice')}
         >
-          <GraduationCap size={24} />
+          <GraduationCap size={24} aria-hidden="true" />
           <strong>练习态 · 辅导开启</strong>
           <span className="muted">讲解 / 苏格拉底 / 追问</span>
         </button>
@@ -74,7 +72,7 @@ export function PracticeView({
           disabled={starting}
           onClick={() => void begin('assessment')}
         >
-          <PenLine size={24} />
+          <PenLine size={24} aria-hidden="true" />
           <strong>测评态 · 独立完成</strong>
           <span className="muted">AI 关闭，裸做</span>
         </button>
@@ -85,14 +83,6 @@ export function PracticeView({
           <AlertTriangle size={18} /> {error}
         </div>
       ) : null}
-
-      <hr />
-      <div className="mistake-section">
-        <h4>
-          <BookOpen size={18} style={{ verticalAlign: 'middle' }} /> 我的错题本
-        </h4>
-        <MistakeBook refreshKey={refreshKey} />
-      </div>
     </section>
   )
 }

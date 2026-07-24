@@ -2,7 +2,10 @@
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { QuestionStore } from '../server/questionbank/QuestionStore'
-import { QuestionBankService } from '../server/questionbank/QuestionBankService'
+import {
+  QuestionBankService,
+  QuestionOwnershipError
+} from '../server/questionbank/QuestionBankService'
 import type { QuestionDraft } from '../server/questionbank/questionValidation'
 import {
   buildTutoringContext,
@@ -182,5 +185,38 @@ describe('QuestionBankService solution integration', () => {
     const created = service.create(draftWithSolution(goodSolution))
     const updated = service.update(created.id, TEACHER, { solution: undefined })
     expect(updated.solution).toBeUndefined()
+  })
+
+  it('adoptSolution promotes AI draft text to authored standard solution (T09)', () => {
+    const created = service.create(draftWithSolution(undefined))
+    expect(service.tutoringContextFor(created.id, TEACHER).mode).toBe(
+      'llm_generate'
+    )
+
+    const adopted = service.adoptSolution(created.id, TEACHER, {
+      content: '  AI 讲解：先因式分解，再合并同类项。  ',
+      latex: 'x^2+2x+1',
+      keyPoints: ['因式分解', '  ', '合并同类项']
+    })
+
+    expect(adopted.solution?.content).toBe('AI 讲解：先因式分解，再合并同类项。')
+    expect(adopted.solution?.authorId).toBe(TEACHER)
+    expect(adopted.solution?.source).toBe('authored')
+    expect(adopted.solution?.keyPoints).toEqual(['因式分解', '合并同类项'])
+    expect(service.tutoringContextFor(created.id, TEACHER).mode).toBe(
+      'rag_restate'
+    )
+    expect(service.tutoringContextFor(created.id, TEACHER).requiresDisclaimer).toBe(
+      false
+    )
+  })
+
+  it('adoptSolution refuses another teacher’s question', () => {
+    const created = service.create(draftWithSolution(undefined))
+    expect(() =>
+      service.adoptSolution(created.id, 'other-teacher', {
+        content: '偷写解析'
+      })
+    ).toThrow(QuestionOwnershipError)
   })
 })

@@ -203,6 +203,31 @@ describe('T08 TeachingUnitService (D3)', () => {
     expect(unit.taughtKpIds).toEqual(['kp-A', 'kp-B'])
   })
 
+  it('lists only units owned by the teacher', () => {
+    const service = new TeachingUnitService({ org })
+    service.create(
+      {
+        classId: 'cls-2',
+        subjectId: 'subj-math',
+        termId: 'term-1',
+        taughtKpIds: ['kp-A']
+      },
+      teacherId
+    )
+    org.saveTeachingUnit({
+      id: 'tu-foreign',
+      teacherId: 'other-teacher',
+      classId: 'cls-x',
+      subjectId: 'subj-x',
+      termId: 'term-1',
+      taughtKpIds: []
+    })
+    const listed = service.listForTeacher(teacherId)
+    expect(listed.every((u) => u.teacherId === teacherId)).toBe(true)
+    expect(listed.some((u) => u.id === 'tu-1')).toBe(true)
+    expect(listed.some((u) => u.id === 'tu-foreign')).toBe(false)
+  })
+
   it('forbids another teacher from viewing a unit', () => {
     const service = new TeachingUnitService({ org })
     expect(() => service.getView('tu-1', 'intruder')).toThrow(/Forbidden/)
@@ -319,6 +344,75 @@ describe('T08 AssignmentService (three shapes)', () => {
     )
     expect(result.questionIds.length).toBeGreaterThan(0)
     expect(result.paperId.startsWith('paper_')).toBe(true)
+  })
+
+  it('handpick accepts system seed-bank questions (预置库)', async () => {
+    // Seed a system-builtin question the demo teacher does not own privately.
+    const seedId = 'seed:essay-demo'
+    questions.save({
+      id: seedId,
+      questionBankId: 'seed-demo-bank',
+      authorId: 'system-builtin',
+      subject: 'chinese',
+      questionType: 'essay',
+      stem: '预置作文',
+      payload: { kind: 'essay', minWords: 80 },
+      kpIds: ['kp-essay'],
+      difficulty: 2,
+      source: 'authored_key',
+      createdAt: '2026-07-24T08:00:00.000Z'
+    })
+    const service = new AssignmentService({
+      questionBank: bank,
+      attempts,
+      org,
+      now: NOW
+    })
+    const result = await service.create(
+      {
+        teachingUnitId: 'tu-1',
+        mode: 'assessment',
+        kind: 'handpick',
+        questionIds: [seedId],
+        studentIds: ['student-a']
+      },
+      teacherId
+    )
+    expect(result.questionIds).toEqual([seedId])
+    expect(result.attemptIds).toHaveLength(1)
+  })
+
+  it('assemble_by_kp fills from seed bank when teacher bank is empty', async () => {
+    questions.save({
+      id: 'seed:kp-only',
+      questionBankId: 'seed-demo-bank',
+      authorId: 'system-builtin',
+      subject: 'math',
+      questionType: 'choice',
+      stem: '预置选择',
+      payload: { kind: 'choice', correctOptionIds: ['A'] },
+      kpIds: ['kp-seed-only'],
+      difficulty: 1,
+      source: 'authored_key',
+      createdAt: '2026-07-24T08:00:00.000Z'
+    })
+    const service = new AssignmentService({
+      questionBank: bank,
+      attempts,
+      org,
+      now: NOW
+    })
+    const result = await service.create(
+      {
+        teachingUnitId: 'tu-1',
+        mode: 'practice',
+        kind: 'assemble_by_kp',
+        kpIds: ['kp-seed-only'],
+        studentIds: ['student-a']
+      },
+      teacherId
+    )
+    expect(result.questionIds).toContain('seed:kp-only')
   })
 })
 

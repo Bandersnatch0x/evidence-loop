@@ -84,12 +84,12 @@ export function AssignmentComposer({ teachingUnitId }: AssignmentComposerProps) 
 
       {kind === 'handpick' ? (
         <label>
-          题目 ID（逗号分隔）：
+          题目 ID（逗号分隔，可用 seed:… 预置题或私有题）：
           <input
             type="text"
             value={questionIds}
             onChange={(e) => setQuestionIds(e.target.value)}
-            placeholder="q-1, q-2"
+            placeholder="seed:essay-perseverance-growth, seed:math-..."
           />
         </label>
       ) : null}
@@ -108,12 +108,12 @@ export function AssignmentComposer({ teachingUnitId }: AssignmentComposerProps) 
 
       {kind !== 'by_weakness' ? (
         <label>
-          学生 ID（逗号分隔，留空=全班仅 by_weakness 支持）：
+          学生 ID（逗号分隔，留空=本单元全班）：
           <input
             type="text"
             value={studentIds}
             onChange={(e) => setStudentIds(e.target.value)}
-            placeholder="student-a, student-b"
+            placeholder="learner-demo, student-a"
           />
         </label>
       ) : null}

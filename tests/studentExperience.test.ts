@@ -4,6 +4,13 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { QuestionStore } from '../server/questionbank/QuestionStore'
 import { QuestionBankService } from '../server/questionbank/QuestionBankService'
 import type { QuestionDraft } from '../server/questionbank/questionValidation'
+import {
+  DEMO_LEARNER_ID,
+  DEMO_TEACHER_ID,
+  DEMO_TEACHING_UNIT_ID,
+  seedDemoProduct
+} from '../server/questionbank/seedDemoProduct'
+import { SqliteOrgReader } from '../server/adaptive/OrgReader'
 import { JsonAttemptStore } from '../server/store/AttemptStore'
 import {
   MistakeBookService,
@@ -374,5 +381,31 @@ describe('T07 MistakeBookService (D1 mastery rule)', () => {
     })
     const view = await service.view(STUDENT)
     expect(view.entries).toHaveLength(0)
+  })
+})
+
+describe('T07 demo product seed (T03 tail + 今日该练前提)', () => {
+  it('seeds built-in questions, tu-demo unit, and demo learner enrollment', () => {
+    const org = new SqliteOrgReader(db)
+    const result = seedDemoProduct({ questions, org, now: NOW })
+
+    expect(result.teachingUnitId).toBe(DEMO_TEACHING_UNIT_ID)
+    expect(result.questionsImported).toBeGreaterThan(0)
+    expect(result.taughtKpCount).toBeGreaterThan(0)
+
+    const unit = org.getTeachingUnit(DEMO_TEACHING_UNIT_ID)
+    expect(unit).toBeDefined()
+    if (unit === undefined) throw new Error('expected tu-demo')
+    // Owned by demo teacher so T08 roster/assign/grade pass ownership checks.
+    expect(unit.teacherId).toBe(DEMO_TEACHER_ID)
+    expect(result.teacherId).toBe(DEMO_TEACHER_ID)
+    expect(unit.taughtKpIds.length).toBe(result.taughtKpCount)
+
+    const enrolled = org.listEnrolledStudentIds(unit.classId, unit.termId)
+    expect(enrolled).toContain(DEMO_LEARNER_ID)
+
+    // Idempotent on re-run
+    const second = seedDemoProduct({ questions, org, now: NOW })
+    expect(second.questionsImported).toBe(0)
   })
 })

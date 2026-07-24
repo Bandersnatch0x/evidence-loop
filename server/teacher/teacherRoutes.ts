@@ -26,7 +26,8 @@ import {
  * HTTP surface for T08 teacher workflow.
  *
  * - POST /api/teacher/teaching-units          — create a teaching unit
- * - GET  /api/teacher/teaching-units/:id        — view a teaching unit
+ * - GET  /api/teacher/teaching-units          — list units for this teacher
+ * - GET  /api/teacher/teaching-units/:id      — view a teaching unit
  * - POST /api/teacher/roster/import            — import student roster
  * - POST /api/teacher/assignments             — create an assignment (3 shapes)
  * - GET  /api/teacher/grading/:teachingUnitId  — subjective grading queue
@@ -118,6 +119,13 @@ export async function handleTeacherApi(
     const input: CreateTeachingUnitInput = parsed.data
     const unit = context.teachingUnits.create(input, teacherId)
     respondJson(response, 201, unit)
+    return true
+  }
+
+  // GET /api/teacher/teaching-units — list units owned by this teacher
+  if (request.method === 'GET' && pathname === '/api/teacher/teaching-units') {
+    const units = context.teachingUnits.listForTeacher(teacherId)
+    respondJson(response, 200, units)
     return true
   }
 

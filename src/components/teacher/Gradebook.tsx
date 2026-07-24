@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { AlertTriangle, ClipboardList, ShieldAlert } from 'lucide-react'
 import type { GradingQueueItem } from '../../../shared/contracts'
 import { getGradingQueue, gradeSubjective } from '../../lib/api'
@@ -24,7 +24,17 @@ export function Gradebook({ teachingUnitId }: GradebookProps) {
   const [queue, setQueue] = useState<GradingQueueItem[]>([])
   const [error, setError] = useState<string>()
   const [isLoading, setIsLoading] = useState(true)
-  const [gradedId, setGradedId] = useState<string>()
+
+  const reload = useCallback(() => {
+    setIsLoading(true)
+    setError(undefined)
+    return getGradingQueue(teachingUnitId)
+      .then((loaded) => setQueue(loaded))
+      .catch((loadError: unknown) => {
+        setError(loadError instanceof Error ? loadError.message : '批改队列加载失败')
+      })
+      .finally(() => setIsLoading(false))
+  }, [teachingUnitId])
 
   useEffect(() => {
     let cancelled = false
@@ -47,47 +57,69 @@ export function Gradebook({ teachingUnitId }: GradebookProps) {
     }
   }, [teachingUnitId])
 
+  const handleGraded = (
+    attemptId: string,
+    annotation: NonNullable<GradingQueueItem['teacherAnnotation']>
+  ) => {
+    // Optimistic local update so the row flips to "教师终裁" without a full reload.
+    setQueue((prev) =>
+      prev.map((item) =>
+        item.attemptId === attemptId
+          ? { ...item, teacherAnnotation: annotation }
+          : item
+      )
+    )
+  }
+
   if (isLoading) return <p className="muted">加载批改队列…</p>
   if (error !== undefined) {
     return (
       <div className="error-banner">
         <AlertTriangle size={18} /> {error}
+        <button type="button" onClick={() => void reload()}>
+          重试
+        </button>
       </div>
     )
   }
   if (queue.length === 0) {
     return (
       <p className="muted">
-        <ClipboardList size={18} style={{ verticalAlign: 'middle' }} /> 队列为空，没有待批改的主观题。
+        <ClipboardList size={18} style={{ verticalAlign: 'middle' }} />{' '}
+        队列为空，没有待批改的主观题。学生提交作文/论述后会出现在此。
       </p>
     )
   }
+
+  const pending = queue.filter((item) => item.teacherAnnotation === undefined).length
 
   return (
     <section className="gradebook">
       <header>
         <h3>主观题批改</h3>
-        <span className="muted">待批 {queue.length} 份</span>
+        <span className="muted">
+          共 {queue.length} 份 · 待批 {pending} 份
+        </span>
       </header>
       <ul className="grading-list">
         {queue.map((item) => (
           <GradingRow
             key={item.attemptId}
             item={item}
-            onGraded={(id) => setGradedId(id)}
+            onGraded={handleGraded}
           />
         ))}
       </ul>
-      {gradedId !== undefined ? (
-        <p className="muted">已批 {gradedId}（重新加载查看更新）</p>
-      ) : null}
     </section>
   )
 }
 
 interface GradingRowProps {
   item: GradingQueueItem
-  onGraded: (attemptId: string) => void
+  onGraded: (
+    attemptId: string,
+    annotation: NonNullable<GradingQueueItem['teacherAnnotation']>
+  ) => void
 }
 
 function GradingRow({ item, onGraded }: GradingRowProps) {
@@ -109,12 +141,12 @@ function GradingRow({ item, onGraded }: GradingRowProps) {
     setSubmitting(true)
     setError(undefined)
     try {
-      await gradeSubjective(item.attemptId, {
+      const result = await gradeSubjective(item.attemptId, {
         subjectiveScore,
         subjectiveMaxScore: 10,
         note: note.trim()
       })
-      onGraded(item.attemptId)
+      onGraded(item.attemptId, result.teacherAnnotation)
       setScore('')
       setNote('')
     } catch (submitError: unknown) {
@@ -127,6 +159,9 @@ function GradingRow({ item, onGraded }: GradingRowProps) {
   return (
     <li className="grading-row">
       <div className="grading-stem">{item.stem}</div>
+      <div className="grading-meta muted">
+        学生 {item.studentId} · 提交于 {item.submittedAt}
+      </div>
       <div className="grading-submission">
         <strong>学生提交：</strong>
         <p>{item.submissionText || '（无文本）'}</p>
@@ -143,14 +178,18 @@ function GradingRow({ item, onGraded }: GradingRowProps) {
         <span className="layer-tag ai-tag">
           <ShieldAlert size={12} /> AI 推断
         </span>
-        <ul>
-          {(item.advisory ?? []).map((a) => (
-            <li key={a.id}>
-              <em>{a.dimensionLabel}：</em>
-              {a.suggestion}
-            </li>
-          ))}
-        </ul>
+        {(item.advisory ?? []).length === 0 ? (
+          <span className="muted">暂无 AI 建议</span>
+        ) : (
+          <ul>
+            {(item.advisory ?? []).map((a) => (
+              <li key={a.id}>
+                <em>{a.dimensionLabel}：</em>
+                {a.suggestion}
+              </li>
+            ))}
+          </ul>
+        )}
         <span className="muted">建议，不计入分数；需教师确认。</span>
       </div>
 
@@ -159,7 +198,8 @@ function GradingRow({ item, onGraded }: GradingRowProps) {
           <span className="layer-tag teacher-tag">教师终裁</span>
           <span>
             {item.teacherAnnotation.subjectiveScore} /{' '}
-            {item.teacherAnnotation.subjectiveMaxScore} — {item.teacherAnnotation.note}
+            {item.teacherAnnotation.subjectiveMaxScore} —{' '}
+            {item.teacherAnnotation.note}
           </span>
         </div>
       ) : (
@@ -173,6 +213,7 @@ function GradingRow({ item, onGraded }: GradingRowProps) {
               value={score}
               onChange={(e) => setScore(e.target.value)}
               disabled={submitting}
+              aria-label="主观分"
             />
           </label>
           <label>
@@ -183,6 +224,7 @@ function GradingRow({ item, onGraded }: GradingRowProps) {
               onChange={(e) => setNote(e.target.value)}
               disabled={submitting}
               placeholder="终裁理由（必填）"
+              aria-label="批改说明"
             />
           </label>
           <button type="button" onClick={() => void submit()} disabled={submitting}>

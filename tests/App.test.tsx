@@ -177,10 +177,27 @@ describe('App', () => {
     vi.mocked(api.getKnowledgeGraph).mockResolvedValue({ points: [], edges: [] })
     vi.mocked(api.listDueReviews).mockResolvedValue([])
     vi.mocked(api.getMasteryProfile).mockResolvedValue({})
+    vi.mocked(api.assignmentIdToQuestionId).mockImplementation((id) =>
+      id.startsWith('seed:') ? id : `seed:${id}`
+    )
     vi.mocked(api.startPractice).mockResolvedValue({
       attemptId: 'att-demo-1',
       mode: 'practice',
       tutoringEnabled: true
+    })
+    vi.mocked(api.listPracticeSessions).mockResolvedValue([])
+    vi.mocked(api.getMistakeBook).mockResolvedValue({
+      studentId: 'learner-demo',
+      entries: [],
+      activeCount: 0,
+      masteredCount: 0
+    })
+    vi.mocked(api.getNextPracticePlan).mockResolvedValue({
+      studentId: 'learner-demo',
+      teachingUnitId: 'tu-demo',
+      generatedAt: '2026-07-24T08:00:00.000Z',
+      taughtKpIds: [],
+      items: []
     })
   })
 
@@ -211,10 +228,30 @@ describe('App', () => {
     )
     expect(api.startPractice).toHaveBeenCalledWith(
       expect.objectContaining({
-        questionId: assignment.id,
+        questionId: 'seed:python-average',
         mode: 'practice'
       })
     )
+  })
+
+  it('starts dual-mode practice with the seed bank question id, not the bare assignment id', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+
+    await screen.findByRole('heading', { name: assignment.title })
+    await user.click(screen.getByRole('button', { name: '我的练习' }))
+    await user.click(
+      await screen.findByRole('button', { name: /练习态 · 辅导开启/ })
+    )
+
+    await waitFor(() => {
+      expect(api.startPractice).toHaveBeenCalledWith(
+        expect.objectContaining({
+          questionId: 'seed:python-average',
+          mode: 'practice'
+        })
+      )
+    })
   })
 
   it('keeps a successful evaluation when secondary refreshes fail', async () => {

@@ -10,6 +10,7 @@ import {
   type QuestionDraft
 } from './questionValidation'
 import { buildTutoringContext, type TutoringContext } from './solution'
+import { SEED_AUTHOR_ID } from './seedFromAssignments'
 
 /**
  * T03 question-bank service: CRUD over teacher-private questions + 组卷 (paper
@@ -102,6 +103,25 @@ export class QuestionBankService {
     return question
   }
 
+  /**
+   * Resolve a question the teacher may assign: own private bank OR system
+   * seed bank (T03 预置库 / T06「老师题库/预置库选」). Edit/delete still use
+   * get() and refuse seed rows so teachers cannot rewrite the built-in bank.
+   */
+  public getAssignable(id: string, teacherId: string): Question {
+    const question = this.store.get(id)
+    if (!question) throw new QuestionNotFoundError(id)
+    if (
+      question.authorId === teacherId ||
+      question.authorId === SEED_AUTHOR_ID
+    ) {
+      return question
+    }
+    throw new QuestionOwnershipError(
+      'Forbidden: question belongs to another teacher (question bank is private)'
+    )
+  }
+
   /** List questions owned by `authorId`, with optional filters. */
   public list(
     authorId: string,
@@ -174,6 +194,35 @@ export class QuestionBankService {
     return buildTutoringContext(this.get(id, authorId).solution)
   }
 
+  /**
+   * T09 "采纳": promote an AI-generated explanation (or any draft text) into a
+   * teacher-authored standard solution. Stamps `source: 'authored'` + the
+   * adopting teacher's `authorId` so provenance becomes human-authoritative
+   * (D2) and downstream tutoring flips to `rag_restate`.
+   *
+   * Does NOT touch scores / evidence — only the Question.solution field.
+   */
+  public adoptSolution(
+    id: string,
+    authorId: string,
+    draft: {
+      content: string
+      latex?: string
+      keyPoints?: string[]
+    }
+  ): Question {
+    // Ownership check first so foreign banks cannot be rewritten.
+    this.get(id, authorId)
+    const solution: StandardSolution = {
+      content: draft.content,
+      authorId,
+      source: 'authored'
+    }
+    if (draft.latex !== undefined) solution.latex = draft.latex
+    if (draft.keyPoints !== undefined) solution.keyPoints = draft.keyPoints
+    return this.update(id, authorId, { solution })
+  }
+
   // ---------------------------------------------------------------------------
   // 组卷 (paper assembly)
   // ---------------------------------------------------------------------------
@@ -204,10 +253,10 @@ export class QuestionBankService {
   }
 
   /**
-   * KP-based assembly: pick the teacher's questions tagged with any of the
-   * target knowledge points, within an optional difficulty band. This is the
-   * composition primitive behind "一键按薄弱点组卷" — the caller supplies which
-   * KPs are weak (from the T06 loop), and this returns a paper covering them.
+   * KP-based assembly: pick questions tagged with any of the target knowledge
+   * points, within an optional difficulty band. Prefer the teacher's private
+   * bank, then fill from the system seed bank (T03 预置库) so cold-start demo
+   * teachers can still 组卷 before hand-entering private items.
    */
   public assembleByKnowledgePoints(options: AssembleByKpOptions): Paper {
     if (options.kpIds.length === 0) {
@@ -216,22 +265,40 @@ export class QuestionBankService {
       )
     }
     const limit = options.limit ?? DEFAULT_PAPER_SIZE
-    const matches = this.store.list({
-      authorId: options.authorId,
+    const filter = {
       subject: options.subject,
       kpIds: options.kpIds,
       minDifficulty: options.minDifficulty,
       maxDifficulty: options.maxDifficulty,
       limit
+    }
+    const teacherMatches = this.store.list({
+      ...filter,
+      authorId: options.authorId
     })
-    if (matches.length === 0) {
+    const seedMatches =
+      options.authorId === SEED_AUTHOR_ID
+        ? []
+        : this.store.list({
+            ...filter,
+            authorId: SEED_AUTHOR_ID
+          })
+    const seen = new Set<string>()
+    const merged: Question[] = []
+    for (const question of [...teacherMatches, ...seedMatches]) {
+      if (seen.has(question.id)) continue
+      seen.add(question.id)
+      merged.push(question)
+      if (merged.length >= limit) break
+    }
+    if (merged.length === 0) {
       throw new QuestionNotFoundError(
         `no questions tagged with ${options.kpIds.join(', ')}`
       )
     }
     return this.makePaper(
       options.authorId,
-      matches.slice(0, limit).map((question) => question.id),
+      merged.map((question) => question.id),
       options.title ?? '按知识点组卷'
     )
   }
