@@ -1,15 +1,16 @@
-import { useEffect, useState } from 'react'
+﻿import { useCallback, useEffect, useState } from 'react'
 import { AlertTriangle, Bell, Check } from 'lucide-react'
 import type { StudentTipItem } from '../../../shared/contracts'
 import { listStudentTips, markStudentTipRead } from '../../lib/api'
 
 interface TeacherTipsInboxProps {
-  /** Bump to force reload after role/session changes. */
+  /** Bump from parent to re-fetch after practice actions. */
   refreshKey?: number
 }
 
 /**
- * T14 student inbox for teacher tips. Unread first; mark-read is per delivery.
+ * T14 — student inbox for teacher tips (站内消息).
+ * Unread first; mark-read is per-student delivery only.
  */
 export function TeacherTipsInbox({ refreshKey = 0 }: TeacherTipsInboxProps) {
   const [items, setItems] = useState<StudentTipItem[]>([])
@@ -17,32 +18,33 @@ export function TeacherTipsInbox({ refreshKey = 0 }: TeacherTipsInboxProps) {
   const [loading, setLoading] = useState(true)
   const [busyId, setBusyId] = useState<string>()
 
-  const load = async () => {
+  const refresh = useCallback(() => {
     setLoading(true)
-    try {
-      const list = await listStudentTips()
-      setItems(list)
-      setError(undefined)
-    } catch (loadError: unknown) {
-      setError(loadError instanceof Error ? loadError.message : '老师提示加载失败')
-    } finally {
-      setLoading(false)
-    }
-  }
+    setError(undefined)
+    listStudentTips()
+      .then(setItems)
+      .catch((loadError: unknown) => {
+        setError(loadError instanceof Error ? loadError.message : '老师提示加载失败')
+      })
+      .finally(() => {
+        setLoading(false)
+      })
+  }, [])
 
   useEffect(() => {
-    void load()
-  }, [refreshKey])
+    refresh()
+  }, [refresh, refreshKey])
 
-  const unread = items.filter((item) => item.readAt === undefined).length
+  const unreadCount = items.filter((item) => item.readAt === undefined).length
 
   const markRead = async (tipId: string) => {
     setBusyId(tipId)
+    setError(undefined)
     try {
       const updated = await markStudentTipRead(tipId)
       setItems((prev) =>
         prev
-          .map((item) => (item.id === tipId ? { ...item, ...updated } : item))
+          .map((item) => (item.id === tipId ? updated : item))
           .sort((a, b) => {
             const aUnread = a.readAt === undefined ? 0 : 1
             const bUnread = b.readAt === undefined ? 0 : 1
@@ -61,13 +63,12 @@ export function TeacherTipsInbox({ refreshKey = 0 }: TeacherTipsInboxProps) {
     <section className="teacher-tips-inbox" aria-labelledby="teacher-tips-title">
       <h3 id="teacher-tips-title">
         <Bell size={18} style={{ verticalAlign: 'middle' }} /> 老师提示
-        {unread > 0 ? (
-          <span className="tip-unread-badge" aria-label={`${unread} 条未读`}>
-            {unread}
+        {unreadCount > 0 ? (
+          <span className="unread-badge" aria-label={`${String(unreadCount)} 条未读`}>
+            {unreadCount}
           </span>
         ) : null}
       </h3>
-      <p className="muted">教师手写短提示（非系统作业、不改分数）。</p>
 
       {loading ? <p className="muted">加载中…</p> : null}
       {error !== undefined ? (
@@ -76,34 +77,41 @@ export function TeacherTipsInbox({ refreshKey = 0 }: TeacherTipsInboxProps) {
         </div>
       ) : null}
       {!loading && error === undefined && items.length === 0 ? (
-        <p className="muted">暂无老师提示。</p>
+        <p className="muted">暂时没有老师提示。</p>
       ) : null}
 
       {items.length > 0 ? (
         <ul className="tip-list">
           {items.map((item) => {
-            const unreadItem = item.readAt === undefined
+            const unread = item.readAt === undefined
             return (
               <li
                 key={item.id}
-                className={unreadItem ? 'tip-row unread' : 'tip-row'}
+                className={unread ? 'tip-row unread' : 'tip-row'}
               >
                 <div className="tip-body">{item.body}</div>
-                <div className="tip-actions">
-                  <span className="muted tip-meta">{item.createdAt}</span>
-                  {unreadItem ? (
-                    <button
-                      type="button"
-                      className="mark-read-btn"
-                      disabled={busyId === item.id}
-                      onClick={() => void markRead(item.id)}
-                    >
-                      <Check size={14} /> 标为已读
-                    </button>
-                  ) : (
-                    <span className="mode-badge practice">已读</span>
-                  )}
+                <div className="muted tip-meta">
+                  {item.createdAt}
+                  {item.kpIds && item.kpIds.length > 0
+                    ? ` · KP ${item.kpIds.join(', ')}`
+                    : ''}
+                  {item.questionId ? ` · 题 ${item.questionId}` : ''}
                 </div>
+                {unread ? (
+                  <button
+                    type="button"
+                    className="ghost"
+                    disabled={busyId === item.id}
+                    onClick={() => {
+                      void markRead(item.id)
+                    }}
+                  >
+                    <Check size={14} />{' '}
+                    {busyId === item.id ? '标记中…' : '标为已读'}
+                  </button>
+                ) : (
+                  <span className="muted tip-read">已读 {item.readAt}</span>
+                )}
               </li>
             )
           })}

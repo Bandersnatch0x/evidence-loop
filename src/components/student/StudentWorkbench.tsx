@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react'
+﻿import { useEffect, useState } from 'react'
 import { AlertTriangle, GraduationCap, ListChecks } from 'lucide-react'
 import type { PracticeSession, SessionMode } from '../../../shared/contracts'
 import { listPracticeSessions } from '../../lib/api'
 import { MistakeBook } from './MistakeBook'
+import { PaperExamShell } from './PaperExamShell'
 import { TeacherTipsInbox } from './TeacherTipsInbox'
 import { PracticeView } from './PracticeView'
 import { TodayPractice } from './TodayPractice'
@@ -82,6 +83,8 @@ export function StudentWorkbench({
     void startQuestion(qid, 'practice')
   }
 
+  const paperSessions = sessions.filter((s) => s.shape === 'paper')
+
   return (
     <div className="student-workbench">
       <header className="workbench-header">
@@ -129,6 +132,23 @@ export function StudentWorkbench({
           />
           <hr />
         </>
+      ) : null}
+
+      {paperSessions.length > 0 ? (
+        <section className="paper-exam-section" aria-labelledby="paper-exam-title">
+          <h3 id="paper-exam-title">
+            <ListChecks size={18} style={{ verticalAlign: 'middle' }} /> 成套测评
+          </h3>
+          <p className="muted">
+            倒计时与交卷为仪式壳：不改写分数 / 证据 / 掌握度；各题仍按 Attempt 评价。
+          </p>
+          <div className="paper-exam-list">
+            {paperSessions.map((session) => (
+              <PaperExamShell key={session.id} session={session} />
+            ))}
+          </div>
+          <hr />
+        </section>
       ) : null}
 
       <section className="session-history" aria-labelledby="session-history-title">

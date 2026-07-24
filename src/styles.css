@@ -3924,7 +3924,8 @@ td > b {
 
 .class-setup label,
 .student-import label,
-.assignment-composer label {
+.assignment-composer label,
+.teacher-tips label {
   display: block;
   margin: 10px 0;
   font-size: 0.8125rem;
@@ -3934,7 +3935,9 @@ td > b {
 .class-setup input,
 .student-import textarea,
 .assignment-composer input,
-.assignment-composer select {
+.assignment-composer select,
+.teacher-tips input,
+.teacher-tips textarea {
   display: block;
   width: 100%;
   margin-top: 4px;
@@ -3943,6 +3946,66 @@ td > b {
   border-radius: var(--radius-md);
   background: var(--surface);
   color: var(--ink);
+  font-size: 0.8125rem;
+}
+
+.teacher-tips textarea,
+.teacher-tips-inbox .tip-body {
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.tip-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.tip-row {
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tip-row.unread {
+  border-color: var(--accent, #4f46e5);
+  box-shadow: inset 3px 0 0 var(--accent, #4f46e5);
+}
+
+.tip-meta,
+.tip-read {
+  font-size: 0.75rem;
+}
+
+.unread-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.25rem;
+  height: 1.25rem;
+  margin-left: 8px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--accent, #4f46e5);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 600;
+  vertical-align: middle;
+}
+
+.success-banner {
+  margin: 10px 0 0;
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, #16a34a 12%, transparent);
+  color: #166534;
   font-size: 0.8125rem;
 }
 
@@ -4104,4 +4167,187 @@ td > b {
   display: inline-flex;
   align-items: center;
   gap: 4px;
+}
+
+/* ── Paper exam ceremonial shell (T07) ── */
+.paper-exam-section {
+  margin: 8px 0 4px;
+}
+
+.paper-exam-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.paper-exam-shell {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  padding: 12px 14px;
+}
+
+.paper-exam-shell.status-submitted {
+  border-color: color-mix(in srgb, var(--pass-deep, #15803d) 45%, var(--line));
+  background: color-mix(in srgb, var(--pass-wash, #dcfce7) 55%, var(--surface));
+}
+
+.paper-exam-shell.status-expired {
+  border-color: color-mix(in srgb, var(--warn-deep, #b45309) 45%, var(--line));
+}
+
+.paper-exam-shell-main {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.paper-exam-icon {
+  display: inline-flex;
+  margin-top: 2px;
+  color: var(--warn-deep, #b45309);
+}
+
+.paper-exam-copy {
+  flex: 1;
+  min-width: 0;
+}
+
+.paper-exam-title {
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+.paper-exam-meta {
+  margin-top: 2px;
+  font-size: 0.75rem;
+}
+
+.paper-exam-timer {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  font-size: 0.9375rem;
+  white-space: nowrap;
+}
+
+.paper-exam-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.paper-exam-status-badge {
+  display: inline-block;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: var(--surface-sunken, #f4f4f5);
+}
+
+.paper-exam-status-badge.running {
+  background: var(--warn-wash, #ffedd5);
+  color: var(--warn-deep, #b45309);
+}
+
+.paper-exam-status-badge.submitted {
+  background: var(--pass-wash, #dcfce7);
+  color: var(--pass-deep, #15803d);
+}
+
+.paper-exam-status-badge.expired {
+  background: color-mix(in srgb, var(--warn-wash, #ffedd5) 70%, #fff);
+  color: var(--warn-deep, #b45309);
+}
+
+.paper-submit-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.paper-exam-note {
+  font-size: 0.75rem;
+}
+
+/* ── T14 tip multi-select ── */
+.tip-student-picker {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: 10px 12px 4px;
+  margin: 12px 0;
+}
+
+.tip-student-picker legend {
+  padding: 0 4px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.tip-student-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  margin-bottom: 8px;
+}
+
+.linkish-btn {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: var(--accent, #2563eb);
+  padding: 0;
+  font-size: 0.8125rem;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.linkish-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.tip-student-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.tip-student-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  font-size: 0.8125rem;
+  cursor: pointer;
+  user-select: none;
+}
+
+.tip-student-chip.selected {
+  border-color: var(--accent, #3b82f6);
+  background: color-mix(in srgb, var(--accent, #3b82f6) 10%, var(--surface));
+}
+
+.tip-student-chip input {
+  margin: 0;
+}
+
+.tip-extra-students {
+  display: block;
+  margin: 8px 0 4px;
+}
+
+.tip-target-summary {
+  margin: 4px 0 10px;
+  font-size: 0.75rem;
 }

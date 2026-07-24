@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+﻿import { useEffect, useMemo, useState } from 'react'
 import { AlertTriangle, MessageSquareText, Send } from 'lucide-react'
 import type {
   CreateTeacherTipResult,
@@ -10,18 +10,35 @@ interface TipComposerProps {
   teachingUnitId: string
 }
 
+/** Demo roster chips — empty selection means whole enrolled class. */
+const DEMO_STUDENT_OPTIONS = [
+  { id: 'learner-demo', label: 'learner-demo（演示）' },
+  { id: 'student-a', label: 'student-a' },
+  { id: 'student-b', label: 'student-b' }
+] as const
+
 /**
  * T14 — teacher batch tips (站内消息). Messages only; never writes score.
  */
 export function TipComposer({ teachingUnitId }: TipComposerProps) {
   const [body, setBody] = useState('今晚复习二次函数顶点式，错题记得订正。')
-  const [studentIds, setStudentIds] = useState('')
+  const [selectedIds, setSelectedIds] = useState<string[]>([])
+  const [extraStudentIds, setExtraStudentIds] = useState('')
   const [kpIds, setKpIds] = useState('')
   const [result, setResult] = useState<CreateTeacherTipResult>()
   const [history, setHistory] = useState<TeacherTipSummary[]>([])
   const [error, setError] = useState<string>()
   const [submitting, setSubmitting] = useState(false)
   const [loadingList, setLoadingList] = useState(true)
+
+  const resolvedStudentIds = useMemo(() => {
+    const fromExtra = extraStudentIds
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean)
+    const merged = [...selectedIds, ...fromExtra]
+    return Array.from(new Set(merged))
+  }, [selectedIds, extraStudentIds])
 
   const refresh = async () => {
     setLoadingList(true)
@@ -41,6 +58,21 @@ export function TipComposer({ teachingUnitId }: TipComposerProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [teachingUnitId])
 
+  const toggleStudent = (id: string) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    )
+  }
+
+  const selectAllDemo = () => {
+    setSelectedIds(DEMO_STUDENT_OPTIONS.map((o) => o.id))
+  }
+
+  const clearSelection = () => {
+    setSelectedIds([])
+    setExtraStudentIds('')
+  }
+
   const submit = async () => {
     setSubmitting(true)
     setError(undefined)
@@ -48,10 +80,7 @@ export function TipComposer({ teachingUnitId }: TipComposerProps) {
       const out = await createTeacherTip({
         teachingUnitId,
         body,
-        studentIds:
-          studentIds.trim() !== ''
-            ? studentIds.split(',').map((s) => s.trim()).filter(Boolean)
-            : undefined,
+        studentIds: resolvedStudentIds.length > 0 ? resolvedStudentIds : undefined,
         kpIds:
           kpIds.trim() !== ''
             ? kpIds.split(',').map((s) => s.trim()).filter(Boolean)
@@ -88,16 +117,47 @@ export function TipComposer({ teachingUnitId }: TipComposerProps) {
         />
       </label>
 
-      <label>
-        学生 ID（逗号分隔，留空=本单元全班）：
-        <input
-          type="text"
-          value={studentIds}
-          onChange={(e) => setStudentIds(e.target.value)}
-          placeholder="learner-demo"
-          disabled={submitting}
-        />
-      </label>
+      <fieldset className="tip-student-picker" disabled={submitting}>
+        <legend>目标学生（不选 = 本单元全班）</legend>
+        <div className="tip-student-actions">
+          <button type="button" className="linkish-btn" onClick={selectAllDemo}>
+            全选演示名单
+          </button>
+          <button type="button" className="linkish-btn" onClick={clearSelection}>
+            清空（全班）
+          </button>
+        </div>
+        <div className="tip-student-options" role="group" aria-label="演示学生多选">
+          {DEMO_STUDENT_OPTIONS.map((opt) => {
+            const checked = selectedIds.includes(opt.id)
+            return (
+              <label key={opt.id} className={`tip-student-chip${checked ? ' selected' : ''}`}>
+                <input
+                  type="checkbox"
+                  checked={checked}
+                  onChange={() => toggleStudent(opt.id)}
+                />
+                <span>{opt.label}</span>
+              </label>
+            )
+          })}
+        </div>
+        <label className="tip-extra-students">
+          额外学生 ID（逗号分隔，可与上方多选合并）：
+          <input
+            type="text"
+            value={extraStudentIds}
+            onChange={(e) => setExtraStudentIds(e.target.value)}
+            placeholder="learner-demo"
+            disabled={submitting}
+          />
+        </label>
+        <p className="muted tip-target-summary">
+          {resolvedStudentIds.length === 0
+            ? '将投递：本单元全班'
+            : `将投递：${resolvedStudentIds.join(', ')}`}
+        </p>
+      </fieldset>
 
       <label>
         知识点标签（可选，仅展示）：

@@ -389,12 +389,18 @@ export function createTeacherTip(
   })
 }
 
+/** Alias used by older TeacherTips surface. */
+export function sendTeacherTip(
+  body: CreateTeacherTipInput
+): Promise<CreateTeacherTipResult> {
+  return createTeacherTip(body)
+}
+
 export function listTeacherTips(
   teachingUnitId: string
 ): Promise<TeacherTipSummary[]> {
-  return requestJson(
-    `/api/teacher/tips?teachingUnitId=${encodeURIComponent(teachingUnitId)}`
-  )
+  const params = new URLSearchParams({ teachingUnitId })
+  return requestJson(`/api/teacher/tips?${params.toString()}`)
 }
 
 export function listStudentTips(): Promise<StudentTipItem[]> {

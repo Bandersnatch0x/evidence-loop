@@ -1,5 +1,6 @@
-export { PracticeView } from './PracticeView'
+﻿export { PracticeView } from './PracticeView'
 export { MistakeBook } from './MistakeBook'
+export { PaperExamShell } from './PaperExamShell'
 export { StudentWorkbench } from './StudentWorkbench'
-export { TodayPractice } from './TodayPractice'
 export { TeacherTipsInbox } from './TeacherTipsInbox'
+export { TodayPractice } from './TodayPractice'
