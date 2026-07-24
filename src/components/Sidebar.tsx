@@ -1,9 +1,11 @@
 import {
   BookOpenCheck,
   CalendarClock,
+  ClipboardList,
   GraduationCap,
   Grid3x3,
   Menu,
+  NotebookPen,
   ShieldCheck,
   Target,
   UsersRound,
@@ -14,8 +16,10 @@ import { DEMO_ROLE_OPTIONS } from '../lib/demoRole'
 
 export type AppView =
   | 'workspace'
+  | 'practice'
   | 'mastery'
   | 'review'
+  | 'teaching'
   | 'cohort'
   | 'cohort-mastery'
   | 'transparency'
@@ -39,8 +43,15 @@ interface NavItem {
 
 const navigation = [
   { id: 'workspace', label: '学习工作台', icon: BookOpenCheck },
+  { id: 'practice', label: '我的练习', icon: NotebookPen, roles: ['student'] },
   { id: 'mastery', label: '我的掌握度', icon: Target, roles: ['student'] },
   { id: 'review', label: '今日复习', icon: CalendarClock, roles: ['student'] },
+  {
+    id: 'teaching',
+    label: '教师工作台',
+    icon: ClipboardList,
+    roles: ['teacher', 'admin']
+  },
   { id: 'cohort', label: '班级学情', icon: UsersRound, roles: ['teacher', 'admin'] },
   {
     id: 'cohort-mastery',

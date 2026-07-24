@@ -21,6 +21,8 @@ import { PipelineBar } from './components/PipelineBar'
 import { ResultsPanel } from './components/ResultsPanel'
 import { ReviewView } from './components/ReviewView'
 import { MobileHeader, Sidebar, type AppView } from './components/Sidebar'
+import { StudentWorkbench } from './components/student'
+import { TeacherWorkbench } from './components/teacher'
 import { TransparencyView } from './components/TransparencyView'
 import { VoiceCompanion } from './components/VoiceCompanion'
 import { isMultimodalEnabled } from './config/features'
@@ -97,11 +99,11 @@ function ErrorState({ message, onRetry }: { message: string; onRetry: () => void
 }
 
 function isTeacherOnlyView(view: AppView): boolean {
-  return view === 'cohort' || view === 'cohort-mastery'
+  return view === 'cohort' || view === 'cohort-mastery' || view === 'teaching'
 }
 
 function isStudentOnlyView(view: AppView): boolean {
-  return view === 'mastery' || view === 'review'
+  return view === 'mastery' || view === 'review' || view === 'practice'
 }
 
 export function App() {
@@ -360,6 +362,26 @@ export function App() {
         <div className="view-loading role-denied" role="status">
           <AlertTriangle size={18} />
           今日复习仅对学生角色开放。请切换到学生。
+        </div>
+      )
+  } else if (activeView === 'practice') {
+    mainBody =
+      demoRole === 'student' ? (
+        <StudentWorkbench />
+      ) : (
+        <div className="view-loading role-denied" role="status">
+          <AlertTriangle size={18} />
+          我的练习仅对学生角色开放。请切换到学生。
+        </div>
+      )
+  } else if (activeView === 'teaching') {
+    mainBody =
+      demoRole === 'teacher' || demoRole === 'admin' ? (
+        <TeacherWorkbench />
+      ) : (
+        <div className="view-loading role-denied" role="status">
+          <AlertTriangle size={18} />
+          教师工作台仅对教师/管理员开放。
         </div>
       )
   } else if (activeView === 'cohort') {

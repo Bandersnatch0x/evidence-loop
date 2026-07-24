@@ -3294,3 +3294,324 @@ td > b {
   color: var(--ink);
   font-size: 0.8125rem;
 }
+
+/* ==========================================================================
+   T07 / T08 — student workbench + teacher workbench
+   ========================================================================== */
+
+.muted {
+  color: var(--ink-muted);
+  font-size: 0.8125rem;
+}
+
+.error-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  margin: 10px 0;
+  border-radius: var(--radius-md);
+  background: var(--fail-wash);
+  border: 1px solid oklch(85% 0.06 25);
+  color: var(--fail-deep);
+  font-size: 0.8125rem;
+}
+
+.success-banner {
+  padding: 10px 12px;
+  margin: 10px 0;
+  border-radius: var(--radius-md);
+  background: var(--pass-wash);
+  border: 1px solid oklch(85% 0.06 160);
+  color: var(--pass-deep);
+  font-size: 0.8125rem;
+}
+
+.student-workbench,
+.teacher-workbench {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 8px 4px 40px;
+}
+
+.workbench-header {
+  margin-bottom: 20px;
+}
+
+.workbench-header h2 {
+  margin: 0 0 6px;
+}
+
+.session-list,
+.mistake-list,
+.grading-list {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.session-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  font-size: 0.8125rem;
+}
+
+.session-time {
+  margin-left: auto;
+}
+
+.mode-badge {
+  display: inline-block;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.mode-badge.practice {
+  background: var(--pass-wash);
+  color: var(--pass-deep);
+}
+
+.mode-badge.assessment {
+  background: var(--warn-wash);
+  color: var(--warn-deep);
+}
+
+.mistake-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+
+.mistake-row.mastered {
+  opacity: 0.6;
+  background: var(--surface-sunken);
+}
+
+.mistake-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.subject-tag {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--indigo-wash);
+  color: var(--indigo-deep);
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.mastered-icon {
+  color: var(--pass);
+}
+
+.mode-cards {
+  display: flex;
+  gap: 12px;
+  margin: 14px 0;
+  flex-wrap: wrap;
+}
+
+.mode-card {
+  flex: 1;
+  min-width: 180px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 16px;
+  border-radius: var(--radius-md);
+  border: 1.5px solid var(--line-strong);
+  background: var(--surface);
+  cursor: pointer;
+  text-align: left;
+}
+
+.mode-card.practice:hover {
+  border-color: var(--pass);
+}
+
+.mode-card.assessment:hover {
+  border-color: var(--warn);
+}
+
+.mode-card:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.active-unit {
+  margin-top: 8px;
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
+  background: var(--indigo-wash);
+  color: var(--indigo-deep);
+  font-size: 0.8125rem;
+}
+
+.teacher-tabs {
+  display: flex;
+  gap: 6px;
+  margin: 16px 0;
+  flex-wrap: wrap;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 10px;
+}
+
+.teacher-tabs .tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 13px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
+  color: var(--ink-muted);
+  cursor: pointer;
+  font-size: 0.8125rem;
+}
+
+.teacher-tabs .tab.active {
+  background: var(--indigo);
+  border-color: var(--indigo);
+  color: var(--surface);
+}
+
+.teacher-tabs .tab:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.class-setup label,
+.student-import label,
+.assignment-composer label {
+  display: block;
+  margin: 10px 0;
+  font-size: 0.8125rem;
+  color: var(--ink);
+}
+
+.class-setup input,
+.student-import textarea,
+.assignment-composer input,
+.assignment-composer select {
+  display: block;
+  width: 100%;
+  margin-top: 4px;
+  padding: 8px 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 0.8125rem;
+}
+
+.form-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.grading-row {
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.grading-stem {
+  font-weight: 600;
+}
+
+.grading-submission {
+  padding: 10px;
+  border-radius: var(--radius-md);
+  background: var(--surface-sunken);
+  font-size: 0.8125rem;
+}
+
+.grading-layer {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: var(--radius-md);
+  font-size: 0.8125rem;
+}
+
+.grading-layer.objective {
+  background: var(--pass-wash);
+}
+
+.grading-layer.advisory {
+  background: oklch(96% 0.02 252);
+  flex-direction: column;
+}
+
+.grading-layer.adjudicated {
+  background: var(--indigo-wash);
+}
+
+.layer-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.objective-tag {
+  background: var(--pass);
+  color: var(--surface);
+}
+
+.ai-tag {
+  background: var(--ink-faint);
+  color: var(--surface);
+}
+
+.teacher-tag {
+  background: var(--indigo);
+  color: var(--surface);
+}
+
+.grading-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: flex-end;
+}
+
+.activation-manifest table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 8px;
+  font-size: 0.8125rem;
+}
+
+.activation-manifest th,
+.activation-manifest td {
+  text-align: left;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--line);
+}
