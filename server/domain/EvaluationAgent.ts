@@ -200,7 +200,9 @@ export class EvaluationAgent {
         expected: criterion.expected,
         actual: runnerEvidence?.actual,
         message: contextualMessage,
-        conceptId: criterion.conceptId
+        conceptId: criterion.conceptId,
+        // Machine validators (runner/CAS/objective) always grade as test_case (D2).
+        source: 'test_case'
       }
     })
   }

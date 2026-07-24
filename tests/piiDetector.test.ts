@@ -31,7 +31,8 @@ function baseEvaluation(
         weight: 20,
         expected: '90',
         actual: '90',
-        message: '常规分数列表计算正确'
+        message: '常规分数列表计算正确',
+        source: 'test_case'
       }
     ],
     dimensions: [],
@@ -102,7 +103,8 @@ describe('PIIDetector', () => {
           weight: 20,
           expected: '90',
           actual: '联系 student@school.edu.cn 查看详情',
-          message: '输出不符合预期'
+          message: '输出不符合预期',
+          source: 'test_case'
         }
       ]
     })
@@ -169,7 +171,8 @@ describe('PIIDetector', () => {
           weight: 20,
           expected: '0',
           actual: '0',
-          message: '空列表返回 0'
+          message: '空列表返回 0',
+          source: 'test_case'
         },
         {
           id: 'basic-average',
@@ -181,7 +184,8 @@ describe('PIIDetector', () => {
           weight: 20,
           expected: '90',
           actual: '90',
-          message: '常规分数列表计算正确'
+          message: '常规分数列表计算正确',
+          source: 'test_case'
         }
       ]
     })

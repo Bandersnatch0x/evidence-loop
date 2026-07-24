@@ -25,7 +25,8 @@ function sampleEvaluation(scoreByKp: Record<string, 'passed' | 'failed'>): Evalu
       state,
       weight: 10,
       message: state,
-      conceptId: kpId
+      conceptId: kpId,
+      source: 'test_case' as const
     })),
     dimensions: [],
     diagnoses: [],

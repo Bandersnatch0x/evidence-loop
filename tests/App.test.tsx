@@ -74,7 +74,8 @@ const evaluation: EvaluationResult = {
       expected: '0',
       actual: 'ZeroDivisionError',
       message: '空列表路径没有返回约定结果',
-      conceptId: 'empty-sequence'
+      conceptId: 'empty-sequence',
+      source: 'test_case'
     }
   ],
   dimensions: [

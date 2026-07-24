@@ -13,16 +13,25 @@ import {
 import type {
   EvaluationHistoryItem,
   EvaluationResult,
-  ResultState
+  ResultState,
+  SessionMode
 } from '../../shared/contracts'
 import { evidenceKindLabel } from '../lib/labels'
 import { AdvisoryPanel } from './AdvisoryPanel'
 import { EvidenceShieldBadge } from './EvidenceShieldBadge'
+import { TutoringPanel } from './tutoring'
 
 interface ResultsPanelProps {
   evaluation?: EvaluationResult
   history: EvaluationHistoryItem[]
   onApplyRepair: () => void
+  /**
+   * D1 session mode for T05 tutoring gate. Defaults to practice so demo
+   * submissions can open the three-layer panels without an Attempt wire-up.
+   */
+  sessionMode?: SessionMode
+  /** Attempt id when the evaluate path has been migrated to AttemptStore. */
+  attemptId?: string
 }
 
 function StateIcon({ state }: { state: ResultState }) {
@@ -49,7 +58,9 @@ function EmptyResult() {
 export function ResultsPanel({
   evaluation,
   history,
-  onApplyRepair
+  onApplyRepair,
+  sessionMode = 'practice',
+  attemptId
 }: ResultsPanelProps) {
   return (
     <section className="results-panel" aria-labelledby="result-title">
@@ -145,6 +156,12 @@ export function ResultsPanel({
           {evaluation.advisory && evaluation.advisory.length > 0 && (
             <AdvisoryPanel suggestions={evaluation.advisory} />
           )}
+
+          <TutoringPanel
+            attemptId={attemptId ?? evaluation.id}
+            mode={sessionMode}
+            evaluationCompleted={evaluation.status === 'completed'}
+          />
 
           {evaluation.diagnoses.length > 0 && (
             <div className="result-section diagnosis-section">

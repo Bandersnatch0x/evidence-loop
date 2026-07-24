@@ -12,7 +12,11 @@ import type {
   KnowledgeGraph,
   MasteryProfileMap,
   MasteryTimelineEntry,
-  ReviewCard
+  ReviewCard,
+  TutoringDialogueRequest,
+  TutoringExplainRequest,
+  TutoringResponse,
+  TutoringSocraticRequest
 } from '../../shared/contracts'
 import { DEMO_ROLE_HEADER, readStoredDemoRole } from './demoRole'
 
@@ -148,5 +152,35 @@ export function completeReview(
   return requestJson(`/api/review/${encodeURIComponent(cardId)}/complete`, {
     method: 'POST',
     body: JSON.stringify({ rating })
+  })
+}
+
+/** T05 — one-shot explain (practice always; assessment after submit). */
+export function requestTutoringExplain(
+  body: TutoringExplainRequest
+): Promise<TutoringResponse> {
+  return requestJson('/api/tutoring/explain', {
+    method: 'POST',
+    body: JSON.stringify(body)
+  })
+}
+
+/** T05 — Socratic hints (practice only). */
+export function requestTutoringSocratic(
+  body: TutoringSocraticRequest
+): Promise<TutoringResponse> {
+  return requestJson('/api/tutoring/socratic', {
+    method: 'POST',
+    body: JSON.stringify(body)
+  })
+}
+
+/** T05 — multi-turn dialogue (practice only). */
+export function requestTutoringDialogue(
+  body: TutoringDialogueRequest
+): Promise<TutoringResponse> {
+  return requestJson('/api/tutoring/dialogue', {
+    method: 'POST',
+    body: JSON.stringify(body)
   })
 }

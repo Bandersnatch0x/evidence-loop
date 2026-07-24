@@ -3,9 +3,14 @@ import { dirname } from 'node:path'
 import type {
   EvaluationHistoryItem,
   EvaluationResult,
+  EvidenceItem,
+  EvidenceSource,
   Provenance
 } from '../../shared/contracts'
 import { DEFAULT_EVIDENCE_PROVENANCE } from '../../shared/contracts'
+
+/** Default for pre-T01 evaluation JSON rows (machine-verified path). */
+export const DEFAULT_EVIDENCE_SOURCE: EvidenceSource = 'test_case'
 
 export interface EvaluationListFilters {
   assignmentId?: string
@@ -27,22 +32,61 @@ export interface EvaluationStore {
 }
 
 /**
- * Ensure provenance is present (JSON migration for pre-012 evaluation records).
+ * Ensure provenance + evidence.source are present (JSON migration for pre-T01
+ * and pre-012 evaluation records).
  */
 export function ensureEvaluationProvenance(
   evaluation: EvaluationResult
 ): EvaluationResult {
-  if (isValidProvenance(evaluation.provenance)) {
-    return evaluation
+  const evidence = evaluation.evidence.map(ensureEvidenceSource)
+  const base = { ...evaluation, evidence }
+
+  if (isValidProvenance(base.provenance)) {
+    return base
   }
 
-  const evidenceIds = evaluation.evidence.map((item) => item.id)
+  const evidenceIds = evidence.map((item) => item.id)
   const provenance: Provenance = {
     kind: 'evidence',
     evidenceIds,
     algorithm: 'simple.v1'
   }
-  return { ...evaluation, provenance }
+  return { ...base, provenance }
+}
+
+export function ensureEvidenceSource(
+  item: EvidenceItem | (Omit<EvidenceItem, 'source'> & { source?: EvidenceSource })
+): EvidenceItem {
+  if (item.source === 'test_case' || item.source === 'authored_key') {
+    return {
+      id: item.id,
+      kind: item.kind,
+      label: item.label,
+      dimensionId: item.dimensionId,
+      visibility: item.visibility,
+      state: item.state,
+      weight: item.weight,
+      expected: item.expected,
+      actual: item.actual,
+      message: item.message,
+      conceptId: item.conceptId,
+      source: item.source
+    }
+  }
+  return {
+    id: item.id,
+    kind: item.kind,
+    label: item.label,
+    dimensionId: item.dimensionId,
+    visibility: item.visibility,
+    state: item.state,
+    weight: item.weight,
+    expected: item.expected,
+    actual: item.actual,
+    message: item.message,
+    conceptId: item.conceptId,
+    source: DEFAULT_EVIDENCE_SOURCE
+  }
 }
 
 function isValidProvenance(value: unknown): value is Provenance {

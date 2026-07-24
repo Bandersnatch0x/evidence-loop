@@ -3087,3 +3087,210 @@ td > b {
   justify-content: space-between;
   gap: 10px;
 }
+
+/* ── T05 tutoring panel (llm_inference grey, D1 mode gate) ── */
+
+.tutoring-panel {
+  margin-top: 8px;
+  padding: 16px;
+  background: var(--surface-sunken);
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius-lg);
+  display: grid;
+  gap: 14px;
+}
+
+.tutoring-panel-header {
+  display: grid;
+  gap: 6px;
+}
+
+.tutoring-panel-title-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  color: var(--ink-muted);
+}
+
+.tutoring-panel-title-row h3 {
+  margin: 0;
+  color: var(--ink);
+  font-size: 0.9375rem;
+  font-weight: 650;
+}
+
+.tutoring-panel-caption {
+  margin: 0;
+  color: var(--ink-muted);
+  font-size: 0.75rem;
+  line-height: 1.6;
+}
+
+.tutoring-ai-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  color: var(--ink-muted);
+  background: oklch(93% 0.004 252);
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  font-size: 0.6875rem;
+  font-weight: 650;
+}
+
+.tutoring-ai-badge-compact {
+  padding: 2px 8px;
+  font-size: 0.625rem;
+}
+
+.tutoring-layer {
+  padding: 12px;
+  background: oklch(97% 0.002 252);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  display: grid;
+  gap: 8px;
+}
+
+.tutoring-layer-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.tutoring-layer-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--ink-muted);
+}
+
+.tutoring-layer-title h4 {
+  margin: 0;
+  color: var(--ink);
+  font-size: 0.8125rem;
+  font-weight: 650;
+}
+
+.tutoring-layer-caption {
+  margin: 0;
+  color: var(--ink-muted);
+  font-size: 0.72rem;
+  line-height: 1.55;
+}
+
+.tutoring-action {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  color: var(--ink);
+  background: oklch(94% 0.01 252);
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.tutoring-action:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.tutoring-disabled {
+  margin: 0;
+  color: var(--ink-faint);
+  font-size: 0.75rem;
+}
+
+.tutoring-error {
+  margin: 0;
+  color: oklch(45% 0.14 25);
+  font-size: 0.75rem;
+}
+
+.tutoring-message {
+  padding: 10px 12px;
+  background: oklch(96% 0.003 252);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+}
+
+.tutoring-message-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.tutoring-message p {
+  margin: 0;
+  font-size: 0.8125rem;
+  line-height: 1.65;
+}
+
+.tutoring-source {
+  color: var(--ink-faint);
+  font-size: 0.625rem;
+  font-weight: 600;
+}
+
+.tutoring-disclaimer {
+  margin: 8px 0 0 !important;
+  color: var(--ink-faint);
+  font-size: 0.6875rem !important;
+}
+
+.tutoring-thread {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  max-height: 220px;
+  overflow: auto;
+}
+
+.tutoring-bubble {
+  padding: 8px 10px;
+  border-radius: var(--radius-md);
+  font-size: 0.8125rem;
+  line-height: 1.55;
+}
+
+.tutoring-bubble p {
+  margin: 4px 0 0;
+}
+
+.tutoring-bubble.is-assistant {
+  background: oklch(95% 0.004 252);
+  border: 1px solid var(--line);
+}
+
+.tutoring-bubble.is-user {
+  background: oklch(97% 0.02 230);
+  border: 1px solid oklch(88% 0.03 230);
+}
+
+.tutoring-compose {
+  display: flex;
+  gap: 8px;
+}
+
+.tutoring-compose input {
+  flex: 1;
+  min-width: 0;
+  padding: 7px 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 0.8125rem;
+}

@@ -9,6 +9,7 @@ import type {
   Provenance
 } from '../../shared/contracts'
 import type { EvaluationStore } from '../store/EvaluationStore'
+import { isAttemptStore } from '../store/AttemptStore'
 import {
   computeMastery,
   MASTERY_ALGORITHM_VERSION
@@ -215,10 +216,40 @@ export class MasteryService {
     return true
   }
 
+  /**
+   * Collect formal-mastery evidence only.
+   *
+   * D1 iron rule: practice-mode attempts feed FSRS / practice namespaces but
+   * must never enter formal MasteryProfile. When the store is Attempt-aware,
+   * filter `mode === 'assessment'`. Legacy EvaluationStore rows (no mode)
+   * default to assessment so existing demos keep updating mastery.
+   */
   private async collectEvidence(
     studentId: string,
     kpId: string
   ): Promise<MasteryEvidence[]> {
+    if (isAttemptStore(this.evaluationStore)) {
+      const attempts = await this.evaluationStore.listAttempts({ studentId })
+      const evidences: MasteryEvidence[] = []
+      for (const attempt of attempts) {
+        // Practice evidence is excluded byte-for-byte from formal mastery.
+        if (attempt.mode !== 'assessment') continue
+        const evaluation = attempt.result
+        if (evaluation.status !== 'completed') continue
+        for (const item of evaluation.evidence) {
+          if (item.conceptId !== kpId) continue
+          evidences.push({
+            id: `${evaluation.id}:${item.id}`,
+            score: item.state === 'passed' ? 1 : 0,
+            weight: item.weight,
+            kpId,
+            createdAt: evaluation.createdAt
+          })
+        }
+      }
+      return evidences
+    }
+
     const results = await this.evaluationStore.listResults({ studentId })
     const evidences: MasteryEvidence[] = []
 
