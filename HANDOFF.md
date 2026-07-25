@@ -21,12 +21,15 @@ T11–T13 评审扫尾 + **T14 教师批量发提示（站内消息）** 已落�
 | Demo 交付件 | 现场脚本 + 成套计时壳 + 提示多选 | `bf6c112` |
 | 测试修复 | `App.test` mock `listStudentTips`（收件箱挂载） | `6a615e3` |
 | flake 修复 | vitest `fileParallelism:false` 串行执行，消除并发资源竞争型 flake | `d8cf1c9` |
-| E2E | Playwright demo loops → 16/16 | `scripts/e2e-demo-loops.mjs` |
+| E2E | Playwright demo loops → **16/16 真机实测绿**（2026-07-25，baseUrl `:5280`） | `scripts/e2e-demo-loops.mjs` |
 
 验证快照（HEAD，串行）：
 - `tsc --noEmit` **EXIT=0**；全量 `vitest run` **481 passed + 1 skipped**（串行 ~90s，不再 flake）
 - `tests/teacherTips.test.ts` 11/11；`tests/productDataModel.test.ts` 9/9
-- E2E baseUrl 用空闲端口（本机 `4173` 可能 EACCES；常用 `http://127.0.0.1:5280`）
+- E2E 真机：`node scripts/e2e-demo-loops.mjs http://127.0.0.1:5280` → **16 passed, 0 failed**
+  - 学生：我的练习 → 双模 → 苏格拉底求助 → 提交(score 80) → 场次历史(9) → 错题本重练
+  - 教师：工作台 → tu-demo → 布置(1 占位) → 批改 tab → 题库 tab
+  - 截图：`output/playwright/e2e/*.png`
 
 ## 复赛已交付(产品化十票之前的地基,勿重做)
 
@@ -70,7 +73,13 @@ T11–T13 评审扫尾 + **T14 教师批量发提示（站内消息）** 已落�
 
 ## Next
 
-（空）现场演示与计时壳 / T14 多选已交付。若决赛加码：Excel/PDF 导出、成套批量提交 API、家长端。
+代码与 E2E 闭环已齐。剩余全是**交付准备**（非功能缺口）：
+
+1. **现场演练**：按 `docs/DEMO-live-script.md` 讲一遍，掐节奏、确认弱网路径
+2. **专家问答脱口**：评分边界 / 安全 / 开源复用（脚本已有备稿）
+3. **决赛加码（YAGNI，除非评分明确要求）**：Excel/PDF 教务导出、成套 Attempt 批量提交 API、家长端
+
+不要在没拿到评分细则前开建 #3。
 
 ## Key docs
 
