@@ -90,6 +90,8 @@ T11–T13 评审扫尾 + **T14 教师批量发提示（站内消息）** 已落�
 |------|------|
 | `CONTEXT.md` | 域语言 + Active decisions |
 | `docs/DEMO-live-script.md` | 现场演示脚本 + 专家问答 |
+| `docs/DEMO-cue-card.md` | 一页现场卡点（时间盒 / 脱口 Q&A / 故障） |
+| `docs/DEMO-oral-10min.md` | 10 分钟口播逐字稿 |
 | `docs/product-roadmap/decisions/` | T01–T14 裁决 |
 | `docs/product-roadmap/reports/` | 实现报告 |
 | `docs/adr/0001-0008` | 铁律与架构 |

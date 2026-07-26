@@ -176,6 +176,8 @@ UI 用徽章显式标识，避免「练着练着变成考了」。
 
 ## 5. 一页备忘（可打印）
 
+**完整卡点（时间盒 + Q&A 脱口 + 故障表）：** [DEMO-cue-card.md](./DEMO-cue-card.md)
+
 ```
 身份: learner-demo / teacher-demo / tu-demo
 铁律: 证据打分 · LLM 不改分 · 练习≠正式掌握 · 终裁不折叠 · 提示不是分 · PII 不出境
@@ -191,6 +193,8 @@ UI 用徽章显式标识，避免「练着练着变成考了」。
 
 | 文档 | 用途 |
 |------|------|
+| [DEMO-cue-card.md](./DEMO-cue-card.md) | 一页现场卡点（推荐贴屏） |
+| [DEMO-oral-10min.md](./DEMO-oral-10min.md) | 10 分钟口播逐字稿（照念 + 操作时码） |
 | [HANDOFF.md](../HANDOFF.md) | 任务边界与铁律 |
 | [CONTEXT.md](../CONTEXT.md) | 域语言 |
 | [PRODUCT-MAP.md](./product-roadmap/PRODUCT-MAP.md) | 十票地图 |
