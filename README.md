@@ -3,26 +3,30 @@
 杭州全球人工智能技术创新大赛 / 世界人工智能开源大赛  
 赛道：**Boundless Agents 无界应用 · AI+教育**
 
-EvidenceLoop 面向编程实训场景，完成一个可演示、可验证的 Agent 闭环：
+EvidenceLoop 是**循证实训 Agent**：用可复现证据驱动多学科实训闭环（编程为强演示路径之一）。
 
-> 提交代码 → 受限运行测试与静态检查 → 按量规生成证据与分数 → 映射薄弱知识点 → 生成下一轮修复任务 → 重新提交验证 → 更新学情
+> 作答 → 题型 Runner 产出证据 → 量规归约分数 → 诊断与再练；**LLM 只辅导、永不改分**；练习/测评双模；教师布置、终裁与站内提示可审计。
+
+**项目名保持 EvidenceLoop**（不改名说明见 [`docs/SUBMISSION_GUIDE.md`](docs/SUBMISSION_GUIDE.md) §0）。
 
 ## 为什么不是聊天机器人
 
-- 分数由测试与静态证据确定性计算。
-- 模型只组织受证据约束的反馈，不改分、不捏造事实。
-- 教师视图仅给出干预建议，不自动写正式成绩。
-- 学习工作台可一键演示“缺陷提交 → 80 分 → 修复 → 100 分”。
+- 分数由可复现证据与确定性量规计算，不是模型抽样。
+- 模型只组织受证据约束的反馈 / 辅导，不改分、不捏造证据。
+- 练习态与测评态分流：练习不进正式掌握画像。
+- 教师终裁与客观分并列；站内提示是消息不是分。
+- 编程路径仍可一键演示“缺陷提交 → 80 分 → 修复 → 100 分”。
 
 ## 快速启动
 
 ```powershell
 cd evidence-loop
 npm install
-npm run dev
+# Windows 若默认端口 EACCES，请显式指定：
+$env:PORT='5280'; npm run dev
 ```
 
-打开 `http://localhost:4173`
+打开 `http://127.0.0.1:5280`（部分环境 `4173`/`5173` 不可用）
 
 可选环境变量见 `.env.example`。未配置 `LLM_API_KEY` 时使用本地规则反馈。
 
@@ -80,11 +84,13 @@ npm run preview # 生产静态资源 + API
 
 ## 参赛材料
 
+- `docs/SUBMISSION_GUIDE.md` **报名填表（决赛口径，直接复制）**
 - `docs/PROJECT_BRIEF.md` 作品简介
+- `docs/DEMO-oral-10min.md` / `docs/DEMO-cue-card.md` / `docs/DEMO-preflight.md` 现场口播与预检
 - `docs/PRD.md` 产品需求
 - `docs/ARCHITECTURE.md` 技术架构
 - `docs/COMPLIANCE.md` 安全与合规
-- `docs/PITCH_DECK_OUTLINE.md` 初赛 PPT 提纲
+- `docs/PITCH_DECK_OUTLINE.md` 路演 PPT 提纲
 - `docs/ROADMAP.md` 迭代计划
 - `docs/research/competition-requirements.md` 赛道要求摘录
 - `docs/adr/0001-evidence-first-scoring.md` 证据优先评分决策

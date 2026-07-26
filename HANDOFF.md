@@ -94,6 +94,9 @@ T11–T13 评审扫尾 + **T14 教师批量发提示（站内消息）** 已落�
 | `docs/DEMO-cue-card.md` | 一页现场卡点（时间盒 / 脱口 Q&A / 故障） |
 | `docs/DEMO-oral-10min.md` | 10 分钟口播逐字稿 |
 | `docs/DEMO-preflight.md` | 上场 T-30 预检清单 |
+| `docs/SUBMISSION_GUIDE.md` | 报名填表（决赛口径；含是否改名结论） |
+| `docs/PROJECT_BRIEF.md` | 作品简介附件正文 |
+| `output/submission/EvidenceLoop-submission.zip` | 作品附件（~6.1MB / 367 文件，gitignore；2026-07-27 重打） |
 | `docs/product-roadmap/decisions/` | T01–T14 裁决 |
 | `docs/product-roadmap/reports/` | 实现报告 |
 | `docs/adr/0001-0008` | 铁律与架构 |
