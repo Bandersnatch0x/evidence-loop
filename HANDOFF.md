@@ -11,7 +11,7 @@ T11–T13 评审扫尾 + **T14 教师批量发提示（站内消息）** 已落�
 
 ## Status (2026-07-26)
 
-**十票 + T11–T14 IMPLEMENTED；演示交付件齐；读兼容加固已收口；工作区 clean。HEAD = `7c45f81`。**
+**十票 + T11–T14 IMPLEMENTED；演示交付件齐；读兼容加固已收口（`a71b4ac`）；工作区 clean。**
 
 | 波次 | 内容 | commit |
 |------|------|--------|
@@ -22,7 +22,7 @@ T11–T13 评审扫尾 + **T14 教师批量发提示（站内消息）** 已落�
 | 测试修复 | `App.test` mock `listStudentTips`（收件箱挂载） | `6a615e3` |
 | flake 修复 | vitest `fileParallelism:false` 串行执行，消除并发资源竞争型 flake | `d8cf1c9` |
 | E2E | Playwright demo loops → **16/16 真机实测绿**（2026-07-25，`:5280` / 复验 `:18473`） | `scripts/e2e-demo-loops.mjs` |
-| 读兼容 | AttemptStore 容忍 pre-T01 bare EvaluationResult + 坏行跳过；ESLint ignore `output/` | `7c45f81` |
+| 读兼容 | AttemptStore 容忍 pre-T01 bare EvaluationResult + 坏行跳过；ESLint ignore `output/` | `a71b4ac` |
 
 验证快照（收口）：
 - `npm run check` **PASS**：lint + 全量 vitest **481 passed + 1 skipped** + `tsc --noEmit` + Vite build
