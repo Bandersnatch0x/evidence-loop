@@ -1,7 +1,8 @@
 # EvidenceLoop 现场卡点（一页）
 
 **打印 / 贴屏用。** 完整脚本见 [DEMO-live-script.md](./DEMO-live-script.md)。  
-**10 分钟照念逐字稿：** [DEMO-oral-10min.md](./DEMO-oral-10min.md)。
+**10 分钟照念逐字稿：** [DEMO-oral-10min.md](./DEMO-oral-10min.md)。  
+**上场预检：** [DEMO-preflight.md](./DEMO-preflight.md)。
 
 ---
 
