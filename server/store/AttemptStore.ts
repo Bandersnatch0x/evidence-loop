@@ -63,6 +63,11 @@ export class JsonAttemptStore implements AttemptStore {
   public saveAttempt(attempt: Attempt): Promise<void> {
     this.writeChain = this.writeChain.then(async () => {
       const normalized = normalizeAttempt(attempt)
+      if (normalized === undefined) {
+        throw new Error(
+          `Cannot save attempt ${attempt.id}: missing valid result payload`
+        )
+      }
       const all = await this.readAllAttempts()
       const next = [
         ...all.filter((item) => item.id !== normalized.id),
@@ -186,7 +191,10 @@ export class JsonAttemptStore implements AttemptStore {
 
   private async readAllAttempts(): Promise<Attempt[]> {
     if (this.memoryRecords) {
-      return this.memoryRecords.map(normalizeAttempt)
+      return this.memoryRecords.flatMap((row) => {
+        const normalized = normalizeAttempt(row)
+        return normalized === undefined ? [] : [normalized]
+      })
     }
     if (!this.filePath) return []
     try {
@@ -196,7 +204,12 @@ export class JsonAttemptStore implements AttemptStore {
       )
       const parsed = JSON.parse(contents) as unknown
       if (!Array.isArray(parsed)) return []
-      return (parsed as unknown[]).map(normalizeAttempt)
+      // Expand-contract: disk may mix Attempt wrappers with pre-T01 bare
+      // EvaluationResult rows. Skip junk so one corrupt entry cannot 500 list.
+      return (parsed as unknown[]).flatMap((row) => {
+        const normalized = normalizeAttempt(row)
+        return normalized === undefined ? [] : [normalized]
+      })
     } catch (error) {
       if (error instanceof Error && 'code' in error && error.code === 'ENOENT') {
         return []
@@ -210,13 +223,16 @@ export class JsonAttemptStore implements AttemptStore {
  * Accept both Attempt-shaped rows and pre-T01 bare EvaluationResult rows that
  * still live in .data/evaluations.json. Without this coerce, list/boot throws
  * on attempt.result.studentId and the whole workspace 500s.
+ *
+ * Returns undefined for unrecognizable rows (filtered by readAllAttempts).
  */
-function normalizeAttempt(raw: Attempt | EvaluationResult | unknown): Attempt {
+function normalizeAttempt(raw: unknown): Attempt | undefined {
   if (isAttemptRecord(raw)) {
+    const embedded = raw.result
     const result = ensureEvaluationProvenance({
-      ...raw.result,
+      ...embedded,
       // Keep studentId aligned with the aggregate root when present.
-      studentId: raw.result.studentId ?? raw.studentId
+      studentId: embedded.studentId ?? raw.studentId
     })
     return {
       ...raw,
@@ -227,7 +243,7 @@ function normalizeAttempt(raw: Attempt | EvaluationResult | unknown): Attempt {
   if (isLegacyEvaluationRecord(raw)) {
     return evaluationToLegacyAttempt(raw)
   }
-  throw new Error('Unrecognized attempt/evaluation record shape in store')
+  return undefined
 }
 
 function isAttemptRecord(value: unknown): value is Attempt {
@@ -235,19 +251,47 @@ function isAttemptRecord(value: unknown): value is Attempt {
   const record = value as Partial<Attempt>
   return (
     typeof record.id === 'string' &&
-    typeof record.result === 'object' &&
-    record.result !== null
+    typeof record.studentId === 'string' &&
+    typeof record.questionId === 'string' &&
+    typeof record.teachingUnitId === 'string' &&
+    typeof record.termId === 'string' &&
+    (record.mode === 'practice' || record.mode === 'assessment') &&
+    typeof record.createdAt === 'string' &&
+    isEvaluationResultRecord(record.result)
   )
 }
 
 function isLegacyEvaluationRecord(value: unknown): value is EvaluationResult {
-  if (typeof value !== 'object' || value === null) return false
   if (isAttemptRecord(value)) return false
+  return isEvaluationResultRecord(value)
+}
+
+function isEvaluationResultRecord(value: unknown): value is EvaluationResult {
+  if (typeof value !== 'object' || value === null) return false
   const record = value as Partial<EvaluationResult>
   return (
     typeof record.id === 'string' &&
     typeof record.assignmentId === 'string' &&
-    typeof record.score === 'number'
+    typeof record.attempt === 'number' &&
+    typeof record.createdAt === 'string' &&
+    typeof record.status === 'string' &&
+    typeof record.score === 'number' &&
+    Number.isFinite(record.score) &&
+    typeof record.summary === 'string' &&
+    isObjectArray(record.evidence) &&
+    Array.isArray(record.dimensions) &&
+    Array.isArray(record.diagnoses) &&
+    Array.isArray(record.trace) &&
+    Array.isArray(record.mastery) &&
+    (record.feedbackSource === 'local-policy' || record.feedbackSource === 'llm') &&
+    (record.studentId === undefined || typeof record.studentId === 'string')
+  )
+}
+
+function isObjectArray(value: unknown): value is object[] {
+  return (
+    Array.isArray(value) &&
+    value.every((item) => typeof item === 'object' && item !== null)
   )
 }
 

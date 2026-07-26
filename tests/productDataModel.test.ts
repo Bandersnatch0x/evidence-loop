@@ -189,10 +189,15 @@ describe('JsonAttemptStore expand-contract', () => {
       id: 'eval_legacy_file',
       studentId: 'learner-demo'
     })
-    const { studentId: _omitStudentId, ...withoutStudent } = sampleResult({
-      id: 'eval_legacy_no_student'
-    })
-    const legacyRows = [withStudent, withoutStudent]
+    const withoutStudent = sampleResult({ id: 'eval_legacy_no_student' })
+    delete withoutStudent.studentId
+    const legacyRows = [
+      withStudent,
+      withoutStudent,
+      null,
+      { id: 'broken-attempt', result: {} },
+      { id: 'broken-evaluation', assignmentId: 'python-average', score: 0 }
+    ]
     await writeFile(file, JSON.stringify(legacyRows, null, 2), 'utf8')
 
     const store = new JsonAttemptStore(file)

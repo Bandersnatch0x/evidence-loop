@@ -9,9 +9,9 @@ T11–T13 评审扫尾 + **T14 教师批量发提示（站内消息）** 已落�
 
 **Authoritative root:** `D:/code_space/evidence-loop`(Node 20,better-sqlite3 ^11)
 
-## Status (2026-07-25)
+## Status (2026-07-26)
 
-**十票 + T11–T14 IMPLEMENTED；演示交付件齐；E2E 冒烟绿。HEAD = `d8cf1c9`（工作区 clean）。**
+**十票 + T11–T14 IMPLEMENTED；演示交付件齐；读兼容加固已收口；工作区 clean。HEAD = `7c45f81`。**
 
 | 波次 | 内容 | commit |
 |------|------|--------|
@@ -21,15 +21,18 @@ T11–T13 评审扫尾 + **T14 教师批量发提示（站内消息）** 已落�
 | Demo 交付件 | 现场脚本 + 成套计时壳 + 提示多选 | `bf6c112` |
 | 测试修复 | `App.test` mock `listStudentTips`（收件箱挂载） | `6a615e3` |
 | flake 修复 | vitest `fileParallelism:false` 串行执行，消除并发资源竞争型 flake | `d8cf1c9` |
-| E2E | Playwright demo loops → **16/16 真机实测绿**（2026-07-25，baseUrl `:5280`） | `scripts/e2e-demo-loops.mjs` |
+| E2E | Playwright demo loops → **16/16 真机实测绿**（2026-07-25，`:5280` / 复验 `:18473`） | `scripts/e2e-demo-loops.mjs` |
+| 读兼容 | AttemptStore 容忍 pre-T01 bare EvaluationResult + 坏行跳过；ESLint ignore `output/` | `7c45f81` |
 
-验证快照（HEAD，串行）：
-- `tsc --noEmit` **EXIT=0**；全量 `vitest run` **481 passed + 1 skipped**（串行 ~90s，不再 flake）
-- `tests/teacherTips.test.ts` 11/11；`tests/productDataModel.test.ts` 9/9
-- E2E 真机：`node scripts/e2e-demo-loops.mjs http://127.0.0.1:5280` → **16 passed, 0 failed**
-  - 学生：我的练习 → 双模 → 苏格拉底求助 → 提交(score 80) → 场次历史(9) → 错题本重练
+验证快照（收口）：
+- `npm run check` **PASS**：lint + 全量 vitest **481 passed + 1 skipped** + `tsc --noEmit` + Vite build
+- `tests/productDataModel.test.ts` **9/9**（legacy bare EvaluationResult + 混合坏行读兼容）
+- 本地 `.data/evaluations.json` 实读 **22/22** 条保留
+- E2E 真机复验（2026-07-25）：`PORT=18473` → **16 passed, 0 failed**
+  - 学生：我的练习 → 双模 → 苏格拉底求助 → 提交(score 80) → 场次历史 → 错题本重练
   - 教师：工作台 → tu-demo → 布置(1 占位) → 批改 tab → 题库 tab
-  - 截图：`output/playwright/e2e/*.png`
+  - 截图 / 报告：`output/playwright/e2e/`（gitignore）
+- Windows 注意：Hyper-V 排除了 `4173`/`5173` 段 → 用 `PORT=18473` 或 `5280`
 
 ## 复赛已交付(产品化十票之前的地基,勿重做)
 
