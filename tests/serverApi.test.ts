@@ -1,16 +1,16 @@
-// @vitest-environment node
+﻿// @vitest-environment node
 
 import type { AddressInfo } from 'node:net'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { AuditStore } from '../server/audit/AuditStore'
-import { createEvidenceLoopServer } from '../server/index'
+import { createEvidenceRingServer } from '../server/index'
 
 describe('evaluation HTTP API', () => {
-  let server: Awaited<ReturnType<typeof createEvidenceLoopServer>>
+  let server: Awaited<ReturnType<typeof createEvidenceRingServer>>
   let baseUrl: string
 
   beforeEach(async () => {
-    server = await createEvidenceLoopServer({
+    server = await createEvidenceRingServer({
       dataFile: ':memory:',
       auditStore: new AuditStore({
         dbPath: ':memory:',

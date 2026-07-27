@@ -1,6 +1,6 @@
-# Clicky 屏幕感知 + 语音技术方案调研
+﻿# Clicky 屏幕感知 + 语音技术方案调研
 
-> 面向 EvidenceLoop（循证实训 Agent）多模态扩展（屏幕感知 + 语音，对数学/作文等非代码作业做"视觉指点引导"）的技术选型调研。
+> 面向 EvidenceRing（循证实训 Agent）多模态扩展（屏幕感知 + 语音，对数学/作文等非代码作业做"视觉指点引导"）的技术选型调研。
 > 调研日期：2026-07-23。方法：一手来源（官网、官方 GitHub 源码、创始人 X/LinkedIn、官方隐私政策）优先；二手报道仅用于定位一手来源。
 
 ---
@@ -19,7 +19,7 @@
 **需要排除的同名对象（均非本调研对象）：**
 - **Clicky / Clicky Analytics**（getclicky.com、clicky.com）—— 2006 年起的网站流量分析工具，与本调研无关（其隐私政策 clicky.com/terms/privacy 属于该分析产品，不要误引）。
 - **"Clicky" 机械键盘轴体**（clicky switch）—— 无关。
-- **clicky.foo / github.com/Bitshank-2338/clicky-windows** —— 这是**第三方**对 Farza Clicky 的 Windows 复刻（详见 §7 参考架构），不是官方产品，但与 EvidenceLoop 场景高度相关，单独讨论。
+- **clicky.foo / github.com/Bitshank-2338/clicky-windows** —— 这是**第三方**对 Farza Clicky 的 Windows 复刻（详见 §7 参考架构），不是官方产品，但与 EvidenceRing 场景高度相关，单独讨论。
 
 **两个官方交付物的区分（重要，后文反复用到）：**
 1. **开源原型**（`github.com/farzaa/clicky`，MIT）：Farza 早期放出的可复现原型，是本调研能拿到源码级细节的地方。README（更新于 2026-04-27）明确："The existing codebase remains open source…for all the new stuff I'm hacking on, gonna keep it private."（[github.com/farzaa/clicky](https://github.com/farzaa/clicky)）
@@ -122,11 +122,11 @@
 
 ---
 
-## 7. 可复用结论（面向 EvidenceLoop 浏览器 Web 应用的"视觉指点引导"）
+## 7. 可复用结论（面向 EvidenceRing 浏览器 Web 应用的"视觉指点引导"）
 
 ### 7.1 一句话结论
 
-Clicky 的**交互范式**（点 + 说 + 语音讲解 + 末尾机器可解析的"指点指令"）高度值得借鉴；但它的**底层实现是 OS 级的**（`ScreenCaptureKit` 全屏截图 + 系统级点击穿透 overlay 窗口 + 全局热键 + 坐标反算），这一层**不适用**于沙箱化的浏览器 Web 应用。好消息是：数学/作文作业本身就渲染在 EvidenceLoop 自己的 DOM 里，**你根本不需要 OS 级截图与 OS 级 overlay**——用**浏览器内 DOM/SVG/Canvas 标注**即可，且比 Clicky 的"截图→视觉 LLM 猜像素坐标→三重坐标变换"**更精确、更稳、更省**。
+Clicky 的**交互范式**（点 + 说 + 语音讲解 + 末尾机器可解析的"指点指令"）高度值得借鉴；但它的**底层实现是 OS 级的**（`ScreenCaptureKit` 全屏截图 + 系统级点击穿透 overlay 窗口 + 全局热键 + 坐标反算），这一层**不适用**于沙箱化的浏览器 Web 应用。好消息是：数学/作文作业本身就渲染在 EvidenceRing 自己的 DOM 里，**你根本不需要 OS 级截图与 OS 级 overlay**——用**浏览器内 DOM/SVG/Canvas 标注**即可，且比 Clicky 的"截图→视觉 LLM 猜像素坐标→三重坐标变换"**更精确、更稳、更省**。
 
 ### 7.2 可直接借鉴（reusable）
 
@@ -138,14 +138,14 @@ Clicky 的**交互范式**（点 + 说 + 语音讲解 + 末尾机器可解析的
    - 若要"抢话/打断"式自然对话，可选全双工 realtime（OpenAI Realtime / Gemini Live）；但 Clicky 证明"push-to-talk + 流式 STT + 独立 TTS"已够用且更简单。
 3. **虚拟 buddy + 覆盖层的呈现思路**：Clicky"画自己的三角、不动真实光标"的思路，在 Web 里等价为**在自己应用内叠一层 SVG/Canvas/绝对定位层**，画高亮环、箭头、下划线、虚拟指针，指向作文的具体词句或数学解题的具体步骤；标注可自动淡出（抄 clicky.foo 的 whiteboard annotations）。
 4. **导师式 prompt 设计**：Clicky 系统提示词"为耳朵而非眼睛写、短句、不念代码、结尾'埋钩子'而非问 yes/no"等，对语音家教体验直接可用。
-5. **本地优先的证据/日志设计**：clicky.foo 的"本地 SQLite 学习日志 + SM-2 间隔复习 + 隐私守卫 + 拖入 PDF/DOCX 作上下文"与 EvidenceLoop 的循证/本地化取向天然契合，可作为家教侧数据模型的参考。
+5. **本地优先的证据/日志设计**：clicky.foo 的"本地 SQLite 学习日志 + SM-2 间隔复习 + 隐私守卫 + 拖入 PDF/DOCX 作上下文"与 EvidenceRing 的循证/本地化取向天然契合，可作为家教侧数据模型的参考。
 
 ### 7.3 不适用 / 不要照搬（not applicable）
 
-1. **OS 级屏幕捕获**（`ScreenCaptureKit` / 持续截图整块屏幕）：Web 页面无法捕获任意 OS 屏幕；唯一途径 `getDisplayMedia()`（Screen Capture API）需**用户手势 + 每次会话授权**、产出的是 MediaStream(视频)、且无法画到标签页之外——对"引导自家 DOM 内的作业"既不必要又太重、太打扰。**只有当你要跨别的桌面 App 引导时才需要**（EvidenceLoop 场景用不到）。
+1. **OS 级屏幕捕获**（`ScreenCaptureKit` / 持续截图整块屏幕）：Web 页面无法捕获任意 OS 屏幕；唯一途径 `getDisplayMedia()`（Screen Capture API）需**用户手势 + 每次会话授权**、产出的是 MediaStream(视频)、且无法画到标签页之外——对"引导自家 DOM 内的作业"既不必要又太重、太打扰。**只有当你要跨别的桌面 App 引导时才需要**（EvidenceRing 场景用不到）。
 2. **macOS 三重坐标变换管线**（截图像素 ↔ 显示器 ↔ SwiftUI）：Web 里用 DOM 坐标/`getBoundingClientRect()` 即可，**整段跳过**。别把"视觉 LLM 猜像素坐标"这套引进来——已知 DOM 时它只会更不准。
 3. **系统级点击穿透 overlay 窗口 / 全局热键 / Accessibility 权限**：浏览器都没有也不需要；用 DOM overlay + 页面内快捷键替代。
-4. **把整屏截图发给云端视觉 LLM**：与 EvidenceLoop"本地化、审慎上云"立场冲突。优先发送**结构化 DOM/文本/LaTeX 的最小载荷**；确需图像时（见下）只截取你自己的元素区域，并考虑本地模型。
+4. **把整屏截图发给云端视觉 LLM**：与 EvidenceRing"本地化、审慎上云"立场冲突。优先发送**结构化 DOM/文本/LaTeX 的最小载荷**；确需图像时（见下）只截取你自己的元素区域，并考虑本地模型。
 
 ### 7.4 一个例外：手写数学需要"视觉"，但仍无需 OS 级捕获
 
@@ -153,7 +153,7 @@ Clicky 的**交互范式**（点 + 说 + 语音讲解 + 末尾机器可解析的
 
 ### 7.5 建议的最小可行路线（MVP）
 
-- 作业渲染在 EvidenceLoop DOM 内 → 把题面/学生作答以**结构化文本(+必要时局部 canvas 截图)**作为上下文；
+- 作业渲染在 EvidenceRing DOM 内 → 把题面/学生作答以**结构化文本(+必要时局部 canvas 截图)**作为上下文；
 - push-to-talk：Web Speech API 或流式 STT 取转写；
 - LLM 输出"口语讲解 + 末尾 DOM 指点指令"；
 - 前端正则拆分：文本 → TTS 播报；指令 → 在 SVG/Canvas overlay 层高亮/画箭头指向对应 DOM 元素；

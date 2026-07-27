@@ -1,6 +1,6 @@
-import type { DemoRole } from '../../shared/contracts'
+﻿import type { DemoRole } from '../../shared/contracts'
 
-const STORAGE_KEY = 'evidence-loop.demo-role'
+const STORAGE_KEY = 'evidence-ring.demo-role'
 export const DEMO_ROLE_HEADER = 'X-Demo-Role'
 
 /**

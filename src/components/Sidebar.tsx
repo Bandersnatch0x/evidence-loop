@@ -1,4 +1,4 @@
-import {
+﻿import {
   BookOpenCheck,
   CalendarClock,
   ClipboardList,
@@ -75,7 +75,7 @@ export function MobileHeader({ onOpen }: { onOpen: () => void }) {
       </button>
       <div className="mobile-brand">
         <GraduationCap size={19} />
-        <strong>EvidenceLoop</strong>
+        <strong>循证环</strong>
       </div>
       <span className="mobile-status" aria-label="系统在线" />
     </header>
@@ -110,8 +110,8 @@ export function Sidebar({
             <GraduationCap size={22} />
           </div>
           <div>
-            <strong>EvidenceLoop</strong>
-            <span>循证实训 Agent</span>
+            <strong>循证环</strong>
+            <span>EvidenceRing · 循证实训</span>
           </div>
           <button
             className="sidebar-close"

@@ -1,8 +1,8 @@
-﻿# Handoff: EvidenceLoop 产品化 + T14 站内消息
+﻿# Handoff: 循证环 · EvidenceRing 产品化 + T14 站内消息
 
 ## Mission
 
-GOAI Boundless Agents · AI+教育 — **EvidenceLoop（循证实训 Agent）**。
+GOAI Boundless Agents · AI+教育 — **循证环 · EvidenceRing（循证实训 Agent）**。
 Wayfinder 十票产品化(`.scratch/wayfinder/MAP.md`,状态 IMPLEMENTED)已全部建成；
 T11–T13 评审扫尾 + **T14 教师批量发提示（站内消息）** 已落地；
 现场演示脚本、成套交卷计时壳、T14 学生多选 UI 已补齐。
@@ -96,7 +96,8 @@ T11–T13 评审扫尾 + **T14 教师批量发提示（站内消息）** 已落�
 | `docs/DEMO-preflight.md` | 上场 T-30 预检清单 |
 | `docs/SUBMISSION_GUIDE.md` | 报名填表（决赛口径；含是否改名结论） |
 | `docs/PROJECT_BRIEF.md` | 作品简介附件正文 |
-| `output/submission/EvidenceLoop-submission.zip` | 作品附件（~6.1MB / 367 文件，gitignore；2026-07-27 重打） |
+| `output/submission/EvidenceRing-submission.zip` | 作品附件（gitignore；改名后需重打） |
+| 品牌 | 循证环 · EvidenceRing（package `evidence-ring`；本地目录可仍为 evidence-loop） |
 | `docs/product-roadmap/decisions/` | T01–T14 裁决 |
 | `docs/product-roadmap/reports/` | 实现报告 |
 | `docs/adr/0001-0008` | 铁律与架构 |

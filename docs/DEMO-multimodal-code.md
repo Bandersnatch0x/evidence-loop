@@ -1,4 +1,4 @@
-# 演示脚本：代码作业 · 语音指点
+﻿# 演示脚本：代码作业 · 语音指点
 
 **场景**：学生提交有边界缺陷的 `fibonacci` / 平均分函数 → 语音问「哪里错了？」→ 系统语音讲解 + 高亮证据行。
 
@@ -46,7 +46,7 @@ def fib(n):
   - `modality: "voice"`
   - metadata 仅有 `durationMs` / `transcriptChars` / `piiHitCount`
   - **不含**「哪里错了？」原文
-- 前端 IndexedDB `evidence-loop-voice`：
+- 前端 IndexedDB `evidence-ring-voice`：
   - 写入一条对话，字段含 `expiresAt = createdAt + 24h`
   - **无** audio blob / wav 路径
 

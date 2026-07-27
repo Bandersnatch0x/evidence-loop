@@ -1,9 +1,9 @@
-// @vitest-environment node
+﻿// @vitest-environment node
 
 import type { AddressInfo } from 'node:net'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { AuditStore } from '../server/audit/AuditStore'
-import { createEvidenceLoopServer } from '../server/index'
+import { createEvidenceRingServer } from '../server/index'
 
 /**
  * Production auth-gate regression test.
@@ -16,7 +16,7 @@ import { createEvidenceLoopServer } from '../server/index'
  * This is the test that would have caught the original backdoor.
  */
 describe('production auth gate (X-Demo-Role backdoor closed)', () => {
-  let server: Awaited<ReturnType<typeof createEvidenceLoopServer>>
+  let server: Awaited<ReturnType<typeof createEvidenceRingServer>>
   let baseUrl: string
   let previousNodeEnv: string | undefined
 
@@ -28,7 +28,7 @@ describe('production auth gate (X-Demo-Role backdoor closed)', () => {
       hmacSecret: 'prod-auth-gate-hmac',
       flushIntervalMs: 60_000
     })
-    server = await createEvidenceLoopServer({
+    server = await createEvidenceRingServer({
       dataFile: ':memory:',
       auditStore: audit,
       auditHmacSecret: 'prod-auth-gate-hmac',

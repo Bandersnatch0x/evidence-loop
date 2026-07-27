@@ -1,5 +1,5 @@
----
-name: EvidenceLoop 循证实训 Agent
+﻿---
+name: 循证环 · EvidenceRing
 description: 用可验证证据驱动编程学习闭环的实训工作台
 colors:
   indigo-quiet: "oklch(52% 0.13 252)"
@@ -100,7 +100,7 @@ components:
     padding: "20px"
 ---
 
-# Design System: EvidenceLoop 循证实训 Agent
+# Design System: 循证环 · EvidenceRing
 
 ## 1. Overview
 

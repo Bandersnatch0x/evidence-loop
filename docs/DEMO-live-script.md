@@ -16,7 +16,7 @@ $env:PORT='5280'; npm run dev
 
 ## 0. 开场 30 秒（讲清楚产品是什么）
 
-**EvidenceLoop = 循证实训 Agent**：学生作答 → Runner 产出可复现证据 → 分数只来自证据；LLM 只能辅导/讲解，**永不改分**。  
+**循证环 · EvidenceRing = 循证实训 Agent**：学生作答 → Runner 产出可复现证据 → 分数只来自证据；LLM 只能辅导/讲解，**永不改分**。  
 练习态与测评态分流（D1）：练习喂 FSRS 复习，不进正式掌握度；测评计入正式 MasteryProfile。
 
 一句话铁律（可板书）：

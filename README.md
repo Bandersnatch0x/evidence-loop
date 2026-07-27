@@ -1,13 +1,13 @@
-# EvidenceLoop · 循证实训 Agent
+# 循证环 · EvidenceRing
 
 杭州全球人工智能技术创新大赛 / 世界人工智能开源大赛  
 赛道：**Boundless Agents 无界应用 · AI+教育**
 
-EvidenceLoop 是**循证实训 Agent**：用可复现证据驱动多学科实训闭环（编程为强演示路径之一）。
+**循证环（EvidenceRing）** 是循证实训 Agent：用可复现证据驱动多学科实训闭环（编程为强演示路径之一）。
 
 > 作答 → 题型 Runner 产出证据 → 量规归约分数 → 诊断与再练；**LLM 只辅导、永不改分**；练习/测评双模；教师布置、终裁与站内提示可审计。
 
-**项目名保持 EvidenceLoop**（不改名说明见 [`docs/SUBMISSION_GUIDE.md`](docs/SUBMISSION_GUIDE.md) §0）。
+曾用名：EvidenceLoop（初赛早期，已全量更名为循证环 · EvidenceRing）。详见 [`docs/SUBMISSION_GUIDE.md`](docs/SUBMISSION_GUIDE.md)。
 
 ## 为什么不是聊天机器人
 
@@ -20,7 +20,7 @@ EvidenceLoop 是**循证实训 Agent**：用可复现证据驱动多学科实训
 ## 快速启动
 
 ```powershell
-cd evidence-loop
+cd D:/code_space/evidence-loop   # 本地目录名可能仍为 evidence-loop
 npm install
 # Windows 若默认端口 EACCES，请显式指定：
 $env:PORT='5280'; npm run dev
@@ -32,7 +32,7 @@ $env:PORT='5280'; npm run dev
 
 ### WSLC 隔离环境
 
-仓库提供项目专用入口，挂载范围仅包含当前项目、Claude/Codex 状态目录和 Maven 缓存。Linux 依赖保存在 `evidence-loop-node-modules` 命名卷中，不覆盖 Windows 的 `node_modules`。
+仓库提供项目专用入口，挂载范围仅包含当前项目、Claude/Codex 状态目录和 Maven 缓存。Linux 依赖保存在 `evidence-ring-node-modules` 命名卷中，不覆盖 Windows 的 `node_modules`。
 
 ```powershell
 .\scripts\wslc-dev.ps1 -Action install
@@ -48,9 +48,9 @@ $env:PORT='5280'; npm run dev
 默认 `PYTHON_RUNNER=subprocess`，便于没有 Docker 的本地开发和测试；该模式只适合受控 Demo。需要执行不可信提交时，显式启用 Docker 模式：
 
 ```powershell
-docker build -t evidence-loop-python-runner:local docker/python-runner
+docker build -t evidence-ring-python-runner:local docker/python-runner
 $env:PYTHON_RUNNER = 'docker'
-$env:DOCKER_RUNNER_IMAGE = 'evidence-loop-python-runner:local'
+$env:DOCKER_RUNNER_IMAGE = 'evidence-ring-python-runner:local'
 npm run dev
 ```
 
@@ -65,6 +65,8 @@ Docker 模式会预热容器池，并为池容器设置无网络、内存/CPU/PI
 3. 点击“应用修复示例”，再次评估，观察 100 分与 +20 分提升。
 4. 切换“班级学情”，查看完成率、中位分与关注队列。
 5. 切换“项目透明度”，说明评分边界、模型角色与安全限制。
+
+完整 10 分钟口播：[`docs/DEMO-oral-10min.md`](docs/DEMO-oral-10min.md)。
 
 ## 常用命令
 
@@ -84,7 +86,7 @@ npm run preview # 生产静态资源 + API
 
 ## 参赛材料
 
-- `docs/SUBMISSION_GUIDE.md` **报名填表（决赛口径，直接复制）**
+- `docs/SUBMISSION_GUIDE.md` **报名填表（直接复制）**
 - `docs/PROJECT_BRIEF.md` 作品简介
 - `docs/DEMO-oral-10min.md` / `docs/DEMO-cue-card.md` / `docs/DEMO-preflight.md` 现场口播与预检
 - `docs/PRD.md` 产品需求

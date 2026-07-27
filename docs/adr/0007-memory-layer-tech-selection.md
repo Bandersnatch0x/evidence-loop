@@ -1,4 +1,4 @@
-# ADR 0007：记忆层技术选型
+﻿# ADR 0007：记忆层技术选型
 
 ## 状态
 
@@ -114,7 +114,7 @@ CREATE INDEX idx_mastery_student_kp ON mastery_scores(student_id, kp_id, compute
 ### 5. 与 #5 合规工单的协同
 
 **决策**：
-- **同一个 SQLite 数据库**（`evidence-loop.db`），**独立表命名空间**（`memory_*` 前缀）
+- **同一个 SQLite 数据库**（`evidence-ring.db`），**独立表命名空间**（`memory_*` 前缀）
 - **记忆写入必须走 #04 的 PII 检测**，且更严格——检测到 PII 直接拒绝存储 + 记录 PII 类型到审计日志
 - **审计日志覆盖记忆写入**：`memory.add / memory.search / memory.delete / memory.reject_pii / mastery.update` 全部走哈希链 + HMAC
 

@@ -1,9 +1,9 @@
-// @vitest-environment node
+﻿// @vitest-environment node
 
 import type { AddressInfo } from 'node:net'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { AuditStore } from '../server/audit/AuditStore'
-import { createEvidenceLoopServer } from '../server/index'
+import { createEvidenceRingServer } from '../server/index'
 import type { MasteryProfileMap, MasteryTimelineEntry, ReviewCard } from '../shared/contracts'
 
 const SECRET = 'mastery-review-api-hmac'
@@ -11,7 +11,7 @@ const FIXED_CODE =
   'def calculate_average(scores):\n    if not scores:\n        return 0\n\n    return sum(scores) / len(scores)'
 
 describe('mastery + review HTTP integration', () => {
-  let server: Awaited<ReturnType<typeof createEvidenceLoopServer>>
+  let server: Awaited<ReturnType<typeof createEvidenceRingServer>>
   let baseUrl: string
   let audit: AuditStore
 
@@ -21,7 +21,7 @@ describe('mastery + review HTTP integration', () => {
       hmacSecret: SECRET,
       flushIntervalMs: 60_000
     })
-    server = await createEvidenceLoopServer({
+    server = await createEvidenceRingServer({
       dataFile: ':memory:',
       auditStore: audit,
       auditHmacSecret: SECRET,

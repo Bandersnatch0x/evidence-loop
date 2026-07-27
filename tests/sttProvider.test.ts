@@ -1,9 +1,9 @@
-// @vitest-environment node
+﻿// @vitest-environment node
 
 import type { AddressInfo } from 'node:net'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { AuditStore } from '../server/audit/AuditStore'
-import { createEvidenceLoopServer } from '../server/index'
+import { createEvidenceRingServer } from '../server/index'
 import { AliyunSTTProvider } from '../server/stt/AliyunSTTProvider'
 import { createSTTProvider } from '../server/stt/createSTTProvider'
 import { MockSTTProvider } from '../server/stt/MockSTTProvider'
@@ -72,7 +72,7 @@ describe('STT providers', () => {
 })
 
 describe('POST /api/multimodal/stt/*', () => {
-  let server: Awaited<ReturnType<typeof createEvidenceLoopServer>>
+  let server: Awaited<ReturnType<typeof createEvidenceRingServer>>
   let baseUrl: string
   const originalFlag = process.env.MULTIMODAL_ENABLED
   const originalProvider = process.env.STT_PROVIDER
@@ -80,7 +80,7 @@ describe('POST /api/multimodal/stt/*', () => {
   beforeEach(async () => {
     delete process.env.MULTIMODAL_ENABLED
     process.env.STT_PROVIDER = 'mock'
-    server = await createEvidenceLoopServer({
+    server = await createEvidenceRingServer({
       dataFile: ':memory:',
       auditStore: new AuditStore({
         dbPath: ':memory:',

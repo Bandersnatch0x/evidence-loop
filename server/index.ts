@@ -1,4 +1,4 @@
-import { createReadStream } from 'node:fs'
+﻿import { createReadStream } from 'node:fs'
 import { mkdirSync } from 'node:fs'
 import { readFile, stat } from 'node:fs/promises'
 import { createServer } from 'node:http'
@@ -163,7 +163,7 @@ interface ApiContext {
   evidenceProjector: EvidenceProjector
 }
 
-interface EvidenceLoopServerOptions {
+interface EvidenceRingServerOptions {
   dataFile?: string
   vite?: boolean
   /**
@@ -200,8 +200,8 @@ class HttpError extends Error {
   }
 }
 
-export async function createEvidenceLoopServer(
-  options: EvidenceLoopServerOptions = {}
+export async function createEvidenceRingServer(
+  options: EvidenceRingServerOptions = {}
 ) {
   const assignments = createAssignmentRegistry()
   // T01 expand-contract: the main store is now an Attempt-aware store so the
@@ -441,10 +441,10 @@ export function createConfiguredRunner(
 }
 
 async function start(): Promise<void> {
-  const server = await createEvidenceLoopServer({ vite: !isProduction })
+  const server = await createEvidenceRingServer({ vite: !isProduction })
 
   server.listen(port, '0.0.0.0', () => {
-    console.log(`EvidenceLoop running at http://localhost:${String(port)}`)
+    console.log(`EvidenceRing running at http://localhost:${String(port)}`)
   })
 }
 

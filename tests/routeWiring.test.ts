@@ -1,9 +1,9 @@
-// @vitest-environment node
+﻿// @vitest-environment node
 
 import type { AddressInfo } from 'node:net'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { AuditStore } from '../server/audit/AuditStore'
-import { createEvidenceLoopServer } from '../server/index'
+import { createEvidenceRingServer } from '../server/index'
 
 /**
  * Route-wiring smoke test.
@@ -17,7 +17,7 @@ import { createEvidenceLoopServer } from '../server/index'
 const SECRET = 'route-wiring-hmac'
 
 describe('module route wiring', () => {
-  let server: Awaited<ReturnType<typeof createEvidenceLoopServer>>
+  let server: Awaited<ReturnType<typeof createEvidenceRingServer>>
   let baseUrl: string
 
   beforeEach(async () => {
@@ -26,7 +26,7 @@ describe('module route wiring', () => {
       hmacSecret: SECRET,
       flushIntervalMs: 60_000
     })
-    server = await createEvidenceLoopServer({
+    server = await createEvidenceRingServer({
       dataFile: ':memory:',
       auditStore: audit,
       auditHmacSecret: SECRET,

@@ -1,7 +1,7 @@
-# CONTEXT
+﻿# CONTEXT
 
 ## Domain language
-- **EvidenceLoop / 循证实训 Agent**: AI+教育赛道作品。学习者提交代码/数学/作文后，系统用可验证证据驱动评分、诊断和再训练。
+- **循证环 · EvidenceRing / 循证实训 Agent**: AI+教育赛道作品。学习者提交代码/数学/作文后，系统用可验证证据驱动评分、诊断和再训练。
 - **Evidence / 证据**: 由 Runner 产出的可复现验证结果——包括测试用例、静态检查、CAS 校验（数学）、结构化 linter（作文）等。是唯一评分事实来源。
 - **Runner / 受限验证器**: 学科无关的验证接口 `run(submission) → Evidence[]`。必须确定性、可沙箱。实现包括 `CodeRunner`（Docker + 测试）、`MathRunner`（CAS 子进程）、`EssayRunner`（linter 管线）。术语从"受限运行"泛化为"受限验证"以覆盖非执行场景。
 - **Rubric / 量规**: 由维度与权重构成的确定性评分规则。学科无关。

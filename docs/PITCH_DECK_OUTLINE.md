@@ -1,10 +1,10 @@
-# 路演 PPT 提纲（决赛口径）
+﻿# 路演 PPT 提纲（决赛口径）
 
 建议 8–10 页，**现场口播以 10 分钟逐字稿为准**（[DEMO-oral-10min.md](./DEMO-oral-10min.md)）。  
-初赛成品：`docs/EvidenceLoop-初赛路演.pptx`（可改封面日期与第 5–7 页能力列表，**不必改项目名**）。
+初赛成品：`docs/EvidenceRing-初赛路演.pptx`（封面请改为 **循证环 · EvidenceRing**）。
 
 ## 1. 封面
-- **EvidenceLoop · 循证实训 Agent**
+- **循证环 · EvidenceRing**
 - Boundless Agents · AI+教育
 - 副标题：证据打分 · 模型不改分 · 双模可信学情
 
@@ -56,4 +56,4 @@
 - 不以 Demo 冒充大规模生产
 
 ## 项目名
-**保持 EvidenceLoop**。理由见 [SUBMISSION_GUIDE.md](./SUBMISSION_GUIDE.md) §0。
+**循证环 · EvidenceRing**（曾用 EvidenceLoop，已全量更名）。见 [SUBMISSION_GUIDE.md](./SUBMISSION_GUIDE.md) §0。

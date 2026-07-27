@@ -1,4 +1,4 @@
-[CmdletBinding()]
+﻿[CmdletBinding()]
 param(
     [ValidateSet("shell", "install", "check", "dev")]
     [string]$Action = "shell",
@@ -11,7 +11,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
 $image = "wslc-ai-dev:latest"
-$nodeModulesVolume = "evidence-loop-node-modules"
+$nodeModulesVolume = "evidence-ring-node-modules"
 $projectPath = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot ".."))
 $agentHome = "E:\WSL\agent-home"
 $claudeHome = Join-Path $agentHome "claude"

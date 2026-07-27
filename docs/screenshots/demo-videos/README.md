@@ -1,4 +1,4 @@
-# 多模态演示视频包（混剪方案 C）
+﻿# 多模态演示视频包（混剪方案 C）
 
 目录：`docs/screenshots/demo-videos/`
 
@@ -32,7 +32,7 @@
 
 1. `opener-*.webm`（~6s 概念开场）
 2. 硬切 → `live-*.webm`（实机主体）
-3. 口播点明：开场为示意，后续为 EvidenceLoop 实机
+3. 口播点明：开场为示意，后续为 EvidenceRing 实机
 
 ### 本机有 ffmpeg 时拼接
 

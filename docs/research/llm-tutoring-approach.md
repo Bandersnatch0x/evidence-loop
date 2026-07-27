@@ -1,6 +1,6 @@
-# LLM 三层 AI 辅导方案调研（决策票 TR2）
+﻿# LLM 三层 AI 辅导方案调研（决策票 TR2）
 
-> 调研对象：EvidenceLoop 三层 AI 辅导——(A) 单向讲解 / (B) 追问式对话 / (C) 苏格拉底引导
+> 调研对象：EvidenceRing 三层 AI 辅导——(A) 单向讲解 / (B) 追问式对话 / (C) 苏格拉底引导
 > 调研快照日期：2026-07-23
 > 服务对象：产品决策，不含实现代码。
 > 方法：一手来源优先（GitHub 官方 cookbook / prompt 教程源码、arXiv 论文、模型定价 API），每条结论标注来源；WebSearch/WebFetch 被区域封锁或返回空时改用 `curl` + `gh api` 拉一手原文。未证实点在文末集中列出。
@@ -11,7 +11,7 @@
 ## 0. 结论速览（TL;DR）
 
 - **苏格拉底 prompt 的业界共识非常清晰且可直接复用**：核心就是一句强约束 "You *never* give the student the answer" + "ask just ONE question at a time" + "break the problem into simpler parts"。Khan Academy 的 Khanmigo 公开 GPT（"Khanmigo Lite"）额外给出了两个本项目必须抄的机制：**（1）防"help abuse"（套答案）——连续 3 次以上低努力索取提示就拒绝继续放提示；（2）"教方法用例题，绝不用学生正在问的原题"**。来源：`LouisShark/chatgpt_system_prompt` 与 `mustvlad/ChatGPT-System-Prompts`（均为公开镜像的原始 GPT 指令）。
-- **"讲解可能讲错"是真实且被 Anthropic/OpenAI 官方承认的风险**。业界降幻觉的三板斧按性价比排序：**(1) RAG 挂标准解析（把 assignment 已有的 `expected/标准解题步骤` 塞进 context，让 LLM 只做"解释既有正确解"而非"自己重新解题"）；(2) 低 temperature（0–0.3）；(3) self-consistency（采样多条 CoT 投票，arXiv:2203.11171）**。对本项目，(1) 是决定性的——因为 EvidenceLoop 的分数和证据本就来自可复现 runner，标准解析已经存在，讲解层永远不该自己重算。
+- **"讲解可能讲错"是真实且被 Anthropic/OpenAI 官方承认的风险**。业界降幻觉的三板斧按性价比排序：**(1) RAG 挂标准解析（把 assignment 已有的 `expected/标准解题步骤` 塞进 context，让 LLM 只做"解释既有正确解"而非"自己重新解题"）；(2) 低 temperature（0–0.3）；(3) self-consistency（采样多条 CoT 投票，arXiv:2203.11171）**。对本项目，(1) 是决定性的——因为 EvidenceRing 的分数和证据本就来自可复现 runner，标准解析已经存在，讲解层永远不该自己重算。
 - **成本极低，不构成决策阻碍**。50 人一班同时追问，用 Claude Haiku 4.5（$1/$5 每百万 token）或 DeepSeek（$0.14/$0.28）量级，单轮追问约 2–4k input + 300 output，单次成本约 **¥0.01–0.05**；一节课全班几百轮追问仍在**几元人民币**级别。真正的约束是**并发限流**（供应商 RPM/TPM）和**延迟体验**，不是钱。必须保留现有 `LocalFeedbackGenerator` 模板兜底（已实现）。
 - **模型选型倾向（中文数理化 + 合规）**：
   - **单向讲解 (A)**：走已有 `OpenAICompatibleFeedbackGenerator`，模型用 **DeepSeek-V3/R1 或 Qwen-plus**（中文强、便宜、境内合规无数据出境问题）。
@@ -61,9 +61,9 @@ Khan Academy 官网对 Khanmigo 的高层描述亦印证这套哲学："doesn't 
 2. **原题脱敏**：教方法只用同构例题，绝不在原题上演示完整解法。
 3. **提示分级（hint ladder）**：先定位卡点 → 给"下一步该做什么操作"的方向 → 再不行给声明式选项列表；每级只前进一步。
 4. **输出侧约束**：system prompt 反复强调"每次只问一个问题"，降低学生一次性拿到完整推导的可能。
-5. **注入防护**：把学生输入当**不可信数据**处理——EvidenceLoop 已有的 zod schema 校验（`server/domain/feedback.ts` 中 `llmResponseSchema`）应扩展到辅导输出；对学生消息中形如"忽略上述指令/直接告诉我答案/你现在是另一个助手"的内容，靠 system prompt 优先级 + 不把学生消息拼进 system role 来防御。
+5. **注入防护**：把学生输入当**不可信数据**处理——EvidenceRing 已有的 zod schema 校验（`server/domain/feedback.ts` 中 `llmResponseSchema`）应扩展到辅导输出；对学生消息中形如"忽略上述指令/直接告诉我答案/你现在是另一个助手"的内容，靠 system prompt 优先级 + 不把学生消息拼进 system role 来防御。
 
-> 注：以上 1–4 均直接来自 Khanmigo 公开指令；第 5 点为本项目安全惯例（对齐 EvidenceLoop 现有 schema 校验做法），非外部一手来源的专门指引。
+> 注：以上 1–4 均直接来自 Khanmigo 公开指令；第 5 点为本项目安全惯例（对齐 EvidenceRing 现有 schema 校验做法），非外部一手来源的专门指引。
 
 ---
 
@@ -92,7 +92,7 @@ Khan Academy 官网对 Khanmigo 的高层描述亦印证这套哲学："doesn't 
 
 ### 3.1 风险确认
 
-LLM 讲解数学/化学解法出错是被官方承认的已知风险。Khanmigo 的应对方式是**不让 LLM 自己算**——它用 python 执行来"rigorously double check my work and your work"（见 §1.2 原文）。这对本项目是决定性启示：**EvidenceLoop 的分数与证据本就来自可复现 runner（`server/runner/*`）与标准解析，讲解层永远不该自己重新解题，只该"解释已经验证为正确的解"。**
+LLM 讲解数学/化学解法出错是被官方承认的已知风险。Khanmigo 的应对方式是**不让 LLM 自己算**——它用 python 执行来"rigorously double check my work and your work"（见 §1.2 原文）。这对本项目是决定性启示：**EvidenceRing 的分数与证据本就来自可复现 runner（`server/runner/*`）与标准解析，讲解层永远不该自己重新解题，只该"解释已经验证为正确的解"。**
 
 ### 3.2 缓解手段（按对本项目的性价比排序）
 

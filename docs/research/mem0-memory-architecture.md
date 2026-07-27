@@ -1,8 +1,8 @@
-# Mem0 记忆架构调研与"学情画像"场景适配评估
+﻿# Mem0 记忆架构调研与"学情画像"场景适配评估
 
 > 调研对象：Mem0（`github.com/mem0ai/mem0`）
 > 调研快照日期：2026-07-22（对应仓库 `main` 分支当日状态）
-> 服务对象：EvidenceLoop（循证实训 Agent，AI+教育）
+> 服务对象：EvidenceRing（循证实训 Agent，AI+教育）
 > 方法：一手来源优先（GitHub 源码 / docs.mem0.ai 官方文档 / 官方 arXiv 论文），每条结论标注来源，未证实点显式标注。
 
 ---
@@ -236,7 +236,7 @@ Mem0 的定位是**"从对话中抽取语义事实并可检索"**。它确实做
 
 **为何不"纯自建、完全不碰 Mem0"**：Mem0 的反捏造 prompt 工程（Integrity Rules）、entity linking、多信号混合检索、Apache-2.0、可完全本地部署，都是**成熟且可复用**的资产；软语义层复用它可省成本、少造轮子——前提是**边界清晰**。
 
-**给 EvidenceLoop 的落地建议**：
+**给 EvidenceRing 的落地建议**：
 - 短期：语义层用 **TS OSS Mem0（本地 provider）** 挂在 Node 后端做 PoC，只喂"软语义"（偏好/情感/会话摘要），验证个性化 tutoring 提升；硬事实继续走现有证据驱动 + 结构化诊断。
 - 若引入：优先**借鉴 v3 的 ADD-only + linking + Integrity Rules**，但为"掌握度随时间变化"这类需要"取当前正确值"的场景，**在结构化侧自建版本化 mastery**，不要指望 Mem0 的 temporal 检索来当权威。
 - 参考物：官方有教育向示例 `docs/cookbooks/companions/ai-tutor.mdx` 与 `examples/multiagents/llamaindex_learning_system.py`，可作集成参考（**仅确认存在，未逐行验证其做法**）。

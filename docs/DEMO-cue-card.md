@@ -1,4 +1,4 @@
-# EvidenceLoop 现场卡点（一页）
+﻿# 循证环 · EvidenceRing 现场卡点（一页）
 
 **打印 / 贴屏用。** 完整脚本见 [DEMO-live-script.md](./DEMO-live-script.md)。  
 **10 分钟照念逐字稿：** [DEMO-oral-10min.md](./DEMO-oral-10min.md)。  
@@ -24,7 +24,7 @@ $env:PORT='5280'; npm run dev   # 4173/5173 可能 EACCES → 换 5280 或 18473
 
 ## 开场 30 秒（板书铁律）
 
-**EvidenceLoop = 循证实训 Agent**  
+**循证环 · EvidenceRing = 循证实训 Agent**  
 学生作答 → Runner 出可复现证据 → **只证据打分**；LLM 只辅导，**永不改分**。
 
 > 证据打分 · LLM 不改分 · 练习≠正式掌握 · 终裁不折叠 · 提示不是分 · PII 不出境

@@ -1,6 +1,6 @@
-# OCR 题目导入的可行方案调研（决策票 TR1）
+﻿# OCR 题目导入的可行方案调研（决策票 TR1）
 
-> 面向 EvidenceLoop（循证实训评测 Agent）"教师侧题库导入"能力的技术选型调研。
+> 面向 EvidenceRing（循证实训评测 Agent）"教师侧题库导入"能力的技术选型调研。
 > 场景：老师扫描纸质试卷 / 拍照 / 上传 PDF / Word，系统 OCR 识别后结构化成题目（题干 / 选项 / 答案 / 知识点），再经**老师人工校对闸门**入库。
 > 已裁决前提：**OCR 只是草稿生成器（draft generator），必过老师人工校对，不自动入库**。
 > 难点：数学公式、化学式的识别。
@@ -116,7 +116,7 @@
 
 ### 2.1 公式输出格式
 
-- **能直接产出 LaTeX**：Mathpix（LaTeX / Mathpix Markdown "MMD" / HTML）、PaddleOCR 公式模块（LaTeX，文档也提 MathML）、pix2tex（LaTeX）均直接产 LaTeX。这与项目现有栈契合——EvidenceLoop 前端已用 **KaTeX** 渲染数学（见 ADR-0005 多模态、`docs/DEMO-multimodal-math.md`），LaTeX 可直接喂给 KaTeX 预览校对。
+- **能直接产出 LaTeX**：Mathpix（LaTeX / Mathpix Markdown "MMD" / HTML）、PaddleOCR 公式模块（LaTeX，文档也提 MathML）、pix2tex（LaTeX）均直接产 LaTeX。这与项目现有栈契合——EvidenceRing 前端已用 **KaTeX** 渲染数学（见 ADR-0005 多模态、`docs/DEMO-multimodal-math.md`），LaTeX 可直接喂给 KaTeX 预览校对。
 - **化学式**：Mathpix 可产 **SMILES / InChI**（化学结构图）；数学式风格的化学（如 `H_2O`、配平方程）可用 LaTeX 承载。项目已有 `ChemEquationValidator`（`server/runner/ChemEquationValidator.ts`）做化学方程 CAS 校验，OCR 产出的化学式需转成该验证器可消费的格式。
 
 ### 2.2 结构化拆题（题干/选项/答案）——OCR 自带 vs LLM 后处理
@@ -131,7 +131,7 @@
 
 ## 3. "本地优先/数据不出境"约束下的选择
 
-EvidenceLoop 合规立场偏本地化（`docs/COMPLIANCE.md`："未配置 `LLM_API_KEY` 时完全离线可运行"；"生产化前必需：脱敏网关、数据分层"）。据此：
+EvidenceRing 合规立场偏本地化（`docs/COMPLIANCE.md`："未配置 `LLM_API_KEY` 时完全离线可运行"；"生产化前必需：脱敏网关、数据分层"）。据此：
 
 - **可完全本地部署（数据不出境）**：
   - **PaddleOCR PP-FormulaNet_plus**（公式，原生中文，Zh-BLEU 90.6）+ **PaddleOCR 检测/识别 + PP-StructureV3**（正文与版面）。

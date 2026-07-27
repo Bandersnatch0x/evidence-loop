@@ -1,15 +1,15 @@
-// @vitest-environment node
+﻿// @vitest-environment node
 
 import type { AddressInfo } from 'node:net'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { createEvidenceLoopServer } from '../server/index'
+import { createEvidenceRingServer } from '../server/index'
 import { AuditStore } from '../server/audit/AuditStore'
 import { SECURITY_WARNING_VALUE } from '../server/auth/MockSessionProvider'
 
 const SECRET = 'access-control-test-hmac'
 
 describe('demo access control + audit wiring', () => {
-  let server: Awaited<ReturnType<typeof createEvidenceLoopServer>>
+  let server: Awaited<ReturnType<typeof createEvidenceRingServer>>
   let baseUrl: string
   let audit: AuditStore
 
@@ -20,7 +20,7 @@ describe('demo access control + audit wiring', () => {
       flushIntervalMs: 60_000,
       flushBatchSize: 100
     })
-    server = await createEvidenceLoopServer({
+    server = await createEvidenceRingServer({
       dataFile: ':memory:',
       auditStore: audit,
       auditHmacSecret: SECRET

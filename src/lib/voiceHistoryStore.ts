@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Browser-local voice conversation history with a hard 24h TTL (ADR-0005 §7).
  *
  * - Stores transcript + reply text only (never raw audio).
@@ -6,7 +6,7 @@
  * - Call `purgeExpiredVoiceHistory` on app start and `beforeunload`.
  */
 
-export const VOICE_HISTORY_DB_NAME = 'evidence-loop-voice'
+export const VOICE_HISTORY_DB_NAME = 'evidence-ring-voice'
 export const VOICE_HISTORY_STORE = 'conversations'
 export const VOICE_HISTORY_DB_VERSION = 1
 /** 24 hours in milliseconds. */

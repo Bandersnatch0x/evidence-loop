@@ -1,9 +1,9 @@
-// @vitest-environment node
+﻿// @vitest-environment node
 
 import type { AddressInfo } from 'node:net'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { AuditStore } from '../server/audit/AuditStore'
-import { createEvidenceLoopServer } from '../server/index'
+import { createEvidenceRingServer } from '../server/index'
 import type { EvaluationResult, StartPracticeResponse } from '../shared/contracts'
 
 /**
@@ -18,7 +18,7 @@ const FIXED_CODE =
   'def calculate_average(scores):\n    if not scores:\n        return 0\n\n    return sum(scores) / len(scores)'
 
 describe('attemptId evaluate path (T07 + D1)', () => {
-  let server: Awaited<ReturnType<typeof createEvidenceLoopServer>>
+  let server: Awaited<ReturnType<typeof createEvidenceRingServer>>
   let baseUrl: string
 
   beforeEach(async () => {
@@ -27,7 +27,7 @@ describe('attemptId evaluate path (T07 + D1)', () => {
       hmacSecret: SECRET,
       flushIntervalMs: 60_000
     })
-    server = await createEvidenceLoopServer({
+    server = await createEvidenceRingServer({
       dataFile: ':memory:',
       auditStore: audit,
       auditHmacSecret: SECRET,

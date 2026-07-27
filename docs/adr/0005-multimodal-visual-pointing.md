@@ -1,4 +1,4 @@
-# ADR 0005：多模态提交与视觉指点
+﻿# ADR 0005：多模态提交与视觉指点
 
 ## 状态
 
@@ -6,7 +6,7 @@
 
 ## 背景
 
-多模态扩展方向（Clicky 参考）需要在 EvidenceLoop 里实现"屏幕感知 + 语音"的视觉指点引导。Clicky 是 macOS 菜单栏 App 走 OS 级截图 + 视觉 LLM 猜像素坐标——不适用于 EvidenceLoop 的浏览器 Web 应用形态。
+多模态扩展方向（Clicky 参考）需要在 EvidenceRing 里实现"屏幕感知 + 语音"的视觉指点引导。Clicky 是 macOS 菜单栏 App 走 OS 级截图 + 视觉 LLM 猜像素坐标——不适用于 EvidenceRing 的浏览器 Web 应用形态。
 
 关键决策空间：
 - 视觉输入通道（DOM / canvas / OS 截图）
@@ -21,7 +21,7 @@
 **Phase 1**：所有指点走 DOM 标注（`getBoundingClientRect() + overlay`），不用 OS 级截图。
 
 理由：
-- 学生的数学/作文作业渲染在 EvidenceLoop 自己的 DOM 里，selector 精度是天然的 100%
+- 学生的数学/作文作业渲染在 EvidenceRing 自己的 DOM 里，selector 精度是天然的 100%
 - 不受屏幕缩放/DPI 影响
 - 无需 `getDisplayMedia()` 权限，无隐私和合规冲突
 - 比"截图→视觉 LLM 猜像素坐标"更准、更省、更合规

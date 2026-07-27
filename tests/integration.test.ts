@@ -1,4 +1,4 @@
-// @vitest-environment node
+﻿// @vitest-environment node
 
 /**
  * 端到端集成测试（工单 009）。
@@ -16,7 +16,7 @@ import type { AddressInfo } from 'node:net'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { AuditStore } from '../server/audit/AuditStore'
 import { SECURITY_WARNING_VALUE } from '../server/auth/MockSessionProvider'
-import { createEvidenceLoopServer } from '../server/index'
+import { createEvidenceRingServer } from '../server/index'
 import {
   buildDockerNetworkProbeArgs,
   buildDockerRunArgs,
@@ -77,7 +77,7 @@ function createStubRunner(options?: {
 }
 
 describe('集成测试：端到端合规闭环', () => {
-  let server: Awaited<ReturnType<typeof createEvidenceLoopServer>>
+  let server: Awaited<ReturnType<typeof createEvidenceRingServer>>
   let baseUrl: string
   let audit: AuditStore
 
@@ -88,7 +88,7 @@ describe('集成测试：端到端合规闭环', () => {
       flushIntervalMs: 60_000,
       flushBatchSize: 100
     })
-    server = await createEvidenceLoopServer({
+    server = await createEvidenceRingServer({
       dataFile: ':memory:',
       runner: createStubRunner(),
       auditStore: audit,
@@ -257,7 +257,7 @@ describe('集成测试：端到端合规闭环', () => {
 })
 
 describe('集成测试：PII 入库拦截', () => {
-  let server: Awaited<ReturnType<typeof createEvidenceLoopServer>>
+  let server: Awaited<ReturnType<typeof createEvidenceRingServer>>
   let baseUrl: string
   let audit: AuditStore
 
@@ -268,7 +268,7 @@ describe('集成测试：PII 入库拦截', () => {
       flushIntervalMs: 60_000,
       flushBatchSize: 100
     })
-    server = await createEvidenceLoopServer({
+    server = await createEvidenceRingServer({
       dataFile: ':memory:',
       // 容器执行输出把邮箱泄露进 evidence[].actual，触发入库前 PII 扫描。
       runner: createStubRunner({ piiActual: '联系 student@school.edu.cn 查看详情' }),
@@ -361,7 +361,7 @@ describe('集成测试：容器网络隔离', () => {
 
   it('容器启动参数强制 --network=none 与硬化选项', () => {
     const args = buildDockerRunArgs({
-      image: 'evidence-loop/python-runner:test',
+      image: 'evidence-ring/python-runner:test',
       memory: '128m',
       memorySwap: '128m',
       cpus: '0.5',

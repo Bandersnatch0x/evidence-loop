@@ -1,8 +1,8 @@
-# 架构说明
+﻿# 架构说明
 
 ## 总览
 
-EvidenceLoop 采用“单进程 Node 服务 + React 前端 + 共享契约”的本地 Demo 架构。
+EvidenceRing 采用“单进程 Node 服务 + React 前端 + 共享契约”的本地 Demo 架构。
 
 ```
 Browser (React)

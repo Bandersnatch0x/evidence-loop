@@ -1,4 +1,4 @@
-# EvidenceLoop 最终质量审查
+﻿# EvidenceRing 最终质量审查
 
 审查日期：2026-07-22  
 项目根：`D:/code_space/evidence-loop`  

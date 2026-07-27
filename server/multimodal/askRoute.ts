@@ -1,4 +1,4 @@
-import type { ServerResponse } from 'node:http'
+﻿import type { ServerResponse } from 'node:http'
 import {
   SECURITY_WARNING_HEADER,
   SECURITY_WARNING_VALUE
@@ -32,7 +32,7 @@ export const MULTIMODAL_LLM_TEMPERATURE = 0.25
  * Few-shot system prompt fragment — kept exportable so a future real LLM
  * client can reuse the same dual-channel contract.
  */
-export const MULTIMODAL_SYSTEM_PROMPT = `你是 EvidenceLoop 的语音辅导助手。只讲解、只指点，绝不改分。
+export const MULTIMODAL_SYSTEM_PROMPT = `你是循证环（EvidenceRing）的语音辅导助手。只讲解、只指点，绝不改分。
 
 输出协议（严格尾标签，不要 JSON）：
 1. 先写自然语言讲解正文（交给 TTS 朗读）。

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * E2E smoke: student + teacher demo closed loops (HANDOFF Next #2).
  *
  * Requires: server already running (default http://127.0.0.1:5173).
@@ -50,11 +50,10 @@ async function setRole(page, role) {
 
 async function gotoApp(page) {
   await page.goto(baseUrl, { waitUntil: 'domcontentloaded', timeout: 60_000 })
-  // Desktop brand lives in .sidebar; a second EvidenceLoop sits in the hidden
-  // .mobile-header. waitForSelector('text=EvidenceLoop') latches onto the first
-  // DOM match (hidden) and times out even when the app is healthy.
+  // Desktop brand lives in .sidebar; mobile header also shows 循证环.
+  // Wait on sidebar so we do not latch onto a zero-size mobile header.
   await page
-    .locator('.sidebar strong', { hasText: 'EvidenceLoop' })
+    .locator('.sidebar strong', { hasText: '循证环' })
     .waitFor({ state: 'visible', timeout: 30_000 })
   // Workspace loads assignment async.
   await page

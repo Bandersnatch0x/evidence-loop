@@ -1,4 +1,4 @@
-// @vitest-environment node
+﻿// @vitest-environment node
 
 import { spawnSync } from 'node:child_process'
 import { describe, expect, it } from 'vitest'
@@ -119,7 +119,7 @@ class FakeDockerExecutor implements DockerCommandExecutor {
 describe('DockerPythonRunner', () => {
   it('builds a hardened, network-disabled pool container command', () => {
     const args = buildDockerRunArgs({
-      image: 'evidence-loop/python-runner:test',
+      image: 'evidence-ring/python-runner:test',
       memory: '128m',
       memorySwap: '128m',
       cpus: '0.5',

@@ -1,19 +1,19 @@
-// @vitest-environment node
+﻿// @vitest-environment node
 
 import type { AddressInfo } from 'node:net'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { AuditStore } from '../server/audit/AuditStore'
-import { createEvidenceLoopServer } from '../server/index'
+import { createEvidenceRingServer } from '../server/index'
 import { parseDirectives } from '../shared/protocol/multimodalDirective'
 
 describe('POST /api/multimodal/ask', () => {
-  let server: Awaited<ReturnType<typeof createEvidenceLoopServer>>
+  let server: Awaited<ReturnType<typeof createEvidenceRingServer>>
   let baseUrl: string
   const originalFlag = process.env.MULTIMODAL_ENABLED
 
   beforeEach(async () => {
     delete process.env.MULTIMODAL_ENABLED
-    server = await createEvidenceLoopServer({
+    server = await createEvidenceRingServer({
       dataFile: ':memory:',
       auditStore: new AuditStore({
         dbPath: ':memory:',

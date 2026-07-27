@@ -1,9 +1,9 @@
-// @vitest-environment node
+﻿// @vitest-environment node
 
 import type { AddressInfo } from 'node:net'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { AuditStore } from '../server/audit/AuditStore'
-import { createEvidenceLoopServer } from '../server/index'
+import { createEvidenceRingServer } from '../server/index'
 
 /**
  * Ticket 021 — multimodal compliance + teacher metadata view.
@@ -11,7 +11,7 @@ import { createEvidenceLoopServer } from '../server/index'
  * teacher-only usage aggregation, and student privacy boundaries.
  */
 describe('multimodal compliance (021)', () => {
-  let server: Awaited<ReturnType<typeof createEvidenceLoopServer>>
+  let server: Awaited<ReturnType<typeof createEvidenceRingServer>>
   let baseUrl: string
   let audit: AuditStore
   const originalFlag = process.env.MULTIMODAL_ENABLED
@@ -24,7 +24,7 @@ describe('multimodal compliance (021)', () => {
       flushIntervalMs: 60_000,
       flushBatchSize: 100
     })
-    server = await createEvidenceLoopServer({
+    server = await createEvidenceRingServer({
       dataFile: ':memory:',
       auditStore: audit,
       auditHmacSecret: 'multimodal-compliance-hmac'

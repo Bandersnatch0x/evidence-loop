@@ -29,7 +29,7 @@ T08「批量发提示」graduate 为独立消息通道：TeachingUnit 范围内 
 | 问题 | 修复 |
 |------|------|
 | legacy bare EvaluationResult 行导致 `/api/evaluations` 500 | `AttemptStore.normalizeAttempt` 兼容旧 shape |
-| E2E `text=EvidenceLoop` 命中隐藏 mobile header | 改为等 `.sidebar strong` |
+| E2E `text=EvidenceRing` 命中隐藏 mobile header | 改为等 `.sidebar strong` |
 | Vite HMR 端口冲突 | `VITE_HMR_PORT` 默认 24679 |
 
 ## 出界（未做）
