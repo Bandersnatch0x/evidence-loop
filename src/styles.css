@@ -39,6 +39,25 @@
   box-sizing: border-box;
 }
 
+/* Custom modern scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: oklch(82% 0.01 252);
+  border-radius: 99px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: oklch(65% 0.02 252);
+}
+
 html {
   min-width: 320px;
   background: var(--paper);
@@ -231,32 +250,50 @@ ol {
 
 .primary-nav {
   display: grid;
-  gap: 5px;
+  gap: 6px;
 }
 
 .primary-nav button {
+  position: relative;
   display: flex;
   width: 100%;
   align-items: center;
   gap: 11px;
-  padding: 10px 12px;
+  padding: 11px 16px;
   color: var(--ink-muted);
   background: transparent;
   border: 1px solid transparent;
   border-radius: var(--radius-md);
   cursor: pointer;
-  transition: color 150ms ease, background 150ms ease;
+  transition: color 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+              background-color 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .primary-nav button:hover {
   color: var(--ink);
   background: var(--surface-sunken);
+  transform: translateX(4px);
 }
 
 .primary-nav button.is-active {
   color: var(--indigo-deep);
   font-weight: 600;
   background: var(--indigo-wash);
+  border-color: oklch(90% 0.04 252 / 0.5);
+  box-shadow: 0 4px 12px oklch(52% 0.13 252 / 0.04);
+}
+
+.primary-nav button.is-active::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 12px;
+  bottom: 12px;
+  width: 4px;
+  background: var(--indigo);
+  border-radius: 99px;
 }
 
 .sidebar-note {
@@ -392,21 +429,35 @@ ol {
   top: 18px;
   right: 0;
   width: calc(100% - 42px);
-  height: 2px;
+  height: 3px;
   content: "";
   background: var(--line);
   transform: translateX(calc(100% - 4px));
   pointer-events: none;
+  transition: box-shadow 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  border-radius: 99px;
 }
 
 .loop-step.is-done:not(:last-child)::after {
-  background: var(--pass);
+  background: linear-gradient(90deg, var(--pass) 0%, oklch(80% 0.1 160) 100%);
+  box-shadow: 0 0 4px oklch(55% 0.13 160 / 0.2);
+}
+
+.loop-step.is-active:not(:last-child)::after {
+  background: linear-gradient(90deg, var(--indigo) 0%, var(--line) 100%);
+  background-size: 200% 100%;
+  animation: flowing-line 1.5s linear infinite;
+}
+
+@keyframes flowing-line {
+  0% { background-position: 100% 0%; }
+  100% { background-position: 0% 0%; }
 }
 
 .loop-node {
   display: grid;
-  width: 32px;
-  height: 32px;
+  width: 34px;
+  height: 34px;
   flex: 0 0 auto;
   place-items: center;
   color: var(--ink-faint);
@@ -414,6 +465,11 @@ ol {
   border: 1px solid var(--line);
   border-radius: 50%;
   z-index: 1;
+  transition: color 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+              background-color 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: inset 0 2px 4px oklch(0% 0 0 / 0.02);
 }
 
 .loop-text {
@@ -443,7 +499,8 @@ ol {
   color: white;
   background: var(--indigo);
   border-color: var(--indigo);
-  animation: pulse-ring 2s ease-out infinite;
+  animation: pulse-ring-premium 2s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+  box-shadow: var(--primary-glow), inset 0 2px 4px oklch(100% 0 0 / 0.2);
 }
 
 .loop-step.is-active .loop-text strong {
@@ -454,12 +511,14 @@ ol {
   color: var(--pass-deep);
   background: var(--pass-wash);
   border-color: oklch(88% 0.04 160);
+  box-shadow: 0 2px 8px oklch(55% 0.13 160 / 0.15);
 }
 
 .loop-step.is-failed .loop-node {
   color: var(--fail-deep);
   background: var(--fail-wash);
   border-color: oklch(88% 0.05 25);
+  box-shadow: 0 2px 8px oklch(55% 0.19 25 / 0.15);
 }
 
 .loop-step.is-skipped .loop-node {
@@ -468,15 +527,18 @@ ol {
   opacity: 0.72;
 }
 
-@keyframes pulse-ring {
+@keyframes pulse-ring-premium {
   0% {
-    box-shadow: 0 0 0 0 oklch(52% 0.13 252 / 0.35);
+    box-shadow: 0 0 0 0 oklch(52% 0.13 252 / 0.4), 
+                0 0 0 4px oklch(52% 0.13 252 / 0.2);
   }
-  70% {
-    box-shadow: 0 0 0 10px oklch(52% 0.13 252 / 0);
+  50% {
+    box-shadow: 0 0 0 8px oklch(52% 0.13 252 / 0), 
+                0 0 0 12px oklch(52% 0.13 252 / 0);
   }
   100% {
-    box-shadow: 0 0 0 0 oklch(52% 0.13 252 / 0);
+    box-shadow: 0 0 0 0 oklch(52% 0.13 252 / 0), 
+                0 0 0 0 oklch(52% 0.13 252 / 0);
   }
 }
 
@@ -804,8 +866,11 @@ ol {
   font-size: 0.8125rem;
   font-weight: 650;
   cursor: pointer;
-  transition: background 150ms ease, border-color 150ms ease, color 150ms ease,
-    box-shadow 150ms ease, transform 150ms ease;
+  transition: background-color 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+              color 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .primary-button {
@@ -819,7 +884,15 @@ ol {
   background: var(--indigo-deep);
   border-color: var(--indigo-deep);
   box-shadow: var(--primary-glow);
-  transform: translateY(-1px);
+  transform: translateY(-1.5px);
+}
+
+.primary-button:active:not(:disabled),
+.secondary-button:active:not(:disabled),
+.repair-button:active:not(:disabled),
+.icon-button:active:not(:disabled) {
+  transform: translateY(1px) scale(0.97);
+  box-shadow: none;
 }
 
 .secondary-button {
@@ -832,6 +905,7 @@ ol {
 .secondary-button:hover:not(:disabled) {
   color: var(--ink);
   background: var(--surface-sunken);
+  transform: translateY(-1px);
 }
 
 .primary-button:disabled,
@@ -960,18 +1034,41 @@ ol {
     var(--ring-fill) 0 var(--score-pct),
     var(--line) var(--score-pct) 100%
   );
+  box-shadow: 0 4px 14px oklch(28% 0.03 252 / 0.06);
+  transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275),
+              box-shadow 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.score-ring:hover {
+  transform: scale(1.06);
+  box-shadow: 0 8px 20px oklch(52% 0.13 252 / 0.15);
 }
 
 .score-ring.score-high {
   --ring-fill: var(--pass);
+  box-shadow: 0 4px 14px oklch(55% 0.13 160 / 0.12);
+}
+
+.score-ring.score-high:hover {
+  box-shadow: 0 8px 24px oklch(55% 0.13 160 / 0.28);
 }
 
 .score-ring.score-mid {
   --ring-fill: var(--warn);
+  box-shadow: 0 4px 14px oklch(62% 0.13 75 / 0.12);
+}
+
+.score-ring.score-mid:hover {
+  box-shadow: 0 8px 24px oklch(62% 0.13 75 / 0.28);
 }
 
 .score-ring.score-low {
   --ring-fill: var(--fail);
+  box-shadow: 0 4px 14px oklch(55% 0.19 25 / 0.12);
+}
+
+.score-ring.score-low:hover {
+  box-shadow: 0 8px 24px oklch(55% 0.19 25 / 0.28);
 }
 
 .score-ring-core {
@@ -3369,21 +3466,57 @@ td > b {
 }
 
 .mode-badge {
-  display: inline-block;
-  padding: 2px 9px;
-  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 99px;
   font-size: 0.75rem;
   font-weight: 600;
+  letter-spacing: 0.01em;
+  transition: background-color 0.3s ease,
+              color 0.3s ease,
+              border-color 0.3s ease,
+              box-shadow 0.3s ease;
+}
+
+.mode-badge::before {
+  content: "";
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
 }
 
 .mode-badge.practice {
-  background: var(--pass-wash);
+  background: oklch(95% 0.02 160 / 0.85);
   color: var(--pass-deep);
+  border: 1px solid oklch(88% 0.04 160 / 0.6);
+  box-shadow: 0 2px 8px oklch(55% 0.13 160 / 0.05);
+}
+
+.mode-badge.practice::before {
+  background: var(--pass);
+  box-shadow: 0 0 6px var(--pass);
 }
 
 .mode-badge.assessment {
-  background: var(--warn-wash);
+  background: oklch(96% 0.03 80 / 0.85);
   color: var(--warn-deep);
+  border: 1px solid oklch(88% 0.04 80 / 0.6);
+  box-shadow: 0 2px 8px oklch(62% 0.13 75 / 0.05);
+}
+
+.mode-badge.assessment::before {
+  background: var(--warn);
+  box-shadow: 0 0 6px var(--warn);
+  animation: pulse-ring-badge 1.5s infinite;
+}
+
+@keyframes pulse-ring-badge {
+  0% { box-shadow: 0 0 0 0 oklch(62% 0.13 75 / 0.4); }
+  70% { box-shadow: 0 0 0 4px oklch(62% 0.13 75 / 0); }
+  100% { box-shadow: 0 0 0 0 oklch(62% 0.13 75 / 0); }
 }
 
 .mistake-row {
@@ -4350,4 +4483,71 @@ td > b {
 .tip-target-summary {
   margin: 4px 0 10px;
   font-size: 0.75rem;
+}
+
+/* —— Premium UI.UX Enhancements Extension (Full Premium Upgrade) —— */
+
+/* Card lists and interactive rows transition configuration */
+.rubric-row,
+.evidence-row,
+.diagnosis-item,
+.session-row,
+.mistake-row,
+.today-row,
+.question-bank-row,
+.tip-row,
+.grading-row,
+.assignment-row {
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+              background-color 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Elegant lift & smooth environment soft shadow on hover */
+.rubric-row:hover,
+.session-row:hover,
+.mistake-row:hover:not(.mastered),
+.today-row:hover,
+.question-bank-row:hover,
+.tip-row:hover,
+.grading-row:hover {
+  transform: translateY(-2.5px);
+  border-color: var(--line-strong);
+  box-shadow: 0 6px 18px oklch(28% 0.03 252 / 0.07);
+}
+
+/* Evidence row dynamic color hover elevation */
+.evidence-row:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px oklch(28% 0.03 252 / 0.05);
+}
+
+.evidence-row.is-passed:hover {
+  border-color: oklch(75% 0.1 160);
+  box-shadow: 0 6px 18px oklch(55% 0.13 160 / 0.12);
+}
+
+.evidence-row.is-failed:hover {
+  border-color: oklch(75% 0.12 25);
+  box-shadow: 0 6px 18px oklch(55% 0.19 25 / 0.12);
+}
+
+/* Diagnosis item hover */
+.diagnosis-item {
+  transition: background-color 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  padding-left: 8px;
+  padding-right: 8px;
+  border-radius: var(--radius-md);
+}
+
+.diagnosis-item:hover {
+  background: var(--surface-sunken);
+  transform: translateX(4px);
+}
+
+/* Table zebra transitions — hover bg defined at line ~1556 */
+tbody tr {
+  transition: background-color 0.2s ease;
 }
