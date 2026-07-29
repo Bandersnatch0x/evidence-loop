@@ -116,7 +116,7 @@ export function ResultsPanel({
               }
             >
               <div className="score-ring-core">
-                <span>{evaluation.score}</span>
+                <span data-testid="evaluation-score">{evaluation.score}</span>
                 <small>/ 100</small>
               </div>
             </div>
