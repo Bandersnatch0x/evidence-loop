@@ -980,10 +980,142 @@ const chemVseprWaterAssignment: ExecutableAssignment = {
 }
 
 /**
- * Demo: essay objective dimensions + AdvisoryLayer.
- * Evidence ids from EssayRunner: word-count, paragraph-count, sentence-length,
- * spelling-punctuation, structure-completeness, keyword-coverage.
+ * Demo: crystal structure — NaCl (ADR-0014). Reuses `fill_blank` +
+ * ObjectiveValidator; the student writes the crystal-structure name
+ * (e.g. "面心立方"/"rock salt"). No new QuestionType/runner — same pattern as
+ * VSEPR (0012). The 3D unit-cell scene is the presentation layer; scoring
+ * rests on the text match.
  */
+const chemCrystalNaClAssignment: ExecutableAssignment = {
+  id: 'chem-crystal-nacl',
+  title: '化学题：氯化钠的晶体结构',
+  module: '化学 · 物质构成',
+  language: 'chemistry',
+  questionType: 'fill_blank',
+  estimatedMinutes: 7,
+  status: 'ready',
+  objective:
+    '识别氯化钠（NaCl）晶体的结构类型，理解每个 Na⁺ 被 6 个 Cl⁻ 八面体配位。',
+  scenario:
+    'NaCl 晶体中 Cl⁻ 作面心立方密堆积，Na⁺ 占据八面体空隙，形成 6:6 配位的离子晶体。提交该结构类型名称（中英文均可）。',
+  requirements: ['提交晶体结构类型名称（英文或中文均可）'],
+  constraints: ['大小写不敏感；评分来自填空文本匹配'],
+  functionSignature: 'NaCl 的晶体结构是 ______ 型',
+  rubric: [
+    {
+      id: 'correctness',
+      label: '结构识别',
+      description: '结构名称命中可接受答案',
+      maxScore: 100
+    }
+  ],
+  demoVariants: [
+    {
+      id: 'correct',
+      label: '正确答案',
+      description: '面心立方（岩盐型）。',
+      code: '面心立方'
+    },
+    {
+      id: 'wrong',
+      label: '错误答案',
+      description: '误判为体心立方。',
+      code: '体心立方'
+    }
+  ],
+  criteria: [
+    {
+      id: 'answer-match',
+      kind: 'answer_match',
+      label: '晶体结构匹配',
+      dimensionId: 'correctness',
+      visibility: 'public',
+      weight: 100,
+      expected: '面心立方',
+      conceptId: 'kp.chemistry.matter.crystal_structure',
+      passedMessage: 'NaCl 为面心立方（岩盐型）结构，6:6 配位',
+      failedMessage: '结构名称未命中可接受答案'
+    }
+  ],
+  runner: {
+    kind: 'fill_blank',
+    acceptedAnswers: [
+      '面心立方',
+      '氯化钠型',
+      'rock salt',
+      'rock-salt',
+      'rocksalt',
+      '岩盐',
+      '岩盐型',
+      'nacl型'
+    ],
+    caseSensitive: false
+  }
+}
+
+/**
+ * Demo: crystal structure — diamond (ADR-0014). Diamond cubic: two
+ * interpenetrating FCC sublattices offset by (¼,¼,¼), each C is 4-coordinate
+ * tetrahedral (C–C–C ≈ 109.47°). Covalent network crystal, contrast with the
+ * ionic NaCl cell.
+ */
+const chemCrystalDiamondAssignment: ExecutableAssignment = {
+  id: 'chem-crystal-diamond',
+  title: '化学题：金刚石的晶体结构',
+  module: '化学 · 物质构成',
+  language: 'chemistry',
+  questionType: 'fill_blank',
+  estimatedMinutes: 7,
+  status: 'ready',
+  objective:
+    '识别金刚石的晶体结构类型，理解每个碳原子以 sp³ 四面体配位形成共价网络。',
+  scenario:
+    '金刚石中每个碳原子与 4 个相邻碳原子形成四面体配位，构成三维共价网络。提交该结构类型名称（中英文均可）。',
+  requirements: ['提交晶体结构类型名称（英文或中文均可）'],
+  constraints: ['大小写不敏感；评分来自填空文本匹配'],
+  functionSignature: '金刚石的晶体结构是 ______ 型',
+  rubric: [
+    {
+      id: 'correctness',
+      label: '结构识别',
+      description: '结构名称命中可接受答案',
+      maxScore: 100
+    }
+  ],
+  demoVariants: [
+    {
+      id: 'correct',
+      label: '正确答案',
+      description: '金刚石型（四面体共价网络）。',
+      code: '金刚石'
+    },
+    {
+      id: 'wrong',
+      label: '错误答案',
+      description: '误判为石墨层状。',
+      code: '石墨'
+    }
+  ],
+  criteria: [
+    {
+      id: 'answer-match',
+      kind: 'answer_match',
+      label: '晶体结构匹配',
+      dimensionId: 'correctness',
+      visibility: 'public',
+      weight: 100,
+      expected: '金刚石',
+      conceptId: 'kp.chemistry.matter.crystal_structure',
+      passedMessage: '金刚石为四面体配位的共价网络结构',
+      failedMessage: '结构名称未命中可接受答案'
+    }
+  ],
+  runner: {
+    kind: 'fill_blank',
+    acceptedAnswers: ['金刚石', '金刚石型', 'diamond', '四面体', '四面体型'],
+    caseSensitive: false
+  }
+}
 const essayPerseveranceAssignment: ExecutableAssignment = {
   id: 'essay-perseverance-growth',
   title: '作文题：论坚持与成长',
@@ -1617,6 +1749,8 @@ const allAssignments: readonly ExecutableAssignment[] = [
   cubeSectionAssignment,
   chemVseprMethaneAssignment,
   chemVseprWaterAssignment,
+  chemCrystalNaClAssignment,
+  chemCrystalDiamondAssignment,
   chemWaterAssignment,
   essayPerseveranceAssignment,
   choiceEnglishTenseAssignment,

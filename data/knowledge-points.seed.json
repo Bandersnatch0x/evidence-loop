@@ -239,6 +239,12 @@
       "weight": 1.0
     },
     {
+      "id": "kp.chemistry.matter.crystal_structure",
+      "name": "晶体结构（高中）",
+      "parentId": "kp.chemistry.matter",
+      "weight": 1.0
+    },
+    {
       "id": "kp.chemistry.reaction",
       "name": "化学反应",
       "weight": 1.0

@@ -23,6 +23,9 @@ const MoleculeScene = lazy(() =>
 const CubeSectionScene = lazy(() =>
   import('./scenes/CubeSectionScene').then((m) => ({ default: m.CubeSectionScene }))
 )
+const CrystalScene = lazy(() =>
+  import('./scenes/CrystalScene').then((m) => ({ default: m.CrystalScene }))
+)
 // 2D canvas — no lazy split needed (no 3D engine cost), but keep the same
 // registry-driven dispatch. Import statically.
 import { ProjectileScene } from './scenes/ProjectileScene'
@@ -51,6 +54,9 @@ export function Visualizer({ assignment, submission }: VisualizerProps) {
     <Suspense fallback={SCENE_FALLBACK}>
       {assignment.id === 'cube-section' ? (
         <CubeSectionScene submission={submission} />
+      ) : assignment.id === 'chem-crystal-nacl' ||
+        assignment.id === 'chem-crystal-diamond' ? (
+        <CrystalScene assignmentId={assignment.id} />
       ) : (
         <MoleculeScene assignmentId={assignment.id} />
       )}

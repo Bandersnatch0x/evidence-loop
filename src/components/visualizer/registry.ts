@@ -35,6 +35,10 @@ export const SCENES: readonly SceneDescriptor[] = [
     assignmentIds: ['cube-section']
   },
   {
+    kind: 'r3f',
+    assignmentIds: ['chem-crystal-nacl', 'chem-crystal-diamond']
+  },
+  {
     kind: 'canvas2d',
     assignmentIds: ['physics-projectile-xy', 'physics-projectile-y']
   }

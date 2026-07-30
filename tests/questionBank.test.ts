@@ -311,19 +311,19 @@ describe('Seed import from demo assignments (迁移/共存)', () => {
     store.close()
   })
 
-  it('imports all 19 demo assignments as seed questions', () => {
+  it('imports all 21 demo assignments as seed questions', () => {
     const result = seedQuestionsFromAssignments(store, FIXED_NOW)
-    expect(result.imported).toBe(19)
+    expect(result.imported).toBe(21)
     expect(result.skipped).toBe(0)
-    expect(store.count({ authorId: SEED_AUTHOR_ID })).toBe(19)
+    expect(store.count({ authorId: SEED_AUTHOR_ID })).toBe(21)
   })
 
   it('is idempotent — a re-run skips existing seeds', () => {
     seedQuestionsFromAssignments(store, FIXED_NOW)
     const second = seedQuestionsFromAssignments(store, FIXED_NOW)
     expect(second.imported).toBe(0)
-    expect(second.skipped).toBe(19)
-    expect(store.count({ authorId: SEED_AUTHOR_ID })).toBe(19)
+    expect(second.skipped).toBe(21)
+    expect(store.count({ authorId: SEED_AUTHOR_ID })).toBe(21)
   })
 
   it('marks code seeds test_case and non-code seeds authored_key (D2)', () => {

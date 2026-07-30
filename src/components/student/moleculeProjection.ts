@@ -173,5 +173,7 @@ export const MOLECULE_GEOMETRIES: Readonly<Record<string, MoleculeGeometry>> = {
 export const ELEMENT_COLORS: Readonly<Record<string, string>> = {
   C: '#374151', // dark gray
   O: '#dc2626', // red
-  H: '#e5e7eb' // light gray
+  H: '#e5e7eb', // light gray
+  Na: '#9333ea', // purple (crystal, ADR-0014)
+  Cl: '#16a34a' // green (crystal, ADR-0014)
 }
