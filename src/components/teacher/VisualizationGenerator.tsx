@@ -1,12 +1,12 @@
 /**
  * VisualizationGenerator — teacher AI-generate → preview → adopt flow for a
- * 3D visualization (ADR-0015 + Phase 4 curve).
+ * 3D visualization (ADR-0015: ball_stick / curve / primitives).
  *
  * Mounted inside QuestionEditor (edit mode only — a questionId is required).
  * The teacher types a natural-language description, the server's LLM proposes
- * ball_stick or curve geometry, this component previews it live in 3D, and
- * the teacher confirms (adopt) or discards. Confirms persist onto the
- * Question; the student-side Visualizer then renders it.
+ * geometry, this component previews it live in 3D, and the teacher confirms
+ * (adopt) or discards. Confirms persist onto the Question; the student-side
+ * Visualizer then renders it.
  *
  * PRODUCT.md boundary: the LLM only drafts presentation content — it never
  * scores. The "已确认" / "待确认" badge makes the authority grade visible.
@@ -31,10 +31,18 @@ const CurveScene = lazy(() =>
     default: m.CurveScene
   }))
 )
+const PrimitivesScene = lazy(() =>
+  import('../visualizer/scenes/PrimitivesScene').then((m) => ({
+    default: m.PrimitivesScene
+  }))
+)
 
 function VisualizationPreview({ visualization }: { visualization: Visualization }): ReactNode {
   if (visualization.kind === 'curve') {
     return <CurveScene visualization={visualization} />
+  }
+  if (visualization.kind === 'primitives') {
+    return <PrimitivesScene visualization={visualization} />
   }
   return <BallStickScene visualization={visualization} />
 }
@@ -116,7 +124,7 @@ export function VisualizationGenerator({
         <Sparkles size={16} style={{ verticalAlign: 'middle' }} /> 3D 演示生成
       </legend>
       <p className="muted">
-        描述分子/晶体（球棍）或螺旋/轨迹（曲线），AI 生成 3D 几何供预览；确认后学生打开此题即可见。
+        描述分子/晶体（球棍）、螺旋/轨迹（曲线）或电路/节点图（图元），AI 生成 3D 几何供预览；确认后学生打开此题即可见。
         仅展示，不参与评分。
       </p>
 
@@ -126,7 +134,7 @@ export function VisualizationGenerator({
           rows={2}
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          placeholder="如：氨气 NH3 三角锥；或：带电粒子在磁场中的螺旋轨迹"
+          placeholder="如：氨气 NH3；磁场螺旋轨迹；串联电路 电源-电阻-开关"
           disabled={busy}
         />
       </label>

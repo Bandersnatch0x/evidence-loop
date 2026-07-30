@@ -1,6 +1,6 @@
 /**
- * Pre-seeded curve visualizations for demo assignments (ADR-0015 Phase 4/6).
- * No LLM required — pure math point sampling for magnetic helix / DNA.
+ * Pre-seeded visualizations for demo assignments (ADR-0015).
+ * No LLM required — pure data for magnetic helix / DNA / circuit graph.
  */
 import type { Visualization } from '../../shared/contracts'
 import type { QuestionStore } from './QuestionStore'
@@ -46,6 +46,26 @@ export function sampleDnaDoubleHelix(
   return { points, secondaryPoints }
 }
 
+/** Simple series circuit: source → switch → resistor → back to source. */
+export function sampleSeriesCircuit(): Visualization {
+  return {
+    kind: 'primitives',
+    label: '串联电路示意',
+    nodes: [
+      { id: 'V', label: '电源', position: [-2, 0, 0], role: 'source' },
+      { id: 'S', label: '开关', position: [0, 1.2, 0], role: 'switch' },
+      { id: 'R', label: 'R', position: [2, 0, 0], role: 'resistor' },
+      { id: 'G', label: '地', position: [0, -1.2, 0], role: 'ground' }
+    ],
+    edges: [
+      { from: 'V', to: 'S', label: '导线' },
+      { from: 'S', to: 'R' },
+      { from: 'R', to: 'G' },
+      { from: 'G', to: 'V', label: '回路' }
+    ]
+  }
+}
+
 export const MAGNETIC_HELIX_VISUALIZATION: Visualization = {
   kind: 'curve',
   points: sampleMagneticHelix(),
@@ -60,30 +80,34 @@ export const DNA_DOUBLE_HELIX_VISUALIZATION: Visualization = {
   label: 'DNA 双螺旋'
 }
 
+export const SERIES_CIRCUIT_VISUALIZATION: Visualization = sampleSeriesCircuit()
+
 /** assignmentId → visualization applied to seed:<assignmentId> on boot. */
-const DEMO_CURVE_VISUALIZATIONS: Readonly<Record<string, Visualization>> = {
+const DEMO_VISUALIZATIONS: Readonly<Record<string, Visualization>> = {
   'physics-magnetic-helix': MAGNETIC_HELIX_VISUALIZATION,
-  'bio-dna-double-helix': DNA_DOUBLE_HELIX_VISUALIZATION
+  'bio-dna-double-helix': DNA_DOUBLE_HELIX_VISUALIZATION,
+  // Attach circuit schematic to the existing Ohm-law numeric demo.
+  'numeric-ohm-law': SERIES_CIRCUIT_VISUALIZATION
 }
 
 /**
- * Ensure demo seed questions carry pre-sampled curve visualizations.
- * Idempotent: only writes when missing or kind differs (never clobber a
- * teacher-confirmed different geometry if somehow stored under seed id).
- * Seed rows are system-owned; safe to refresh demo curve defaults when empty.
+ * Ensure demo seed questions carry pre-built visualizations.
+ * Idempotent: only writes when visualization is missing (never clobber
+ * teacher-or-prior data under the seed id).
  */
 export function ensureDemoCurveVisualizations(store: QuestionStore): number {
   let updated = 0
-  for (const [assignmentId, visualization] of Object.entries(
-    DEMO_CURVE_VISUALIZATIONS
-  )) {
+  for (const [assignmentId, visualization] of Object.entries(DEMO_VISUALIZATIONS)) {
     const id = seedQuestionId(assignmentId)
     const existing = store.get(id)
     if (!existing) continue
     if (existing.authorId !== SEED_AUTHOR_ID) continue
-    if (existing.visualization?.kind === 'curve') continue
+    if (existing.visualization !== undefined) continue
     store.save({ ...existing, visualization })
     updated += 1
   }
   return updated
 }
+
+/** Alias — covers curve + primitives demo seeds. */
+export const ensureDemoVisualizations = ensureDemoCurveVisualizations

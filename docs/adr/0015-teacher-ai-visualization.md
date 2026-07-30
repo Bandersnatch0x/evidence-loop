@@ -21,7 +21,7 @@ ADR-0013/0014 落地统一可视化套件 + 内置 3D/2D 场景（分子/截面/
 
 ## 决策
 
-1. **几何以 `kind` 多态扩展。** MVP 先落地球棍类（`kind:'ball_stick'`，atoms/bonds），覆盖分子/晶体。Phase 4 兑现扩展点：`kind:'curve'`（预采样 3D 折线 + 可选 `secondaryPoints` 第二链），覆盖磁场螺旋、DNA 双链骨架等。电路/细胞等图元类仍走后续 `primitives`，不塞进球棍或曲线。
+1. **几何以 `kind` 多态扩展。** MVP 球棍（`kind:'ball_stick'`）；Phase 4 曲线（`kind:'curve'` + 可选 `secondaryPoints`）；Phase 7 图元（`kind:'primitives'`，nodes+edges）覆盖电路/节点示意图。三种 kind 同型「纯数据 + zod」，不混用布局求解器。
 
 2. **曲线表示形式 = 预采样点数组（非参数方程）。** AI 直接输出 `points: [[x,y,z],...]`（2–2000 点、三元有限），CurveScene 用 R3F `<Line>` 画。与球棍同型"纯数据 + zod 校验"，不引表达式求值。DNA 双螺旋用 `secondaryPoints` 画第二条链；碱基对横线（混合球棍+曲线）留后续。
 
@@ -33,21 +33,21 @@ ADR-0013/0014 落地统一可视化套件 + 内置 3D/2D 场景（分子/截面/
 
 6. **学生侧 visualization 透传（Phase 5）。** `GET /api/assignments/:id`：① demo registry 命中 → 合并 `seed:<id>` 或裸 id 题上的 visualization；② registry 未命中但题库有该 id（私有题 / `seed:…`）→ `projectQuestionToAssignment` 投影为工作台壳并带上 visualization。学生从今日练习点开私有题时，`questionId` 即 workspace id，Visualizer 可按 kind 渲染。评分为独立路径（私有题完整 runner 投影仍可后续加强）。
 
-7. **Visualizer 优先级：assignment.visualization 覆盖 registry，再按 `kind` dispatch。** 有教师确认几何时：`ball_stick` → BallStickScene，`curve` → CurveScene；无则回退 registry 内置场景。教师自定义覆盖内置演示。
+7. **Visualizer 优先级：assignment.visualization 覆盖 registry，再按 `kind` dispatch。** 有教师确认几何时：`ball_stick` → BallStickScene，`curve` → CurveScene，`primitives` → PrimitivesScene；无则回退 registry 内置场景。教师自定义覆盖内置演示。
 
-8. **通用 scene + 懒加载。** BallStickScene / CurveScene 均接收 Visualization 分支 props（几何来自 props 而非硬编码）。VisualizationGenerator 与 Visualizer 均 lazy import 对应 scene——避免把 three 拉进主 chunk（修复实测：主 index chunk 曾涨到 1495KB，lazy 后回落 ~572KB）。
+8. **通用 scene + 懒加载。** BallStickScene / CurveScene / PrimitivesScene 均接收 Visualization 分支 props（几何来自 props 而非硬编码）。VisualizationGenerator 与 Visualizer 均 lazy import 对应 scene——避免把 three 拉进主 chunk（修复实测：主 index chunk 曾涨到 1495KB，lazy 后回落 ~572KB）。
 
 ## 未做项（诚实记录，留待后续切片）
 
-- ~~**曲线类几何未做。**~~ **已做（Phase 4）。** `kind:'curve'` + CurveScene + SYSTEM_PROMPT 曲线分支 + schema/测试。图元类（电路节点+边等）仍未做，见下。
-- **图元类几何（`kind:'primitives'`）未做。** 电路图、细胞结构等既非球棍也非单条/双条曲线，需要独立 schema（节点 + 边 + 可选标签）。
+- ~~**曲线类几何未做。**~~ **已做（Phase 4）。** `kind:'curve'` + CurveScene + SYSTEM_PROMPT 曲线分支 + schema/测试。
+- ~~**图元类几何（`kind:'primitives'`）未做。**~~ **已做（Phase 7）。** nodes+edges schema、PrimitivesScene、SYSTEM_PROMPT 图元分支；`numeric-ohm-law` 预置串联电路示意。
 - **DNA 碱基对横线未做。** 双链骨架可用 `secondaryPoints`；碱基对连接是球棍式 bond，需混合几何或扩展 schema，MVP 刻意不做。
 - ~~**学生侧私有题 visualization 透传未闭环。**~~ **已做（Phase 5）。** registry miss 时按题库 id 投影 Assignment 壳；registry hit 时合并 seed/裸 id visualization。`QuestionBankService.peek` 提供无所有权的 by-id 展示读取（不开放 list）。
-- ~~**私有题完整评分 runner 投影未做。**~~ **已做（Phase 6）。** `createQuestionBackedRegistry` + `projectQuestionToExecutable`：payload→RunnerSpec + criteria，EvaluationAgent 可对私有题 id 评分（客观题/表达式/化学方程式/作文/几何/代码 testCases）。
-- ~~**曲线/双螺旋 demo seed 未预置。**~~ **已做。** `physics-magnetic-helix` / `bio-dna-double-helix` 预置题 + `ensureDemoCurveVisualizations` 无 LLM 采样点。
+- ~~**私有题完整评分 runner 投影未做。**~~ **已做（Phase 6）。** `createQuestionBackedRegistry` + `projectQuestionToExecutable`：payload→RunnerSpec + criteria，EvaluationAgent 可对私有题 id 评分。
+- ~~**曲线/双螺旋 demo seed 未预置。**~~ **已做。** `physics-magnetic-helix` / `bio-dna-double-helix` + `ensureDemoCurveVisualizations`。
 - **生成几何的自动化学校验未做。** 配位数/键角/键长、螺旋几何是否合理靠教师 3D 预览肉眼判断。若未来出现"LLM 生成错误结构未被教师发现"的真实问题，再加规则校验。
 - **学生侧触发生成未做。** 当前仅教师角色可生成（题库教师私有）。学生侧看的是教师确认后的确定数据（有意为之）。
-- **LLM 未配置时的手动几何录入未做。** 生成器返回 `no-llm` 错误并提示；不经 LLM 直接填原子表/点列的 UI 未做——YAGNI，无 LLM 时用内置 demo 或 adopt API 注入样例即可。
+- **LLM 未配置时的手动几何录入未做。** 生成器返回 `no-llm` 错误并提示；不经 LLM 直接填原子表/点列的 UI 未做——YAGNI。
 
 ## 砍掉的（YAGNI，留后续切片）
 
@@ -66,11 +66,11 @@ ADR-0013/0014 落地统一可视化套件 + 内置 3D/2D 场景（分子/截面/
 ### 正面
 - 产品从"内置 demo 集合"升级为"教师可生成自定义演示的工具"，内置不可穷举的问题被结构性解决
 - 复用 callOpenAICompatible + adopt-solution + solution_json 三套先例，零新基础设施
-- 球棍 + 曲线覆盖分子/晶体/磁场螺旋/DNA 骨架等常见演示；`kind` 多态仍为图元类留扩展点
+- 球棍 + 曲线 + 图元覆盖分子/晶体/磁场螺旋/DNA 骨架/电路示意等常见演示
 - zod schema + 教师预览双重把关，LLM 生成不确定性受控
+- 私有题透传与 payload 评分投影已闭环；demo 曲线/电路可视化可无 LLM 预置
 
 ### 代价
 - 依赖 LLM 配置（`LLM_*` 环境变量），未配置时生成不可用（降级提示，不崩）
-- 图元类（电路等）与混合几何（碱基对）仍需后续切片
-- 私有题评分仍依赖 registry/Attempt 路径，Phase 5 未做 payload→ExecutableAssignment
-- demo seed 曲线样例未预置；生成几何的学科正确性靠教师肉眼，无自动校验
+- DNA 碱基对混合几何、学科自动校验、手动录入 UI 仍未做
+- 生成几何的学科正确性主要靠教师肉眼

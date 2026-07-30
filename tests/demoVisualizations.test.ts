@@ -4,12 +4,13 @@ import { describe, expect, it } from 'vitest'
 import {
   ensureDemoCurveVisualizations,
   sampleDnaDoubleHelix,
-  sampleMagneticHelix
+  sampleMagneticHelix,
+  sampleSeriesCircuit
 } from '../server/questionbank/demoVisualizations'
 import { QuestionStore } from '../server/questionbank/QuestionStore'
 import { seedQuestionsFromAssignments } from '../server/questionbank/seedFromAssignments'
 
-describe('demo curve visualizations', () => {
+describe('demo visualizations', () => {
   it('samples a helix with constant-ish radius', () => {
     const points = sampleMagneticHelix(2, 40, 1)
     expect(points.length).toBe(40)
@@ -25,11 +26,20 @@ describe('demo curve visualizations', () => {
     expect(secondaryPoints.length).toBe(50)
   })
 
-  it('attaches curve viz to seed questions on ensure', () => {
+  it('builds a series circuit graph', () => {
+    const circuit = sampleSeriesCircuit()
+    expect(circuit.kind).toBe('primitives')
+    if (circuit.kind === 'primitives') {
+      expect(circuit.nodes.length).toBeGreaterThanOrEqual(3)
+      expect(circuit.edges.length).toBeGreaterThanOrEqual(3)
+    }
+  })
+
+  it('attaches curve + primitives viz to seed questions on ensure', () => {
     const store = new QuestionStore({ dbPath: ':memory:' })
     seedQuestionsFromAssignments(store)
     const updated = ensureDemoCurveVisualizations(store)
-    expect(updated).toBeGreaterThanOrEqual(2)
+    expect(updated).toBeGreaterThanOrEqual(3)
 
     const helix = store.get('seed:physics-magnetic-helix')
     expect(helix?.visualization?.kind).toBe('curve')
@@ -39,6 +49,9 @@ describe('demo curve visualizations', () => {
     if (dna?.visualization?.kind === 'curve') {
       expect(dna.visualization.secondaryPoints?.length).toBeGreaterThan(10)
     }
+
+    const ohm = store.get('seed:numeric-ohm-law')
+    expect(ohm?.visualization?.kind).toBe('primitives')
 
     // Idempotent second pass.
     expect(ensureDemoCurveVisualizations(store)).toBe(0)

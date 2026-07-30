@@ -186,6 +186,20 @@ describe('assignment visualization passthrough (Phase 5)', () => {
     }
   })
 
+  it('serves pre-seeded circuit primitives on Ohm-law demo', async () => {
+    const response = await fetch(
+      `${baseUrl}/api/assignments/numeric-ohm-law`,
+      { headers: { 'x-demo-role': 'student' } }
+    )
+    expect(response.status).toBe(200)
+    const assignment = (await response.json()) as Assignment
+    expect(assignment.visualization?.kind).toBe('primitives')
+    if (assignment.visualization?.kind === 'primitives') {
+      expect(assignment.visualization.nodes.length).toBeGreaterThanOrEqual(3)
+      expect(assignment.visualization.edges.length).toBeGreaterThanOrEqual(3)
+    }
+  })
+
   it('scores a private fill_blank question via payload projection', async () => {
     const question = await createPrivateQuestion()
     // Correct answer for createPrivateQuestion payload: 螺旋线

@@ -3,7 +3,7 @@
  *
  * Routing precedence:
  *  1. If the assignment carries a teacher-authored `visualization` (ADR-0015),
- *     dispatch by `kind` (ball_stick → BallStickScene, curve → CurveScene).
+ *     dispatch by `kind` (ball_stick / curve / primitives).
  *     This wins over any hardcoded registry scene so a teacher's confirmed
  *     geometry overrides the default.
  *  2. Otherwise route by assignment id via the registry (built-in scenes).
@@ -24,6 +24,9 @@ const BallStickScene = lazy(() =>
 )
 const CurveScene = lazy(() =>
   import('./scenes/CurveScene').then((m) => ({ default: m.CurveScene }))
+)
+const PrimitivesScene = lazy(() =>
+  import('./scenes/PrimitivesScene').then((m) => ({ default: m.PrimitivesScene }))
 )
 const MoleculeScene = lazy(() =>
   import('./scenes/MoleculeScene').then((m) => ({ default: m.MoleculeScene }))
@@ -57,6 +60,8 @@ export function Visualizer({ assignment, submission }: VisualizerProps) {
       <Suspense fallback={SCENE_FALLBACK}>
         {viz.kind === 'curve' ? (
           <CurveScene visualization={viz} />
+        ) : viz.kind === 'primitives' ? (
+          <PrimitivesScene visualization={viz} />
         ) : (
           <BallStickScene visualization={viz} />
         )}

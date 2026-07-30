@@ -149,7 +149,7 @@ describe('visualizationSchema · curve', () => {
     ).toThrow()
   })
 
-  it('routes ball_stick and curve via discriminatedUnion', () => {
+  it('routes ball_stick, curve, and primitives via union', () => {
     const ball = parseVisualization({
       kind: 'ball_stick',
       atoms: [{ id: 'A1', element: 'C', position: [0, 0, 0] }],
@@ -162,8 +162,62 @@ describe('visualizationSchema · curve', () => {
         [1, 0, 0]
       ]
     })
+    const primitives = parseVisualization({
+      kind: 'primitives',
+      nodes: [{ id: 'N1', position: [0, 0, 0] }],
+      edges: []
+    })
     expect(ball.kind).toBe('ball_stick')
     expect(curve.kind).toBe('curve')
+    expect(primitives.kind).toBe('primitives')
+  })
+})
+
+describe('visualizationSchema · primitives', () => {
+  it('accepts a valid circuit graph', () => {
+    const valid = parseVisualization({
+      kind: 'primitives',
+      nodes: [
+        { id: 'V', label: '电源', position: [-2, 0, 0], role: 'source' },
+        { id: 'R', label: 'R', position: [2, 0, 0], role: 'resistor' }
+      ],
+      edges: [{ from: 'V', to: 'R', label: '导线' }],
+      label: '串联电路'
+    })
+    expect(valid.kind).toBe('primitives')
+    if (valid.kind === 'primitives') {
+      expect(valid.nodes.length).toBe(2)
+      expect(valid.edges.length).toBe(1)
+    }
+  })
+
+  it('rejects empty nodes', () => {
+    expect(() =>
+      parseVisualization({ kind: 'primitives', nodes: [], edges: [] })
+    ).toThrow()
+  })
+
+  it('rejects edges referencing missing nodes', () => {
+    expect(() =>
+      parseVisualization({
+        kind: 'primitives',
+        nodes: [{ id: 'A', position: [0, 0, 0] }],
+        edges: [{ from: 'A', to: 'NOPE' }]
+      })
+    ).toThrow()
+  })
+
+  it('rejects duplicate node ids', () => {
+    expect(() =>
+      parseVisualization({
+        kind: 'primitives',
+        nodes: [
+          { id: 'A', position: [0, 0, 0] },
+          { id: 'A', position: [1, 0, 0] }
+        ],
+        edges: []
+      })
+    ).toThrow()
   })
 })
 
@@ -178,8 +232,10 @@ describe('generateVisualization · fallback paths', () => {
     // LLM_* env is not configured in the test environment.
     const result = await generateVisualization('氨气分子 NH3')
     if (result.ok) {
-      // If an LLM happens to be configured, accept either kind from the prompt.
-      expect(['ball_stick', 'curve']).toContain(result.visualization.kind)
+      // If an LLM happens to be configured, accept any known kind from the prompt.
+      expect(['ball_stick', 'curve', 'primitives']).toContain(
+        result.visualization.kind
+      )
     } else {
       expect(['no-llm', 'llm-failed']).toContain(result.reason)
     }

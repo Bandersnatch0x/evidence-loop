@@ -640,8 +640,45 @@ export interface CurveVisualization {
   label?: string
 }
 
+/** Node in a primitives graph (circuit, cell schematic, etc.). */
+export interface VisualizationNode {
+  id: string
+  /** Display label (e.g. "电源", "R", "开关"). */
+  label?: string
+  position: readonly [number, number, number]
+  /**
+   * Optional visual role for color/size (not a separate schema kind).
+   * Unknown values fall back to default styling.
+   */
+  role?: string
+}
+
+/** Edge between two node ids in a primitives graph. */
+export interface VisualizationEdge {
+  from: string
+  to: string
+  /** Optional edge label (e.g. "I", "导线"). */
+  label?: string
+}
+
+/**
+ * Primitives visualization (Phase 7 / ADR-0015). Node+edge graphs for
+ * circuits, simple cell maps, etc. Same pure-data + zod boundary as
+ * ball_stick/curve — no layout solver.
+ */
+export interface PrimitivesVisualization {
+  kind: 'primitives'
+  nodes: readonly VisualizationNode[]
+  edges: readonly VisualizationEdge[]
+  /** Optional human label shown above the canvas. */
+  label?: string
+}
+
 /** Union of all visualization kinds. Discriminant scales per ADR-0015. */
-export type Visualization = BallStickVisualization | CurveVisualization
+export type Visualization =
+  | BallStickVisualization
+  | CurveVisualization
+  | PrimitivesVisualization
 
 export interface KnowledgePoint {
   id: string

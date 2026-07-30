@@ -1,11 +1,11 @@
 /**
  * visualizationSchema — zod validation + LLM generation for teacher-authored
- * visualizations (ADR-0015 + Phase 4 curve extension).
+ * visualizations (ADR-0015: ball_stick / curve / primitives).
  *
  * Validation is the trust boundary: the LLM proposes geometry, but nothing
  * reaches the DB or the renderer until `visualizationSchema.parse` accepts it.
- * Bonds referencing unknown atoms, empty atom sets, non-finite positions, or
- * invalid curve polylines are rejected here — the teacher's 3D preview is a
+ * Bonds/edges referencing unknown endpoints, empty sets, non-finite positions,
+ * or invalid polylines are rejected here — the teacher's 3D preview is a
  * second, human check on top.
  *
  * Generation reuses `callOpenAICompatible` (the same OpenAI-compatible client
@@ -78,12 +78,59 @@ const curveSchema = z.object({
   label: z.string().max(80).optional()
 })
 
-// z.union (not discriminatedUnion): ballStickSchema uses superRefine for
-// atom-id / bond checks, which yields ZodEffects — discriminatedUnion only
-// accepts plain ZodObject options.
+const nodeSchema = z.object({
+  id: z.string().min(1),
+  label: z.string().max(40).optional(),
+  position: positionSchema,
+  role: z.string().max(32).optional()
+})
+
+const edgeSchema = z.object({
+  from: z.string().min(1),
+  to: z.string().min(1),
+  label: z.string().max(40).optional()
+})
+
+const primitivesSchema = z
+  .object({
+    kind: z.literal('primitives'),
+    nodes: z.array(nodeSchema).min(1).max(100),
+    edges: z.array(edgeSchema).max(200),
+    label: z.string().max(80).optional()
+  })
+  .superRefine((data, ctx) => {
+    const ids = new Set<string>()
+    for (const node of data.nodes) {
+      if (ids.has(node.id)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `重复的节点 id: ${node.id}`
+        })
+      }
+      ids.add(node.id)
+    }
+    for (const edge of data.edges) {
+      if (!ids.has(edge.from)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `边引用了不存在的节点: ${edge.from}`
+        })
+      }
+      if (!ids.has(edge.to)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `边引用了不存在的节点: ${edge.to}`
+        })
+      }
+    }
+  })
+
+// z.union (not discriminatedUnion): ballStick/primitives use superRefine
+// (ZodEffects) — discriminatedUnion only accepts plain ZodObject options.
 export const visualizationSchema: z.ZodType<Visualization> = z.union([
   ballStickSchema,
-  curveSchema
+  curveSchema,
+  primitivesSchema
 ])
 
 /** Parse + validate unknown input as a Visualization. Throws z.error on bad input. */
@@ -101,7 +148,7 @@ export interface GenerateVisualizationError {
   message: string
 }
 
-const SYSTEM_PROMPT = `你是科学 3D 可视化建模助手。根据用户的自然语言描述，输出一种几何 JSON：球棍模型或曲线。
+const SYSTEM_PROMPT = `你是科学 3D 可视化建模助手。根据用户的自然语言描述，输出一种几何 JSON：球棍、曲线或图元图。
 规则：
 - 只输出 JSON，不要解释文字。
 - 分子/晶体/原子结构 → kind "ball_stick"：
@@ -113,11 +160,16 @@ const SYSTEM_PROMPT = `你是科学 3D 可视化建模助手。根据用户的�
   {"kind":"curve","points":[[x,y,z],...],"secondaryPoints":[[x,y,z],...],"label":"简短中文标题"}
   - points 是预采样 3D 折线点，采样 50–200 个点，体现真实几何（如磁场螺旋：半径恒定、轴向均匀推进）。
   - secondaryPoints 可选：DNA 等双链用第二条螺旋；单条螺旋不要带 secondaryPoints。
-  - 坐标量级控制在约 -5..5，便于 3D 预览。`
+  - 坐标量级控制在约 -5..5，便于 3D 预览。
+- 电路/节点图/简单结构示意图 → kind "primitives"：
+  {"kind":"primitives","nodes":[{"id":"V","label":"电源","position":[-2,0,0],"role":"source"},{"id":"R","label":"R","position":[2,0,0],"role":"resistor"}],"edges":[{"from":"V","to":"R","label":"导线"}],"label":"简短中文标题"}
+  - nodes 1–40 个，id 唯一；edges 端点必须引用存在的节点 id。
+  - role 可选：source / resistor / switch / junction / load 等（仅样式提示）。
+  - 坐标平面优先 z≈0 的 2.5D 布局，量级 -4..4。`
 
 /**
- * Generate a visualization from a natural-language description (ball_stick or curve).
- * Returns ok=false (never throws) so the route layer can surface a clean error.
+ * Generate a visualization from a natural-language description
+ * (ball_stick | curve | primitives). Returns ok=false (never throws).
  */
 export async function generateVisualization(
   description: string
@@ -142,8 +194,8 @@ export async function generateVisualization(
         { role: 'system', content: SYSTEM_PROMPT },
         { role: 'user', content: trimmed }
       ],
-      // Accept either kind; full validation happens via visualizationSchema.parse.
-      z.object({ kind: z.enum(['ball_stick', 'curve']) }).passthrough(),
+      // Accept any known kind; full validation happens via visualizationSchema.parse.
+      z.object({ kind: z.enum(['ball_stick', 'curve', 'primitives']) }).passthrough(),
       {
         apiKey: config.apiKey,
         baseUrl: config.baseUrl,
