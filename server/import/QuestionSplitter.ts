@@ -344,6 +344,14 @@ function buildPayloadCandidate(
         kind: 'essay',
         dimensions: []
       }
+    case 'geometry':
+      // Geometry questions are authored by hand, not OCR-imported; emit an
+      // empty spec so the switch stays exhaustive — importers override later.
+      return {
+        kind: 'geometry',
+        vertices: {},
+        sectionVertexIds: []
+      }
     default: {
       const exhaustive: never = questionType
       return exhaustive

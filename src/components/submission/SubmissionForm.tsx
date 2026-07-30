@@ -50,6 +50,10 @@ export function SubmissionForm({
       return <EssayForm value={value} disabled={disabled} onChange={onChange} />
     case 'code':
       return <CodeForm value={value} disabled={disabled} onChange={onChange} />
+    case 'geometry':
+      // Geometry submission = comma-separated vertex ids (e.g. "A,C,F,H").
+      // Reuse FillBlankForm's free-text input until a dedicated form is warranted.
+      return <FillBlankForm value={value} disabled={disabled} onChange={onChange} />
     default:
       return assertNever(questionType)
   }

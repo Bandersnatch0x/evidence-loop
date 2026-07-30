@@ -1,9 +1,11 @@
 export type EvaluationStatus = 'completed' | 'rejected' | 'failed'
 
 /**
- * Evidence atom kinds (ADR-0004 / ADR-0008).
+ * Evidence atom kinds (ADR-0004 / ADR-0008 / ADR-0010).
  * Objective question types may produce cas_check / answer_match / etc.;
  * code remains test | static. structural_metric covers essay objective dims.
+ * render_artifact is a weight=0 audit-only snapshot of visualization params
+ * (ADR-0010) — makes a rendered scene reproducible without contributing score.
  */
 export type EvidenceKind =
   | 'test'
@@ -12,6 +14,7 @@ export type EvidenceKind =
   | 'answer_match'
   | 'lint_result'
   | 'structural_metric'
+  | 'render_artifact'
 
 export type EvidenceVisibility = 'public' | 'hidden'
 
@@ -45,6 +48,7 @@ export type QuestionType =
   | 'chem_equation'
   | 'code'
   | 'essay'
+  | 'geometry'
 
 export interface RubricDimension {
   id: string

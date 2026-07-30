@@ -67,6 +67,12 @@
       "weight": 1.0
     },
     {
+      "id": "kp.math.geometry.solid",
+      "name": "立体几何截面（高中）",
+      "parentId": "kp.math.geometry",
+      "weight": 1.0
+    },
+    {
       "id": "kp.math.function",
       "name": "函数",
       "weight": 1.0
@@ -131,6 +137,18 @@
       "id": "kp.physics.mechanics.kinematics",
       "name": "运动学（高中）",
       "parentId": "kp.physics.mechanics",
+      "weight": 1.0
+    },
+    {
+      "id": "kp.physics.mechanics.projectile",
+      "name": "斜抛运动（高中）",
+      "parentId": "kp.physics.mechanics",
+      "weight": 1.0
+    },
+    {
+      "id": "kp.physics.mechanics.projectile_xy",
+      "name": "斜抛运动的分量分解（高中）",
+      "parentId": "kp.physics.mechanics.projectile",
       "weight": 1.0
     },
     {
@@ -211,6 +229,12 @@
     {
       "id": "kp.chemistry.matter.periodic_table",
       "name": "元素周期律（高中）",
+      "parentId": "kp.chemistry.matter",
+      "weight": 1.0
+    },
+    {
+      "id": "kp.chemistry.matter.molecular_geometry",
+      "name": "分子空间结构 VSEPR（高中）",
       "parentId": "kp.chemistry.matter",
       "weight": 1.0
     },

@@ -117,6 +117,60 @@ describe('ExpressionValidator helpers', () => {
     })
     expect(unequal).toBe('unequal')
   })
+
+  it('splits a single `=` equation, keeping the RHS as the answer', () => {
+    expect(
+      parseExpressionSubmission('y = v0*sin(theta)*t - 0.5*g*t^2')
+    ).toEqual({
+      answer: 'v0*sin(theta)*t-0.5*g*t^2',
+      steps: ['v0*sin(theta)*t-0.5*g*t^2']
+    })
+  })
+
+  it('does not split relation operators (==, <=, >=, !=)', () => {
+    // `y == v0` should NOT be split — left as-is, downstream parse → blocked.
+    const out = parseExpressionSubmission('y == v0')
+    expect(out.answer).toBe('y==v0')
+  })
+
+  it('splits each line of a multi-line equation submission', () => {
+    const out = parseExpressionSubmission(
+      'y = v0*sin(theta)*t\ny = v0*sin(theta)*t - 0.5*g*t^2'
+    )
+    expect(out.steps).toEqual([
+      'v0*sin(theta)*t',
+      'v0*sin(theta)*t-0.5*g*t^2'
+    ])
+    expect(out.answer).toBe('v0*sin(theta)*t-0.5*g*t^2')
+  })
+})
+
+describe('ExpressionValidator · equation submissions', () => {
+  const runner = new ExpressionValidator({ timeoutMs: 3_000 })
+  const expectedLatex = 'v0*sin(theta)*t-0.5*g*t^2'
+
+  it('passes when an equation `y = RHS` is algebraically equal to expected RHS', async () => {
+    const assignment = makeExpressionAssignment(expectedLatex)
+    const result = await runner.run({
+      assignment,
+      submission: 'y = v0*sin(theta)*t - 0.5*g*t^2'
+    })
+    expect(result.status).toBe('completed')
+    const final = result.evidence.find((item) => item.id === 'cas-final')
+    expect(final?.state).toBe('passed')
+    expect(final?.actual).toBe('v0*sin(theta)*t-0.5*g*t^2')
+  })
+
+  it('fails (not blocks) when the equation RHS is algebraically wrong', async () => {
+    const assignment = makeExpressionAssignment(expectedLatex)
+    const result = await runner.run({
+      assignment,
+      submission: 'y = v0*cos(theta)*t - 0.5*g*t^2'
+    })
+    expect(result.status).toBe('completed')
+    const final = result.evidence.find((item) => item.id === 'cas-final')
+    expect(final?.state).toBe('failed')
+  })
 })
 
 describe('ExpressionValidator', () => {

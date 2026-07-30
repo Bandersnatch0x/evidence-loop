@@ -26,6 +26,12 @@ export interface ExpressionRunnerConfig {
    * (simplify(step_n - step_{n+1}) == 0).
    */
   steps?: readonly string[]
+  /**
+   * Multi-expression mode (ADR-0011): labeled sub-expressions, each
+   * CAS-compared against the matching expected. Keys map to evidence
+   * ids `cas-<key>`. `expectedLatex` ignored when this is set.
+   */
+  answers?: Readonly<Record<string, string>>
 }
 
 export interface ExpressionValidatorOptions {
@@ -71,6 +77,10 @@ export function isExpressionRunnerConfig(value: unknown): value is ExpressionRun
     if (!Array.isArray(value.steps)) return false
     if (!value.steps.every((step) => typeof step === 'string')) return false
   }
+  if (value.answers !== undefined) {
+    if (!isRecord(value.answers)) return false
+    if (!Object.values(value.answers).every((v) => typeof v === 'string')) return false
+  }
   return true
 }
 
@@ -100,6 +110,24 @@ export function normalizeExpression(raw: string): string {
   return text
 }
 
+/** Relation operators that look like `=` but must NOT be split. */
+const RELATION_PATTERN = /==|<=|>=|!=|\\le|\\ge|\\neq|\\approx|≈/
+
+/**
+ * Take the RHS of a single-`=` equation (`y = RHS` → `RHS`).
+ * Relation operators (`==`, `<=`, `!=`, `\le`, …) are left intact so the
+ * downstream mathjs parse produces a blocked evidence rather than a
+ * misleading split. Applied to RAW text BEFORE normalizeExpression, since
+ * normalize would otherwise strip the `\\` from `\le`/`\ge`.
+ */
+function splitEquationTakeRhs(raw: string): string {
+  const text = raw.trim()
+  if (RELATION_PATTERN.test(text)) return text
+  const eqIdx = text.indexOf('=')
+  if (eqIdx === -1) return text
+  return text.slice(eqIdx + 1)
+}
+
 export function parseExpressionSubmission(raw: string): ParsedExpressionSubmission {
   const trimmed = raw.trim()
   if (!trimmed) {
@@ -121,7 +149,7 @@ export function parseExpressionSubmission(raw: string): ParsedExpressionSubmissi
       if (parsed.length === 0) {
         throw new Error('步骤数组为空')
       }
-      const steps = parsed.map((item) => normalizeExpression(item))
+      const steps = parsed.map((item) => normalizeExpression(splitEquationTakeRhs(item)))
       const answer = steps[steps.length - 1] ?? ''
       return { answer, steps: steps.slice(0, -1).concat(answer) }
     }
@@ -149,11 +177,11 @@ export function parseExpressionSubmission(raw: string): ParsedExpressionSubmissi
         throw new Error('steps 必须为字符串数组')
       }
       for (const step of stepsRaw) {
-        steps.push(normalizeExpression(step))
+        steps.push(normalizeExpression(splitEquationTakeRhs(step)))
       }
     }
 
-    const answer = normalizeExpression(answerRaw)
+    const answer = normalizeExpression(splitEquationTakeRhs(answerRaw))
     if (steps.length === 0) {
       return { answer, steps: [answer] }
     }
@@ -170,7 +198,7 @@ export function parseExpressionSubmission(raw: string): ParsedExpressionSubmissi
       .split(/\r?\n/)
       .map((line) => line.trim())
       .filter((line) => line.length > 0)
-      .map((line) => normalizeExpression(line))
+      .map((line) => normalizeExpression(splitEquationTakeRhs(line)))
     if (lines.length === 0) {
       throw new Error('提交内容为空')
     }
@@ -178,8 +206,67 @@ export function parseExpressionSubmission(raw: string): ParsedExpressionSubmissi
     return { answer, steps: lines }
   }
 
-  const answer = normalizeExpression(trimmed)
+  const answer = normalizeExpression(splitEquationTakeRhs(trimmed))
   return { answer, steps: [answer] }
+}
+
+/**
+ * Parse a labeled multi-expression submission (ADR-0011). Each label maps to
+ * one expected entry in `spec.answers`. Accepted forms:
+ *  - Line-oriented: `x = v0*cos(theta)*t\ny = v0*sin(theta)*t - 0.5*g*t^2`
+ *  - JSON object: `{"x":"v0*cos(theta)*t","y":"v0*sin(theta)*t-0.5*g*t^2"}`
+ * The `=` split reuses splitEquationTakeRhs; labels are lowercased + trimmed.
+ * Returns a map label→normalized RHS. Missing labels (when expected is given)
+ * surface as '' so the caller emits a blocked/failed evidence, not a throw.
+ */
+export function parseLabeledSubmission(
+  raw: string,
+  expected: Readonly<Record<string, string>>
+): Record<string, string> {
+  const trimmed = raw.trim()
+  if (trimmed === '') {
+    const out: Record<string, string> = {}
+    for (const key of Object.keys(expected)) out[key] = ''
+    return out
+  }
+
+  // JSON object form.
+  if (trimmed.startsWith('{')) {
+    let parsed: unknown
+    try {
+      parsed = JSON.parse(trimmed) as unknown
+    } catch {
+      throw new Error('多表达式 JSON 解析失败')
+    }
+    if (!isRecord(parsed) || Array.isArray(parsed)) {
+      throw new Error('多表达式 JSON 必须为对象')
+    }
+    const out: Record<string, string> = {}
+    for (const key of Object.keys(expected)) {
+      const raw2 = parsed[key]
+      out[key] =
+        typeof raw2 === 'string' ? normalizeExpression(splitEquationTakeRhs(raw2)) : ''
+    }
+    return out
+  }
+
+  // Line-oriented form: each non-empty line is `label = rhs`.
+  const out: Record<string, string> = {}
+  for (const key of Object.keys(expected)) out[key] = ''
+  const lines = trimmed
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter((l) => l.length > 0)
+  for (const line of lines) {
+    const eqIdx = line.indexOf('=')
+    if (eqIdx === -1) continue
+    const label = line.slice(0, eqIdx).trim().toLowerCase()
+    const rhs = splitEquationTakeRhs(line)
+    if (Object.prototype.hasOwnProperty.call(expected, label)) {
+      out[label] = normalizeExpression(rhs)
+    }
+  }
+  return out
 }
 
 function isZeroNode(node: MathNode): boolean {
@@ -528,6 +615,11 @@ export class ExpressionValidator implements CodeRunner {
       }
     }
 
+    // Multi-expression mode (ADR-0011): spec.answers present.
+    if (runner.answers && Object.keys(runner.answers).length > 0) {
+      return this.runLabeled(request, runner.answers, startedAt)
+    }
+
     let submission: ParsedExpressionSubmission
     try {
       submission = parseExpressionSubmission(resolveSubmission(request))
@@ -617,6 +709,84 @@ export class ExpressionValidator implements CodeRunner {
         actual: submission.answer,
         message: `表达式解析失败：${message}`
       })
+    }
+
+    return {
+      status: 'completed',
+      durationMs: Math.round(performance.now() - startedAt),
+      evidence
+    }
+  }
+
+  /**
+   * Multi-expression CAS branch (ADR-0011): compare each labeled
+   * sub-expression against its expected, emitting `cas-<label>` evidence.
+   * Missing labels → blocked. Parse failure → blocked for all.
+   */
+  private runLabeled(
+    request: RunnerRequest,
+    answers: Readonly<Record<string, string>>,
+    startedAt: number
+  ): RunnerResult {
+    const evidence: RunnerEvidence[] = []
+    let labels: Record<string, string>
+    try {
+      labels = parseLabeledSubmission(resolveSubmission(request), answers)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      for (const label of Object.keys(answers)) {
+        evidence.push({
+          id: `cas-${label}`,
+          state: 'blocked',
+          message: `提交解析失败：${message}`
+        })
+      }
+      return {
+        status: 'completed',
+        durationMs: Math.round(performance.now() - startedAt),
+        evidence
+      }
+    }
+
+    for (const label of Object.keys(answers)) {
+      const studentRhs = labels[label] ?? ''
+      const expectedRhs = normalizeExpression(answers[label] ?? '')
+      const evidenceId = `cas-${label}`
+
+      if (studentRhs.trim() === '') {
+        evidence.push({
+          id: evidenceId,
+          state: 'blocked',
+          message: `缺少分量 ${label} 的表达式`
+        })
+        continue
+      }
+
+      try {
+        parse(studentRhs)
+        parse(expectedRhs)
+        const verdict = expressionsEquivalent(studentRhs, expectedRhs, {
+          numericalTrials: this.numericalTrials,
+          numericalTolerance: this.numericalTolerance,
+          seed: label.length + 7
+        })
+        evidence.push({
+          id: evidenceId,
+          state: verdict.equal ? 'passed' : 'failed',
+          actual: studentRhs,
+          message: verdict.equal
+            ? `分量 ${label} 与期望代数等价（${verdict.method}）`
+            : `分量 ${label} 与期望不等价：${verdict.detail}`
+        })
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error)
+        evidence.push({
+          id: evidenceId,
+          state: 'blocked',
+          actual: studentRhs,
+          message: `分量 ${label} 解析失败：${message}`
+        })
+      }
     }
 
     return {

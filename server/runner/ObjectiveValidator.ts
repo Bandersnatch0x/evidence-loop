@@ -198,7 +198,12 @@ export class ObjectiveValidator implements CodeRunner {
       )
     }
 
-    if (spec.kind === 'expression' || spec.kind === 'chem_equation' || spec.kind === 'essay') {
+    if (
+      spec.kind === 'expression' ||
+      spec.kind === 'chem_equation' ||
+      spec.kind === 'essay' ||
+      spec.kind === 'geometry'
+    ) {
       return Promise.resolve(
         build({
           status: 'failed',

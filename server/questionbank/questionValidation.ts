@@ -32,7 +32,8 @@ const QUESTION_TYPES: readonly QuestionType[] = [
   'expression',
   'chem_equation',
   'code',
-  'essay'
+  'essay',
+  'geometry'
 ]
 
 const SUBJECTS: readonly SubjectLanguage[] = [
@@ -103,6 +104,8 @@ export function validatePayload(
       return validateEssay(payload)
     case 'code':
       return validateCode(payload)
+    case 'geometry':
+      return validateGeometry(payload)
     default: {
       const exhaustive: never = questionType
       throw new QuestionValidationError(
@@ -252,6 +255,48 @@ function validateCode(payload: Record<string, unknown>): RunnerSpec {
     )
   }
   return payload as unknown as RunnerSpec
+}
+
+function isTriple(value: unknown): value is [number, number, number] {
+  return (
+    Array.isArray(value) &&
+    value.length === 3 &&
+    value.every((n) => typeof n === 'number' && Number.isFinite(n))
+  )
+}
+
+function validateGeometry(payload: Record<string, unknown>): RunnerSpec {
+  if (payload.kind !== 'geometry') {
+    throw new QuestionValidationError("Geometry payload requires kind: 'geometry'")
+  }
+  if (!isRecord(payload.vertices)) {
+    throw new QuestionValidationError('Geometry payload requires a vertices object')
+  }
+  const vertices: Record<string, readonly [number, number, number]> = {}
+  for (const [key, coord] of Object.entries(payload.vertices)) {
+    if (!/^[A-H]$/.test(key)) {
+      throw new QuestionValidationError(`Geometry vertex keys must be A..H, got: ${key}`)
+    }
+    if (!isTriple(coord)) {
+      throw new QuestionValidationError(
+        `Geometry vertex ${key} must be a 3-tuple of finite numbers`
+      )
+    }
+    vertices[key] = coord
+  }
+  if (Object.keys(vertices).length === 0) {
+    throw new QuestionValidationError('Geometry payload requires at least one vertex')
+  }
+  if (
+    !Array.isArray(payload.sectionVertexIds) ||
+    payload.sectionVertexIds.length === 0 ||
+    !payload.sectionVertexIds.every((id) => typeof id === 'string' && id in vertices)
+  ) {
+    throw new QuestionValidationError(
+      'Geometry sectionVertexIds must be a non-empty array of vertex keys present in vertices'
+    )
+  }
+  return { kind: 'geometry', vertices, sectionVertexIds: payload.sectionVertexIds as string[] }
 }
 
 /**

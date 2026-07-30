@@ -31,17 +31,19 @@ export const QUESTION_TYPE_LABELS: Record<QuestionType, string> = {
   expression: '表达式题',
   chem_equation: '方程式题',
   code: '代码题',
-  essay: '作文题'
+  essay: '作文题',
+  geometry: '立体几何题'
 }
 
-/** Evidence-kind labels shown next to each evidence atom (ADR-0004 / 0008). */
+/** Evidence-kind labels shown next to each evidence atom (ADR-0004 / 0008 / 0010). */
 export const EVIDENCE_KIND_LABELS: Record<EvidenceKind, string> = {
   test: '运行测试',
   static: '静态检查',
   cas_check: 'CAS 校验',
   answer_match: '答案比对',
   lint_result: '书写检查',
-  structural_metric: '结构度量'
+  structural_metric: '结构度量',
+  render_artifact: '渲染取证'
 }
 
 export function subjectLabel(language: SubjectLanguage): string {

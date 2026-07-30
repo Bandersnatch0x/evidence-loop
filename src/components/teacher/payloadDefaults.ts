@@ -25,6 +25,10 @@ export function defaultPayload(questionType: QuestionType): unknown {
         maxAstNodes: 80,
         testCases: [{ id: 't1', args: [], expected: 0 }]
       }
+    case 'geometry':
+      // Geometry questions are authored in assignments.ts, not via this form;
+      // emit a placeholder so the switch stays exhaustive.
+      return { kind: 'geometry', vertices: {}, sectionVertexIds: [] }
     default: {
       const exhaustive: never = questionType
       return exhaustive
@@ -82,6 +86,9 @@ export function buildPayload(
         maxAstNodes: Number(fields.codeMaxAstNodes) || 80,
         testCases: parseCodeTestCases(fields.codeTestCasesJson)
       }
+    case 'geometry':
+      // Not hand-entered via this form; return the default payload.
+      return defaultPayload('geometry')
     default: {
       const exhaustive: never = questionType
       return exhaustive

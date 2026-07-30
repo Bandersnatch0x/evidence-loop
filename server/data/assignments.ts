@@ -53,6 +53,13 @@ export interface ExpressionRunnerSpec {
   readonly kind: 'expression'
   expectedLatex: string
   steps?: readonly string[]
+  /**
+   * Multi-expression mode (ADR-0011): when present, the submission is parsed
+   * as labeled sub-expressions (one per label) and each is CAS-compared
+   * against the matching expected here. `expectedLatex` is ignored in this
+   * mode. Labels map to criterion ids `cas-<label>`.
+   */
+  answers?: Readonly<Record<string, string>>
 }
 
 export interface ChemEquationRunnerSpec {
@@ -64,6 +71,22 @@ export interface EssayRunnerSpec {
   readonly kind: 'essay'
   minWords?: number
   requiredKeywords?: string[]
+}
+
+/**
+ * Geometry runner config for 3D-solid section questions (ADR-0010).
+ * `vertices` is the solid's vertex table (e.g. a cube's 8 corners, keys A..H)
+ * shared by the runner (shape recognition) and the Canvas (render) — a single
+ * source of truth, mirroring ADR 0009's fixed-constants principle.
+ * `sectionVertexIds` is the authored answer's section; the learner submits a
+ * different set and the runner compares the resulting polygon's shape.
+ */
+export interface GeometryRunnerSpec {
+  readonly kind: 'geometry'
+  /** Solid vertex coordinates, keys A..H, right-handed frame. */
+  vertices: Readonly<Record<string, readonly [number, number, number]>>
+  /** Authored section vertex ids (learner submits its own set). */
+  sectionVertexIds: readonly string[]
 }
 
 /**
@@ -79,6 +102,7 @@ export type RunnerSpec =
   | ExpressionRunnerSpec
   | ChemEquationRunnerSpec
   | EssayRunnerSpec
+  | GeometryRunnerSpec
 
 export function isPythonRunnerSpec(spec: RunnerSpec): spec is PythonRunnerSpec {
   if (typeof spec !== 'object' || spec === null) return false
@@ -565,6 +589,393 @@ const chemWaterAssignment: ExecutableAssignment = {
   runner: {
     kind: 'chem_equation',
     expectedEquation: '2H2+O2=2H2O'
+  }
+}
+
+/**
+ * Demo: physics projectile motion (y-component), expression + CAS.
+ * ExpressionValidator splits a `y = RHS` submission and compares RHS to
+ * expectedLatex. x(t) is intentionally NOT scored (no false evidence).
+ * Fixed constants (v0=10, θ=π/4, g=9.8, t∈[0,2]) are shared with the
+ * Canvas trajectory component; the runner stays symbolic over them.
+ */
+const physicsProjectileYAssignment: ExecutableAssignment = {
+  id: 'physics-projectile-y',
+  title: '物理题：斜抛运动的竖直分量',
+  module: '物理 · 力学',
+  language: 'physics',
+  questionType: 'expression',
+  estimatedMinutes: 8,
+  status: 'ready',
+  objective:
+    '写出斜抛运动的竖直位移方程 y(t)，用初速度 v0、抛射角 theta、重力加速度 g、时间 t 表示。',
+  scenario:
+    '固定参数：v0 = 10 m/s，theta = π/4，g = 9.8 m/s²，t ∈ [0, 2]。提交形式：y = <表达式>。',
+  requirements: [
+    '提交 y 关于 t 的表达式（等号左侧为 y）',
+    '允许代数等价的不同书写形式（CAS 判等）'
+  ],
+  constraints: ['评分来自 CAS 等价检查；解析失败记 blocked'],
+  functionSignature: 'y = ?(v0, theta, g, t)',
+  rubric: [
+    {
+      id: 'correctness',
+      label: '竖直分量正确性',
+      description: 'y(t) 与期望表达式代数等价',
+      maxScore: 100
+    }
+  ],
+  demoVariants: [
+    {
+      id: 'correct',
+      label: '正确答案',
+      description: '竖直分量：v0*sin(theta)*t - 0.5*g*t^2。',
+      code: 'y = v0*sin(theta)*t - 0.5*g*t^2'
+    },
+    {
+      id: 'wrong',
+      label: '错误答案',
+      description: '误用 cos 分量。',
+      code: 'y = v0*cos(theta)*t - 0.5*g*t^2'
+    }
+  ],
+  criteria: [
+    {
+      id: 'cas-final',
+      kind: 'cas_check',
+      label: '竖直分量 CAS 等价',
+      dimensionId: 'correctness',
+      visibility: 'public',
+      weight: 100,
+      expected: 'v0*sin(theta)*t-0.5*g*t^2',
+      conceptId: 'kp.physics.mechanics.projectile',
+      passedMessage: '竖直分量与期望代数等价',
+      failedMessage: '竖直分量与期望不等价或无法校验'
+    }
+  ],
+  runner: {
+    kind: 'expression',
+    expectedLatex: 'v0*sin(theta)*t-0.5*g*t^2'
+  }
+}
+
+/**
+ * Demo: projectile motion, both components (ADR-0011 multi-expression mode).
+ * Reuses the `expression` QuestionType + ExpressionValidator; the spec carries
+ * `answers: {x, y}` so the validator emits `cas-x` / `cas-y` separately.
+ * Fixed constants (v0=10, θ=π/4, g=9.8, t∈[0,2]) are shared with the
+ * ProjectileXYCanvas; the runner stays symbolic over them.
+ */
+const physicsProjectileXYAssignment: ExecutableAssignment = {
+  id: 'physics-projectile-xy',
+  title: '物理题：斜抛运动的完整分量',
+  module: '物理 · 力学',
+  language: 'physics',
+  questionType: 'expression',
+  estimatedMinutes: 10,
+  status: 'ready',
+  objective:
+    '写出斜抛运动的水平位移 x(t) 与竖直位移 y(t)，用初速度 v0、抛射角 theta、重力加速度 g、时间 t 表示。',
+  scenario:
+    '固定参数：v0 = 10 m/s，theta = π/4，g = 9.8 m/s²，t ∈ [0, 2]。提交形式：每行一个等式，先 x 后 y。',
+  requirements: [
+    '提交两行：x = <表达式> 和 y = <表达式>',
+    '允许代数等价的不同书写形式（CAS 判等）'
+  ],
+  constraints: ['评分来自两条 CAS 等价检查；解析失败记 blocked'],
+  functionSignature: 'x = ?(v0, theta, g, t)\ny = ?(v0, theta, g, t)',
+  rubric: [
+    {
+      id: 'correctness',
+      label: '分量正确性',
+      description: 'x(t) 与 y(t) 均与期望代数等价',
+      maxScore: 100
+    }
+  ],
+  demoVariants: [
+    {
+      id: 'correct',
+      label: '正确答案',
+      description: 'x=v0*cos(theta)*t，y=v0*sin(theta)*t-0.5*g*t^2。',
+      code: 'x = v0*cos(theta)*t\ny = v0*sin(theta)*t - 0.5*g*t^2'
+    },
+    {
+      id: 'wrong-x',
+      label: 'x 分量错误',
+      description: '误用 sin 写 x 分量。',
+      code: 'x = v0*sin(theta)*t\ny = v0*sin(theta)*t - 0.5*g*t^2'
+    },
+    {
+      id: 'missing-y',
+      label: '缺少 y 分量',
+      description: '只提交 x 分量，y 缺失。',
+      code: 'x = v0*cos(theta)*t'
+    }
+  ],
+  criteria: [
+    {
+      id: 'cas-x',
+      kind: 'cas_check',
+      label: 'x 分量 CAS 等价',
+      dimensionId: 'correctness',
+      visibility: 'public',
+      weight: 50,
+      expected: 'v0*cos(theta)*t',
+      conceptId: 'kp.physics.mechanics.projectile_xy',
+      passedMessage: 'x 分量与期望代数等价',
+      failedMessage: 'x 分量与期望不等价或无法校验'
+    },
+    {
+      id: 'cas-y',
+      kind: 'cas_check',
+      label: 'y 分量 CAS 等价',
+      dimensionId: 'correctness',
+      visibility: 'public',
+      weight: 50,
+      expected: 'v0*sin(theta)*t-0.5*g*t^2',
+      conceptId: 'kp.physics.mechanics.projectile_xy',
+      passedMessage: 'y 分量与期望代数等价',
+      failedMessage: 'y 分量与期望不等价或无法校验'
+    }
+  ],
+  runner: {
+    kind: 'expression',
+    expectedLatex: '',
+    answers: {
+      x: 'v0*cos(theta)*t',
+      y: 'v0*sin(theta)*t-0.5*g*t^2'
+    }
+  }
+}
+
+/**
+ * Demo: 3D-solid section shape recognition (ADR-0010).
+ * GeometryRunner emits shape-vertices / shape-convex / render-artifact.
+ * render-artifact is weight=0 audit-only (kind: render_artifact), isolated
+ * in the maxScore=0 `render` rubric dimension so its state never pollutes
+ * `correctness`. The vertex table is the single source of truth shared with
+ * the Canvas (ADR 0009 fixed-constants principle).
+ */
+const cubeSectionAssignment: ExecutableAssignment = {
+  id: 'cube-section',
+  title: '立体几何：正方体截面形状',
+  module: '数学 · 立体几何',
+  language: 'math',
+  questionType: 'geometry',
+  estimatedMinutes: 8,
+  status: 'ready',
+  objective:
+    '用平面截正方体，提交截面所经过的顶点编号，判断截面多边形的顶点数与凸性。',
+  scenario:
+    '正方体顶点 A–H（右手系）。提交顶点编号（逗号分隔，按截面多边形顺序），系统判断形状。',
+  requirements: ['提交截面经过的顶点编号，按多边形顺序排列', '顶点数 3–6'],
+  constraints: ['形状识别由 GeometryRunner 确定性计算；渲染参数作为审计证据记录'],
+  functionSignature: '截面顶点: A, ...',
+  rubric: [
+    {
+      id: 'correctness',
+      label: '形状正确性',
+      description: '截面顶点数合理且多边形为凸',
+      maxScore: 100
+    },
+    {
+      id: 'render',
+      label: '渲染审计',
+      description: '渲染参数快照（不计分，仅供复核重画）',
+      maxScore: 0
+    }
+  ],
+  demoVariants: [
+    {
+      id: 'correct',
+      label: '正确答案（四边形截面）',
+      description: '过 A,B,C,D 的底面截面，凸四边形。',
+      code: 'A,B,C,D'
+    },
+    {
+      id: 'wrong',
+      label: '错误答案（顶点数超界）',
+      description: '提交 7 个顶点，超出合理范围。',
+      code: 'A,B,C,D,E,F,G'
+    }
+  ],
+  criteria: [
+    {
+      id: 'shape-vertices',
+      kind: 'answer_match',
+      label: '截面顶点数',
+      dimensionId: 'correctness',
+      visibility: 'public',
+      weight: 50,
+      expected: '3–6',
+      conceptId: 'kp.math.geometry.solid',
+      passedMessage: '截面顶点数在合理范围内',
+      failedMessage: '截面顶点数超出合理范围'
+    },
+    {
+      id: 'shape-convex',
+      kind: 'answer_match',
+      label: '截面凸性',
+      dimensionId: 'correctness',
+      visibility: 'public',
+      weight: 50,
+      expected: '凸多边形',
+      conceptId: 'kp.math.geometry.solid',
+      passedMessage: '截面多边形共面且为凸多边形',
+      failedMessage: '截面多边形非凸或不共面'
+    },
+    {
+      id: 'render-artifact',
+      kind: 'render_artifact',
+      label: '渲染取证',
+      dimensionId: 'render',
+      visibility: 'public',
+      weight: 0,
+      conceptId: 'kp.math.geometry.solid',
+      passedMessage: '已记录渲染参数快照',
+      failedMessage: '未记录渲染参数'
+    }
+  ],
+  runner: {
+    kind: 'geometry',
+    vertices: {
+      A: [-1, -1, -1],
+      B: [1, -1, -1],
+      C: [1, 1, -1],
+      D: [-1, 1, -1],
+      E: [-1, -1, 1],
+      F: [1, -1, 1],
+      G: [1, 1, 1],
+      H: [-1, 1, 1]
+    },
+    sectionVertexIds: ['A', 'B', 'C', 'D']
+  }
+}
+
+/**
+ * Demo: VSEPR molecular geometry — methane (ADR-0012).
+ * Reuses `fill_blank` + ObjectiveValidator; the student writes the molecular
+ * shape name (e.g. "tetrahedral"). No new QuestionType/runner. The 3D
+ * ball-and-stick scene is the presentation layer (MoleculeCanvas); scoring
+ * rests on the text match, not on the rendered geometry.
+ */
+const chemVseprMethaneAssignment: ExecutableAssignment = {
+  id: 'chem-vsepr-methane',
+  title: '化学题：甲烷的分子空间构型',
+  module: '化学 · 物质构成',
+  language: 'chemistry',
+  questionType: 'fill_blank',
+  estimatedMinutes: 6,
+  status: 'ready',
+  objective:
+    '根据 VSEPR 模型判断甲烷（CH4）分子的空间构型名称。',
+  scenario:
+    '甲烷中心碳原子有 4 个 σ 键、0 个孤对电子。按 VSEPR 判断其分子几何形状，提交形状英文名或中文名。',
+  requirements: ['提交分子几何形状名称（英文或中文均可）'],
+  constraints: ['大小写不敏感；评分来自填空文本匹配'],
+  functionSignature: 'CH4 的分子构型是 ______',
+  rubric: [
+    {
+      id: 'correctness',
+      label: '构型判断',
+      description: '形状名称命中可接受答案',
+      maxScore: 100
+    }
+  ],
+  demoVariants: [
+    {
+      id: 'correct',
+      label: '正确答案',
+      description: '正四面体构型。',
+      code: 'tetrahedral'
+    },
+    {
+      id: 'wrong',
+      label: '错误答案',
+      description: '误判为平面正方形。',
+      code: 'square planar'
+    }
+  ],
+  criteria: [
+    {
+      id: 'answer-match',
+      kind: 'answer_match',
+      label: 'VSEPR 形状匹配',
+      dimensionId: 'correctness',
+      visibility: 'public',
+      weight: 100,
+      expected: 'tetrahedral',
+      conceptId: 'kp.chemistry.matter.molecular_geometry',
+      passedMessage: '甲烷为正四面体构型',
+      failedMessage: '形状名称未命中可接受答案'
+    }
+  ],
+  runner: {
+    kind: 'fill_blank',
+    acceptedAnswers: ['tetrahedral', '正四面体', '正四面体型', '四面体'],
+    caseSensitive: false
+  }
+}
+
+/**
+ * Demo: VSEPR molecular geometry — water (ADR-0012).
+ * H2O: 2 σ 键 + 2 孤对电子 → V 形（bent），键角约 104.5°。第二例验证
+ * VSEPR 不止一种形状，且 acceptedAnswers 含多语言/同义词。
+ */
+const chemVseprWaterAssignment: ExecutableAssignment = {
+  id: 'chem-vsepr-water',
+  title: '化学题：水分子的空间构型',
+  module: '化学 · 物质构成',
+  language: 'chemistry',
+  questionType: 'fill_blank',
+  estimatedMinutes: 6,
+  status: 'ready',
+  objective: '根据 VSEPR 模型判断水分子（H2O）的空间构型名称。',
+  scenario:
+    '水分子中心氧原子有 2 个 σ 键、2 个孤对电子。按 VSEPR 判断其分子几何形状。',
+  requirements: ['提交分子几何形状名称（英文或中文均可）'],
+  constraints: ['大小写不敏感；评分来自填空文本匹配'],
+  functionSignature: 'H2O 的分子构型是 ______',
+  rubric: [
+    {
+      id: 'correctness',
+      label: '构型判断',
+      description: '形状名称命中可接受答案',
+      maxScore: 100
+    }
+  ],
+  demoVariants: [
+    {
+      id: 'correct',
+      label: '正确答案',
+      description: 'V 形（弯曲形）。',
+      code: 'bent'
+    },
+    {
+      id: 'wrong',
+      label: '错误答案',
+      description: '误判为直线形。',
+      code: 'linear'
+    }
+  ],
+  criteria: [
+    {
+      id: 'answer-match',
+      kind: 'answer_match',
+      label: 'VSEPR 形状匹配',
+      dimensionId: 'correctness',
+      visibility: 'public',
+      weight: 100,
+      expected: 'bent',
+      conceptId: 'kp.chemistry.matter.molecular_geometry',
+      passedMessage: '水分子为 V 形（弯曲形）构型',
+      failedMessage: '形状名称未命中可接受答案'
+    }
+  ],
+  runner: {
+    kind: 'fill_blank',
+    acceptedAnswers: ['bent', 'v形', 'v 型', '弯曲形', '角形'],
+    caseSensitive: false
   }
 }
 
@@ -1201,6 +1612,11 @@ const allAssignments: readonly ExecutableAssignment[] = [
   fillBlankAtomAssignment,
   numericOhmAssignment,
   expressionExpandAssignment,
+  physicsProjectileYAssignment,
+  physicsProjectileXYAssignment,
+  cubeSectionAssignment,
+  chemVseprMethaneAssignment,
+  chemVseprWaterAssignment,
   chemWaterAssignment,
   essayPerseveranceAssignment,
   choiceEnglishTenseAssignment,

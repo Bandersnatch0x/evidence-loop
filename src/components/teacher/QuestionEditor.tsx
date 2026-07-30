@@ -510,6 +510,13 @@ function PayloadFields({
           </label>
         </div>
       )
+    case 'geometry':
+      // Geometry questions are authored in assignments.ts, not via this form.
+      return (
+        <p className="span-full">
+          立体几何题暂不支持在此表单录入，请在 assignments.ts 中手动编写。
+        </p>
+      )
     default: {
       const exhaustive: never = questionType
       return <p>{String(exhaustive)}</p>

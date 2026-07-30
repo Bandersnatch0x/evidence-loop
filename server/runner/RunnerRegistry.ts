@@ -2,6 +2,7 @@ import type { QuestionType } from '../../shared/contracts'
 import { ChemEquationValidator } from './ChemEquationValidator'
 import { EssayRunner } from './EssayRunner'
 import { ExpressionValidator } from './ExpressionValidator'
+import { GeometryRunner } from './GeometryRunner'
 import { ObjectiveValidator } from './ObjectiveValidator'
 import type { CodeRunner, RunnerRequest, RunnerResult } from './types'
 
@@ -81,4 +82,5 @@ export function createRunnerRegistry(codeRunner: CodeRunner): RunnerRegistry {
     .register('expression', new ExpressionValidator())
     .register('chem_equation', new ChemEquationValidator())
     .register('essay', new EssayRunner())
+    .register('geometry', new GeometryRunner())
 }
