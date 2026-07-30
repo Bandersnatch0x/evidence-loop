@@ -1,7 +1,11 @@
 // @vitest-environment node
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import type { ChoiceRunnerSpec, NumericRunnerSpec } from '../server/data/assignments'
+import {
+  createAssignmentRegistry,
+  type ChoiceRunnerSpec,
+  type NumericRunnerSpec
+} from '../server/data/assignments'
 import { QuestionStore } from '../server/questionbank/QuestionStore'
 import {
   QuestionBankService,
@@ -311,19 +315,22 @@ describe('Seed import from demo assignments (迁移/共存)', () => {
     store.close()
   })
 
-  it('imports all 21 demo assignments as seed questions', () => {
+  it('imports all demo assignments as seed questions', () => {
     const result = seedQuestionsFromAssignments(store, FIXED_NOW)
-    expect(result.imported).toBe(21)
+    // Keep count tied to the live registry so new demos (curve helix/DNA) don't hard-fail.
+    const demoCount = createAssignmentRegistry().list().length
+    expect(result.imported).toBe(demoCount)
     expect(result.skipped).toBe(0)
-    expect(store.count({ authorId: SEED_AUTHOR_ID })).toBe(21)
+    expect(store.count({ authorId: SEED_AUTHOR_ID })).toBe(demoCount)
   })
 
   it('is idempotent — a re-run skips existing seeds', () => {
     seedQuestionsFromAssignments(store, FIXED_NOW)
+    const demoCount = createAssignmentRegistry().list().length
     const second = seedQuestionsFromAssignments(store, FIXED_NOW)
     expect(second.imported).toBe(0)
-    expect(second.skipped).toBe(21)
-    expect(store.count({ authorId: SEED_AUTHOR_ID })).toBe(21)
+    expect(second.skipped).toBe(demoCount)
+    expect(store.count({ authorId: SEED_AUTHOR_ID })).toBe(demoCount)
   })
 
   it('marks code seeds test_case and non-code seeds authored_key (D2)', () => {

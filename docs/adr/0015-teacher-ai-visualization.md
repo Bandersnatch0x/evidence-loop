@@ -43,11 +43,11 @@ ADR-0013/0014 落地统一可视化套件 + 内置 3D/2D 场景（分子/截面/
 - **图元类几何（`kind:'primitives'`）未做。** 电路图、细胞结构等既非球棍也非单条/双条曲线，需要独立 schema（节点 + 边 + 可选标签）。
 - **DNA 碱基对横线未做。** 双链骨架可用 `secondaryPoints`；碱基对连接是球棍式 bond，需混合几何或扩展 schema，MVP 刻意不做。
 - ~~**学生侧私有题 visualization 透传未闭环。**~~ **已做（Phase 5）。** registry miss 时按题库 id 投影 Assignment 壳；registry hit 时合并 seed/裸 id visualization。`QuestionBankService.peek` 提供无所有权的 by-id 展示读取（不开放 list）。
-- **私有题完整评分 runner 投影未做。** Phase 5 只保证工作台能加载 + 渲染 visualization；`EvaluationAgent` 仍主要吃 demo registry 的 `ExecutableAssignment`。私有题 payload→runner 的完整评分闭环可另开切片。
+- ~~**私有题完整评分 runner 投影未做。**~~ **已做（Phase 6）。** `createQuestionBackedRegistry` + `projectQuestionToExecutable`：payload→RunnerSpec + criteria，EvaluationAgent 可对私有题 id 评分（客观题/表达式/化学方程式/作文/几何/代码 testCases）。
+- ~~**曲线/双螺旋 demo seed 未预置。**~~ **已做。** `physics-magnetic-helix` / `bio-dna-double-helix` 预置题 + `ensureDemoCurveVisualizations` 无 LLM 采样点。
 - **生成几何的自动化学校验未做。** 配位数/键角/键长、螺旋几何是否合理靠教师 3D 预览肉眼判断。若未来出现"LLM 生成错误结构未被教师发现"的真实问题，再加规则校验。
 - **学生侧触发生成未做。** 当前仅教师角色可生成（题库教师私有）。学生侧看的是教师确认后的确定数据（有意为之）。
 - **LLM 未配置时的手动几何录入未做。** 生成器返回 `no-llm` 错误并提示；不经 LLM 直接填原子表/点列的 UI 未做——YAGNI，无 LLM 时用内置 demo 或 adopt API 注入样例即可。
-- **曲线/双螺旋 demo seed 未预置。** 代码路径已通，但无内置 seed 题带磁场螺旋/DNA 曲线数据；演示仍依赖 LLM 或手动 adopt。
 
 ## 砍掉的（YAGNI，留后续切片）
 

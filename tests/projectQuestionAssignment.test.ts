@@ -1,8 +1,11 @@
 // @vitest-environment node
 
 import { describe, expect, it } from 'vitest'
+import { createAssignmentRegistry } from '../server/data/assignments'
 import {
+  createQuestionBackedRegistry,
   projectQuestionToAssignment,
+  projectQuestionToExecutable,
   resolveVisualizationForAssignmentId
 } from '../server/questionbank/projectQuestionAssignment'
 import type { Question, Visualization } from '../shared/contracts'
@@ -57,6 +60,67 @@ describe('projectQuestionToAssignment', () => {
     )
     expect(assignment.title.length).toBeLessThanOrEqual(80)
     expect(assignment.title.endsWith('…')).toBe(true)
+  })
+})
+
+describe('projectQuestionToExecutable', () => {
+  it('builds runner + answer-match criteria from fill_blank payload', () => {
+    const exec = projectQuestionToExecutable(sampleQuestion())
+    expect(exec).toBeDefined()
+    expect(exec?.runner).toEqual({
+      kind: 'fill_blank',
+      acceptedAnswers: ['螺旋']
+    })
+    expect(exec?.criteria).toHaveLength(1)
+    expect(exec?.criteria[0]?.id).toBe('answer-match')
+    expect(exec?.criteria[0]?.weight).toBe(100)
+  })
+
+  it('returns undefined when payload kind mismatches questionType', () => {
+    const exec = projectQuestionToExecutable(
+      sampleQuestion({
+        questionType: 'numeric',
+        payload: { kind: 'fill_blank', acceptedAnswers: ['1'] }
+      })
+    )
+    expect(exec).toBeUndefined()
+  })
+
+  it('projects expression multi-answer criteria as cas-<label>', () => {
+    const exec = projectQuestionToExecutable(
+      sampleQuestion({
+        questionType: 'expression',
+        payload: {
+          kind: 'expression',
+          expectedLatex: '0',
+          answers: { x: '1', y: '2' }
+        }
+      })
+    )
+    expect(exec?.criteria.map((c) => c.id).sort()).toEqual([
+      'cas-x',
+      'cas-y'
+    ])
+  })
+})
+
+describe('createQuestionBackedRegistry', () => {
+  it('falls back to private question projection for scoring', () => {
+    const q = sampleQuestion()
+    const registry = createQuestionBackedRegistry(createAssignmentRegistry(), (id) =>
+      id === q.id ? q : undefined
+    )
+    const resolved = registry.get(q.id)
+    expect(resolved?.id).toBe(q.id)
+    expect(resolved?.criteria[0]?.id).toBe('answer-match')
+  })
+
+  it('keeps demo registry assignments', () => {
+    const registry = createQuestionBackedRegistry(
+      createAssignmentRegistry(),
+      () => undefined
+    )
+    expect(registry.get('python-average')?.id).toBe('python-average')
   })
 })
 

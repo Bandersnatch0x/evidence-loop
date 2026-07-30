@@ -1,6 +1,7 @@
 import type { Enrollment, TeachingUnit } from '../../shared/contracts'
 import type { SqliteOrgReader } from '../adaptive/OrgReader'
 import type { QuestionStore } from './QuestionStore'
+import { ensureDemoCurveVisualizations } from './demoVisualizations'
 import {
   SEED_AUTHOR_ID,
   seedQuestionsFromAssignments
@@ -33,6 +34,7 @@ export const DEMO_TEACHER_ID = 'teacher-demo'
 
 export interface SeedDemoProductResult {
   questionsImported: number
+  curveVisualizationsSeeded: number
   taughtKpCount: number
   teachingUnitId: string
   teacherId: string
@@ -45,6 +47,8 @@ export function seedDemoProduct(input: {
 }): SeedDemoProductResult {
   const now = input.now ?? (() => new Date())
   const seed = seedQuestionsFromAssignments(input.questions, now)
+  // ADR-0015: attach pre-sampled curve demos (magnetic helix / DNA) — no LLM.
+  const curveVisualizationsSeeded = ensureDemoCurveVisualizations(input.questions)
 
   const taughtKpIds = collectTaughtKpIds(input.questions)
   const unit: TeachingUnit = {
@@ -67,6 +71,7 @@ export function seedDemoProduct(input: {
 
   return {
     questionsImported: seed.imported,
+    curveVisualizationsSeeded,
     taughtKpCount: taughtKpIds.length,
     teachingUnitId: unit.id,
     teacherId: unit.teacherId

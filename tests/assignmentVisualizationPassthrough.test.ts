@@ -157,4 +157,76 @@ describe('assignment visualization passthrough (Phase 5)', () => {
     expect(assignment.id).toBe('python-average')
     expect(assignment.visualization).toBeUndefined()
   })
+
+  it('serves pre-seeded magnetic helix curve on demo assignment', async () => {
+    const response = await fetch(
+      `${baseUrl}/api/assignments/physics-magnetic-helix`,
+      { headers: { 'x-demo-role': 'student' } }
+    )
+    expect(response.status).toBe(200)
+    const assignment = (await response.json()) as Assignment
+    expect(assignment.id).toBe('physics-magnetic-helix')
+    expect(assignment.visualization?.kind).toBe('curve')
+    if (assignment.visualization?.kind === 'curve') {
+      expect(assignment.visualization.points.length).toBeGreaterThan(10)
+      expect(assignment.visualization.label).toContain('螺旋')
+    }
+  })
+
+  it('serves pre-seeded DNA double helix with secondaryPoints', async () => {
+    const response = await fetch(
+      `${baseUrl}/api/assignments/bio-dna-double-helix`,
+      { headers: { 'x-demo-role': 'student' } }
+    )
+    expect(response.status).toBe(200)
+    const assignment = (await response.json()) as Assignment
+    expect(assignment.visualization?.kind).toBe('curve')
+    if (assignment.visualization?.kind === 'curve') {
+      expect(assignment.visualization.secondaryPoints?.length).toBeGreaterThan(10)
+    }
+  })
+
+  it('scores a private fill_blank question via payload projection', async () => {
+    const question = await createPrivateQuestion()
+    // Correct answer for createPrivateQuestion payload: 螺旋线
+    const start = await fetch(`${baseUrl}/api/student/practice`, {
+      method: 'POST',
+      headers: {
+        'x-demo-role': 'student',
+        'content-type': 'application/json'
+      },
+      body: JSON.stringify({
+        questionId: question.id,
+        teachingUnitId: 'tu-demo',
+        termId: 'term-demo',
+        mode: 'practice'
+      })
+    })
+    expect(start.status).toBe(201)
+    const started = (await start.json()) as { attemptId: string }
+
+    const evaluate = await fetch(`${baseUrl}/api/evaluations`, {
+      method: 'POST',
+      headers: {
+        'x-demo-role': 'student',
+        'content-type': 'application/json'
+      },
+      body: JSON.stringify({
+        assignmentId: question.id,
+        code: '螺旋线',
+        attemptId: started.attemptId
+      })
+    })
+    expect(evaluate.status).toBe(201)
+    const result = (await evaluate.json()) as {
+      score: number
+      status: string
+      evidence: Array<{ id: string; state: string }>
+    }
+    expect(result.status).toBe('completed')
+    expect(result.score).toBe(100)
+    expect(
+      result.evidence.some((e) => e.id === 'answer-match' && e.state === 'passed')
+    ).toBe(true)
+  })
 })

@@ -37,7 +37,10 @@ import {
   SqliteOrgReader,
   handleAdaptiveApi
 } from './adaptive'
-import { createAssignmentRegistry } from './data/assignments'
+import {
+  createAssignmentRegistry,
+  type AssignmentRegistry
+} from './data/assignments'
 import { createCohortSnapshot } from './data/cohort'
 import { createKnowledgeBase } from './data/knowledge'
 import { EvaluationAgent } from './domain/EvaluationAgent'
@@ -52,8 +55,8 @@ import {
 import { QuestionBankService } from './questionbank/QuestionBankService'
 import { QuestionStore } from './questionbank/QuestionStore'
 import {
-  projectQuestionToAssignment,
-  resolveVisualizationForAssignmentId
+  createQuestionBackedRegistry,
+  projectQuestionToAssignment
 } from './questionbank/projectQuestionAssignment'
 import { seedDemoProduct } from './questionbank/seedDemoProduct'
 import {
@@ -138,7 +141,7 @@ const reviewCompleteSchema = z.object({
 })
 
 interface ApiContext {
-  assignments: ReturnType<typeof createAssignmentRegistry>
+  assignments: AssignmentRegistry
   store: JsonAttemptStore
   agent: EvaluationAgent
   runnerName: string
@@ -207,7 +210,7 @@ class HttpError extends Error {
 export async function createEvidenceRingServer(
   options: EvidenceRingServerOptions = {}
 ) {
-  const assignments = createAssignmentRegistry()
+  const demoAssignments = createAssignmentRegistry()
   // T01 expand-contract: the main store is now an Attempt-aware store so the
   // product services (student / teacher / adaptive) and the legacy
   // /api/evaluations demo path share one source of truth.
@@ -287,6 +290,11 @@ export async function createEvidenceRingServer(
   // T03 tail + T07 demo: seed built-in bank + tu-demo unit so "今日该练"
   // and mistake repractice have real question/KP rows on cold start.
   seedDemoProduct({ questions: questionStore, org })
+  // ADR-0015 Phase 6: EvaluationAgent resolves private/seed question ids via
+  // payload→ExecutableAssignment projection when the demo registry misses.
+  const assignments = createQuestionBackedRegistry(demoAssignments, (id) =>
+    questionBank.peek(id)
+  )
   // Session provider: real (cookie→auth_sessions) in production, mock
   // (X-Demo-Role header) in dev/test. AUTH_MODE / DEMO_AUTH override.
   // ponytail: default shifts to real under NODE_ENV=production (authMode.ts),
@@ -576,30 +584,20 @@ async function handleApi(
   const assignmentMatch = requestUrl.pathname.match(/^\/api\/assignments\/([^/]+)$/)
   if (request.method === 'GET' && assignmentMatch?.[1]) {
     const requestedId = decodeURIComponent(assignmentMatch[1])
+    // Question-backed registry: demo hit (with seed viz merge) or private/seed
+    // projection. Presentation fields only — never expose runner/criteria.
     const assignment = assignments.get(requestedId)
-
-    // ADR-0015 Phase 5: registry miss → project a bank Question (private or
-    // seed:…) into a workspace shell so student practice can show visualization.
     if (!assignment) {
+      // Scoring projection may fail on bad payload; still serve presentation shell.
       const bankQuestion = context.questionBank.peek(requestedId)
       if (!bankQuestion) {
         respondJson(response, 404, { error: 'Assignment not found' })
         return
       }
-      respondJson(
-        response,
-        200,
-        projectQuestionToAssignment(bankQuestion)
-      )
+      respondJson(response, 200, projectQuestionToAssignment(bankQuestion))
       return
     }
 
-    // Demo registry hit: merge teacher-authored visualization from seed:<id>
-    // or bare question id (presentation only — never scored).
-    const visualization = resolveVisualizationForAssignmentId(
-      (id) => context.questionBank.peek(id),
-      assignment.id
-    )
     const publicAssignment = {
       id: assignment.id,
       title: assignment.title,
@@ -615,7 +613,9 @@ async function handleApi(
       functionSignature: assignment.functionSignature,
       rubric: assignment.rubric,
       demoVariants: assignment.demoVariants,
-      ...(visualization ? { visualization } : {})
+      ...(assignment.visualization
+        ? { visualization: assignment.visualization }
+        : {})
     }
     respondJson(response, 200, publicAssignment)
     return

@@ -1298,6 +1298,124 @@ const choiceEnglishTenseAssignment: ExecutableAssignment = {
   }
 }
 
+/**
+ * Demo: magnetic helix trajectory (fill-blank + curve visualization).
+ * Curve geometry is pre-seeded on seed:physics-magnetic-helix (no LLM).
+ */
+const physicsMagneticHelixAssignment: ExecutableAssignment = {
+  id: 'physics-magnetic-helix',
+  title: '填空题：磁场中的螺旋轨迹',
+  module: '物理 · 电磁学',
+  language: 'physics',
+  questionType: 'fill_blank',
+  estimatedMinutes: 4,
+  status: 'ready',
+  objective: '说出带电粒子在匀强磁场中（速度不垂直 B）的轨迹形状。',
+  scenario:
+    '粒子有平行于磁场的速度分量时，沿磁场方向匀速前进，垂直分量做圆周运动，合运动为螺旋线。右侧 3D 为预置螺旋演示（可旋转）。',
+  requirements: ['提交轨迹形状名称', '可接受「螺旋」「螺旋线」等写法'],
+  constraints: ['评分命中可接受答案即可；3D 仅展示不入分'],
+  functionSignature: '轨迹形状是 ______',
+  rubric: [
+    {
+      id: 'correctness',
+      label: '答案正确性',
+      description: '填空命中任一可接受答案',
+      maxScore: 100
+    }
+  ],
+  demoVariants: [
+    {
+      id: 'correct',
+      label: '正确答案',
+      description: '螺旋线。',
+      code: '螺旋线'
+    },
+    {
+      id: 'wrong',
+      label: '错误答案',
+      description: '误写为直线。',
+      code: '直线'
+    }
+  ],
+  criteria: [
+    {
+      id: 'answer-match',
+      kind: 'answer_match',
+      label: '填空匹配',
+      dimensionId: 'correctness',
+      visibility: 'public',
+      weight: 100,
+      expected: '螺旋线',
+      conceptId: 'kp.physics.em.magnetic_force',
+      passedMessage: '填空与可接受答案匹配',
+      failedMessage: '填空未命中可接受答案'
+    }
+  ],
+  runner: {
+    kind: 'fill_blank',
+    acceptedAnswers: ['螺旋线', '螺旋', 'helix', 'helical'],
+    caseSensitive: false
+  }
+}
+
+/** Demo: DNA double-helix shape (fill-blank + dual-strand curve visualization). */
+const bioDnaHelixAssignment: ExecutableAssignment = {
+  id: 'bio-dna-double-helix',
+  title: '填空题：DNA 的空间结构',
+  module: '生物 · 分子结构',
+  language: 'biology',
+  questionType: 'fill_blank',
+  estimatedMinutes: 3,
+  status: 'ready',
+  objective: '写出 DNA 分子的典型空间结构名称。',
+  scenario: '分子生物学入门：双链骨架呈双螺旋。右侧为预置双螺旋曲线演示（可旋转）。',
+  requirements: ['提交结构名称'],
+  constraints: ['评分命中可接受答案；3D 仅展示不入分'],
+  functionSignature: 'DNA 的空间结构是 ______',
+  rubric: [
+    {
+      id: 'correctness',
+      label: '答案正确性',
+      description: '填空命中任一可接受答案',
+      maxScore: 100
+    }
+  ],
+  demoVariants: [
+    {
+      id: 'correct',
+      label: '正确答案',
+      description: '双螺旋。',
+      code: '双螺旋'
+    },
+    {
+      id: 'wrong',
+      label: '错误答案',
+      description: '误写单链。',
+      code: '单链'
+    }
+  ],
+  criteria: [
+    {
+      id: 'answer-match',
+      kind: 'answer_match',
+      label: '填空匹配',
+      dimensionId: 'correctness',
+      visibility: 'public',
+      weight: 100,
+      expected: '双螺旋',
+      conceptId: 'kp.biology.molecule.dna',
+      passedMessage: '填空与可接受答案匹配',
+      failedMessage: '填空未命中可接受答案'
+    }
+  ],
+  runner: {
+    kind: 'fill_blank',
+    acceptedAnswers: ['双螺旋', '双螺旋结构', 'double helix', 'double-helix'],
+    caseSensitive: false
+  }
+}
+
 /** Demo: Biology fill-blank (objective; reuses ObjectiveValidator fill_blank). */
 const fillBlankBiologyCellAssignment: ExecutableAssignment = {
   id: 'fill-blank-biology-mitochondria',
@@ -1746,6 +1864,7 @@ const allAssignments: readonly ExecutableAssignment[] = [
   expressionExpandAssignment,
   physicsProjectileYAssignment,
   physicsProjectileXYAssignment,
+  physicsMagneticHelixAssignment,
   cubeSectionAssignment,
   chemVseprMethaneAssignment,
   chemVseprWaterAssignment,
@@ -1755,6 +1874,7 @@ const allAssignments: readonly ExecutableAssignment[] = [
   essayPerseveranceAssignment,
   choiceEnglishTenseAssignment,
   fillBlankBiologyCellAssignment,
+  bioDnaHelixAssignment,
   choicePoliticsRightsAssignment,
   choiceHistoryOpiumAssignment,
   numericGeographyLatitudeAssignment,
