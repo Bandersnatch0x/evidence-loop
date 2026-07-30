@@ -52,6 +52,7 @@ import {
 import { QuestionBankService } from './questionbank/QuestionBankService'
 import { QuestionStore } from './questionbank/QuestionStore'
 import { seedDemoProduct } from './questionbank/seedDemoProduct'
+import { SEED_AUTHOR_ID } from './questionbank/seedFromAssignments'
 import {
   AssignmentService,
   SubjectiveGradingService,
@@ -576,6 +577,12 @@ async function handleApi(
       respondJson(response, 404, { error: 'Assignment not found' })
       return
     }
+    // ADR-0015: merge a teacher-authored visualization from the matching seed
+    // question (seed:<assignmentId>) if one was confirmed. Presentation only.
+    const seedQuestion = context.questionBank.get(
+      `seed:${assignment.id}`,
+      SEED_AUTHOR_ID
+    )
     const publicAssignment = {
       id: assignment.id,
       title: assignment.title,
@@ -590,7 +597,10 @@ async function handleApi(
       constraints: assignment.constraints,
       functionSignature: assignment.functionSignature,
       rubric: assignment.rubric,
-      demoVariants: assignment.demoVariants
+      demoVariants: assignment.demoVariants,
+      ...(seedQuestion?.visualization
+        ? { visualization: seedQuestion.visualization }
+        : {})
     }
     respondJson(response, 200, publicAssignment)
     return

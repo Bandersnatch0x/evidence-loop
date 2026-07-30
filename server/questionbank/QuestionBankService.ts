@@ -1,7 +1,8 @@
 import type {
   Question,
   QuestionSummary,
-  StandardSolution
+  StandardSolution,
+  Visualization
 } from '../../shared/contracts'
 import { newQuestionId, type QuestionQuery, type QuestionStore } from './QuestionStore'
 import {
@@ -158,7 +159,9 @@ export class QuestionBankService {
       difficulty: patch.difficulty ?? existing.difficulty,
       source: patch.source ?? existing.source,
       termId: patch.termId ?? existing.termId,
-      solution: 'solution' in patch ? patch.solution : existing.solution
+      solution: 'solution' in patch ? patch.solution : existing.solution,
+      visualization:
+        'visualization' in patch ? patch.visualization : existing.visualization
     }
     const normalized = validateQuestionDraft(draft)
     const updated: Question = {
@@ -221,6 +224,23 @@ export class QuestionBankService {
     if (draft.latex !== undefined) solution.latex = draft.latex
     if (draft.keyPoints !== undefined) solution.keyPoints = draft.keyPoints
     return this.update(id, authorId, { solution })
+  }
+
+  /**
+   * Adopt a teacher-confirmed visualization (ADR-0015). The geometry is
+   * validated by the route layer (parseVisualization) before reaching here;
+   * this stamps it onto the Question via the normal update path. Pass null to
+   * clear an existing visualization. Does NOT touch scores / evidence — only
+   * the Question.visualization field (presentation layer).
+   */
+  public adoptVisualization(
+    id: string,
+    authorId: string,
+    visualization: Visualization | null
+  ): Question {
+    // Ownership check first so foreign banks cannot be rewritten.
+    this.get(id, authorId)
+    return this.update(id, authorId, { visualization })
   }
 
   // ---------------------------------------------------------------------------

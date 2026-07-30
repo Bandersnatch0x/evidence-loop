@@ -37,6 +37,7 @@ import type {
   TeacherTipSummary,
   TeachingUnitView,
   TutoringDialogueRequest,
+  Visualization,
   TutoringExplainRequest,
   TutoringResponse,
   TutoringSocraticRequest,
@@ -316,6 +317,38 @@ export function adoptSolution(
     {
       method: 'POST',
       body: JSON.stringify(body)
+    }
+  )
+}
+
+// ---------------------------------------------------------------------------
+// ADR-0015 — teacher-authored 3D visualization (AI generate → preview → adopt).
+// ---------------------------------------------------------------------------
+
+/** LLM proposes a ball-stick geometry from a description (not persisted). */
+export function previewVisualization(
+  questionId: string,
+  description: string
+): Promise<{ visualization: Visualization }> {
+  return requestJson(
+    `/api/questions/${encodeURIComponent(questionId)}/preview-visualization`,
+    {
+      method: 'POST',
+      body: JSON.stringify({ description })
+    }
+  )
+}
+
+/** Confirm a previewed geometry onto the question. Pass null to clear. */
+export function adoptVisualization(
+  questionId: string,
+  visualization: Visualization | null
+): Promise<{ question: Question }> {
+  return requestJson(
+    `/api/questions/${encodeURIComponent(questionId)}/adopt-visualization`,
+    {
+      method: 'POST',
+      body: JSON.stringify({ visualization })
     }
   )
 }

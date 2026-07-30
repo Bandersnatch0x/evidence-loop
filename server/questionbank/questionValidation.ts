@@ -7,6 +7,7 @@ import type {
 import type { RunnerSpec } from '../data/assignments'
 import { isPythonRunnerSpec } from '../data/assignments'
 import { validateSolution } from './solution'
+import { parseVisualization } from './visualizationSchema'
 
 /**
  * T03 question hand-entry validation.
@@ -71,6 +72,7 @@ export interface QuestionDraft {
   termId?: string
   createdAt?: string
   solution?: unknown
+  visualization?: unknown
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -355,6 +357,14 @@ export function validateQuestionDraft(
   if (draft.termId !== undefined) normalized.termId = draft.termId
   if (draft.solution !== undefined) {
     normalized.solution = validateSolution(draft.solution)
+  }
+  if (draft.visualization !== undefined) {
+    // null clears an existing visualization; otherwise validate the payload.
+    if (draft.visualization === null) {
+      normalized.visualization = undefined
+    } else {
+      normalized.visualization = parseVisualization(draft.visualization)
+    }
   }
 
   return normalized

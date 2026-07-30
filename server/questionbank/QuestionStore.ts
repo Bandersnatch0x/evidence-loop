@@ -6,11 +6,13 @@ import type {
   EvidenceSource,
   Question,
   QuestionType,
-  SubjectLanguage
+  SubjectLanguage,
+  Visualization
 } from '../../shared/contracts'
 import type { RunnerSpec } from '../data/assignments'
 import { applyProductMigrations } from '../db/migrate'
 import { parseSolution, serializeSolution } from './solution'
+import { parseVisualization } from './visualizationSchema'
 
 /**
  * SQLite-backed store for the T03 question bank. Owns the `questions` table
@@ -53,6 +55,7 @@ interface QuestionRow {
   created_at: string
   term_id: string | null
   solution_json: string | null
+  visualization_json: string | null
 }
 
 const DEFAULT_QUERY_LIMIT = 500
@@ -87,11 +90,11 @@ export class QuestionStore {
         `INSERT INTO questions (
           id, question_bank_id, author_id, subject, question_type, stem,
           payload_json, kp_ids, difficulty, source, created_at, term_id,
-          solution_json
+          solution_json, visualization_json
         ) VALUES (
           @id, @question_bank_id, @author_id, @subject, @question_type, @stem,
           @payload_json, @kp_ids, @difficulty, @source, @created_at, @term_id,
-          @solution_json
+          @solution_json, @visualization_json
         )
         ON CONFLICT(id) DO UPDATE SET
           question_bank_id = excluded.question_bank_id,
@@ -105,7 +108,8 @@ export class QuestionStore {
           source = excluded.source,
           created_at = excluded.created_at,
           term_id = excluded.term_id,
-          solution_json = excluded.solution_json`
+          solution_json = excluded.solution_json,
+          visualization_json = excluded.visualization_json`
       )
       .run(toRow(question))
   }
@@ -207,7 +211,8 @@ function toRow(question: Question): QuestionRow {
     source: question.source,
     created_at: question.createdAt,
     term_id: question.termId ?? null,
-    solution_json: serializeSolution(question.solution)
+    solution_json: serializeSolution(question.solution),
+    visualization_json: serializeVisualization(question.visualization)
   }
 }
 
@@ -228,7 +233,27 @@ function rowToQuestion(row: QuestionRow): Question {
   if (row.term_id !== null) question.termId = row.term_id
   const solution = parseSolution(row.solution_json)
   if (solution !== undefined) question.solution = solution
+  const visualization = parseVisualizationSafe(row.visualization_json)
+  if (visualization !== undefined) question.visualization = visualization
   return question
+}
+
+/** Serialize a visualization for storage; null when absent (cleared). */
+function serializeVisualization(visualization: Question['visualization']): string | null {
+  if (visualization === undefined || visualization === null) return null
+  return JSON.stringify(visualization)
+}
+
+/** Parse a stored visualization; undefined when absent or invalid. */
+function parseVisualizationSafe(json: string | null): Visualization | undefined {
+  if (json === null || json.trim() === '') return undefined
+  try {
+    return parseVisualization(JSON.parse(json))
+  } catch {
+    // A visualization that fails validation on read is dropped (not fatal) —
+    // it predates a schema tightening or was hand-edited. Scoring is unaffected.
+    return undefined
+  }
 }
 
 function parsePayload(json: string): RunnerSpec {

@@ -20,6 +20,7 @@ import {
   payloadToFields,
   type PayloadFormFields
 } from './payloadDefaults'
+import { VisualizationGenerator } from './VisualizationGenerator'
 
 const SUBJECTS = Object.keys(SUBJECT_LABELS) as SubjectLanguage[]
 const QUESTION_TYPES = Object.keys(QUESTION_TYPE_LABELS) as QuestionType[]
@@ -348,6 +349,14 @@ export function QuestionEditor({
           </p>
         )}
       </fieldset>
+
+      {isEdit && initial ? (
+        <VisualizationGenerator
+          questionId={initial.id}
+          initial={initial.visualization}
+          onAdopted={onSaved}
+        />
+      ) : null}
 
       {error !== undefined ? (
         <div className="error-banner">

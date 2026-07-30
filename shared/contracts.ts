@@ -82,6 +82,12 @@ export interface Assignment extends AssignmentSummary {
   functionSignature: string
   rubric: RubricDimension[]
   demoVariants: DemoVariant[]
+  /**
+   * ADR-0015 optional teacher-authored 3D visualization. When present the
+   * unified Visualizer renders it (BallStickScene) in preference to any
+   * hardcoded registry scene. Presentation only — never scored.
+   */
+  visualization?: Visualization
 }
 
 /**
@@ -517,6 +523,8 @@ export interface Question {
   termId?: string
   /** T09 optional standard solution (RAG context for AI tutoring). */
   solution?: StandardSolution
+  /** ADR-0015 optional teacher-authored 3D visualization (presentation only). */
+  visualization?: Visualization
 }
 
 /** Lightweight list projection of a Question for bank browsing. */
@@ -580,6 +588,44 @@ export interface AdoptSolutionResult {
     requiresDisclaimer: boolean
   }
 }
+
+// ---------------------------------------------------------------------------
+// Teacher-authored visualization (ADR-0015).
+// A teacher describes a scene in natural language → an LLM proposes a ball-stick
+// geometry → the teacher previews it in 3D and confirms → it is stored on the
+// Question and rendered by the unified visualizer suite. This is the
+// *presentation* layer only; it never enters the scoring evidence chain.
+// ---------------------------------------------------------------------------
+
+/** One atom in a ball-stick visualization: id, element symbol, 3D position. */
+export interface VisualizationAtom {
+  id: string
+  element: string
+  position: readonly [number, number, number]
+}
+
+/** A bond between two atom ids. */
+export interface VisualizationBond {
+  from: string
+  to: string
+}
+
+/**
+ * Ball-stick visualization payload (ADR-0015 MVP). Covers molecules, crystals,
+ * and helical structures (DNA) — anything expressible as atoms + bonds. The
+ * `kind` discriminant leaves room for future curve/primitive kinds (magnetic
+ * spirals, circuits) without a schema rewrite.
+ */
+export interface BallStickVisualization {
+  kind: 'ball_stick'
+  atoms: readonly VisualizationAtom[]
+  bonds: readonly VisualizationBond[]
+  /** Optional human label shown above the canvas. */
+  label?: string
+}
+
+/** Union of all visualization kinds. MVP has one; the discriminant scales. */
+export type Visualization = BallStickVisualization
 
 export interface KnowledgePoint {
   id: string

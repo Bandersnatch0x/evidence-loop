@@ -1,22 +1,26 @@
 /**
- * Visualizer — unified entry for all demo visualizations (ADR-0013).
- * Replaces the scattered `assignment.id === 'xxx' && <Canvas>` blocks in
- * App.tsx with a single component that routes by assignment id via the
- * registry.
+ * Visualizer — unified entry for all visualizations (ADR-0013/0015).
  *
- * R3F scenes (molecule, cube section) are React.lazy-loaded so three /
- * @react-three/fiber / @react-three/drei (~600KB) stay out of the first-paint
- * chunk — they only download when the learner opens a 3D assignment. The 2D
- * projectile canvas is static-imported (no 3D engine cost).
+ * Routing precedence:
+ *  1. If the assignment carries a teacher-authored `visualization` (ADR-0015),
+ *     render it via the generic BallStickScene — this wins over any hardcoded
+ *     registry scene so a teacher's confirmed geometry overrides the default.
+ *  2. Otherwise route by assignment id via the registry (built-in scenes).
+ *  3. No match → render nothing.
+ *
+ * R3F scenes are React.lazy-loaded so three/fiber/drei (~600KB) stay out of
+ * the first-paint chunk. The 2D projectile canvas is static-imported.
  *
  * 3D is presentation only; it never enters the scoring evidence chain
- * (ADR-0001/0009/0010/0012). Render data comes from the same canonical
- * constants the runners/tests use — no hidden second source.
+ * (ADR-0001/0009/0010/0012/0015).
  */
 import { Suspense, lazy } from 'react'
 import type { Assignment } from '../../../shared/contracts'
 import { lookupScene } from './registry'
 
+const BallStickScene = lazy(() =>
+  import('./scenes/BallStickScene').then((m) => ({ default: m.BallStickScene }))
+)
 const MoleculeScene = lazy(() =>
   import('./scenes/MoleculeScene').then((m) => ({ default: m.MoleculeScene }))
 )
@@ -42,6 +46,15 @@ const SCENE_FALLBACK = (
 )
 
 export function Visualizer({ assignment, submission }: VisualizerProps) {
+  // ADR-0015: a teacher-authored visualization overrides everything.
+  if (assignment.visualization) {
+    return (
+      <Suspense fallback={SCENE_FALLBACK}>
+        <BallStickScene visualization={assignment.visualization} />
+      </Suspense>
+    )
+  }
+
   const kind = lookupScene(assignment.id)
   if (kind === null) return null
 

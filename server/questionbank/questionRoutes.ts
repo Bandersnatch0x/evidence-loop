@@ -13,6 +13,10 @@ import {
 } from './QuestionBankService'
 import { QuestionValidationError, type QuestionDraft } from './questionValidation'
 import { SolutionValidationError } from './solution'
+import {
+  generateVisualization,
+  parseVisualization
+} from './visualizationSchema'
 
 /**
  * Independent HTTP routes for the T03 question bank. Kept out of the main
@@ -160,6 +164,59 @@ export async function handleQuestionBankApi(
         solution: updated.solution ?? null,
         tutoring: context.questionBank.tutoringContextFor(id, authorId)
       })
+      return true
+    }
+
+    // POST /api/questions/:id/preview-visualization — LLM proposes a ball-stick
+    // geometry from a teacher's natural-language description. NOT persisted;
+    // the teacher must adopt-visualization to store it (ADR-0015).
+    const previewVizMatch = pathname.match(
+      /^\/api\/questions\/([^/]+)\/preview-visualization$/
+    )
+    if (request.method === 'POST' && previewVizMatch?.[1]) {
+      const id = decodeURIComponent(previewVizMatch[1])
+      const body = await readJsonBody(request)
+      if (typeof body !== 'object' || body === null) {
+        throw new QuestionValidationError('Request body must be a JSON object')
+      }
+      const record = body as Record<string, unknown>
+      if (typeof record.description !== 'string') {
+        throw new QuestionValidationError(
+          'preview-visualization requires a description string'
+        )
+      }
+      // Assert the question exists + is owned by this teacher before spending
+      // an LLM call on it.
+      context.questionBank.get(id, authorId)
+      const result = await generateVisualization(record.description)
+      if (!result.ok) {
+        respondJson(response, 422, { error: result.message, reason: result.reason })
+        return true
+      }
+      respondJson(response, 200, { visualization: result.visualization })
+      return true
+    }
+
+    // POST /api/questions/:id/adopt-visualization — confirm a previewed geometry
+    // and store it on the question. Pass visualization: null to clear.
+    const adoptVizMatch = pathname.match(
+      /^\/api\/questions\/([^/]+)\/adopt-visualization$/
+    )
+    if (request.method === 'POST' && adoptVizMatch?.[1]) {
+      const id = decodeURIComponent(adoptVizMatch[1])
+      const body = await readJsonBody(request)
+      if (typeof body !== 'object' || body === null) {
+        throw new QuestionValidationError('Request body must be a JSON object')
+      }
+      const record = body as Record<string, unknown>
+      let visualization
+      if (record.visualization === null) {
+        visualization = null
+      } else {
+        visualization = parseVisualization(record.visualization)
+      }
+      const updated = context.questionBank.adoptVisualization(id, authorId, visualization)
+      respondJson(response, 200, { question: updated })
       return true
     }
 
