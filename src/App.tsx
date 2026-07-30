@@ -14,12 +14,7 @@ import { AssignmentPanel } from './components/AssignmentPanel'
 import { AssignmentPicker } from './components/AssignmentPicker'
 import { CohortMasteryView } from './components/CohortMasteryView'
 import { CohortView } from './components/CohortView'
-import { CubeSectionCanvas } from './components/student/CubeSectionCanvas'
-import { UNIT_CUBE_VERTICES } from './components/student/cubeProjection'
 import { MathProblem } from './components/MathProblem'
-import { MoleculeCanvas } from './components/student/MoleculeCanvas'
-import { ProjectileTrajectoryCanvas } from './components/student/ProjectileTrajectoryCanvas'
-import { ProjectileXYCanvas } from './components/student/ProjectileXYCanvas'
 import { SubmissionPanel } from './components/SubmissionPanel'
 import { MasteryView } from './components/MasteryView'
 import { OverlayLayer } from './components/OverlayLayer'
@@ -30,6 +25,7 @@ import { MobileHeader, Sidebar, type AppView } from './components/Sidebar'
 import { StudentWorkbench } from './components/student'
 import { TeacherWorkbench } from './components/teacher'
 import { TransparencyView } from './components/TransparencyView'
+import { Visualizer } from './components/visualizer/Visualizer'
 import { VoiceCompanion } from './components/VoiceCompanion'
 import { isMultimodalEnabled } from './config/features'
 import {
@@ -416,31 +412,7 @@ export function App() {
             }
           />
         </div>
-        {assignment.id === 'physics-projectile-y' && (
-          <ProjectileTrajectoryCanvas
-            submission={submission}
-            v0={10}
-            theta={Math.PI / 4}
-            g={9.8}
-            tMax={2}
-          />
-        )}
-        {assignment.id === 'physics-projectile-xy' && (
-          <ProjectileXYCanvas
-            submission={submission}
-            v0={10}
-            theta={Math.PI / 4}
-            g={9.8}
-            tMax={2}
-          />
-        )}
-        {assignment.id === 'cube-section' && (
-          <CubeSectionCanvas submission={submission} vertices={UNIT_CUBE_VERTICES} />
-        )}
-        {(assignment.id === 'chem-vsepr-methane' ||
-          assignment.id === 'chem-vsepr-water') && (
-          <MoleculeCanvas assignmentId={assignment.id} />
-        )}
+        <Visualizer assignment={assignment} submission={submission} />
         {multimodalEnabled && (
           <div className="math-problem-slot">
             <MathProblem problemId="math-1" />
