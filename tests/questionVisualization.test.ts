@@ -52,12 +52,17 @@ describe('visualization persistence (ADR-0015)', () => {
     const adopted = service.adoptVisualization(created.id, TEACHER, ammoniaViz)
     expect(adopted.visualization).toBeDefined()
     expect(adopted.visualization?.kind).toBe('ball_stick')
-    expect(adopted.visualization?.atoms.length).toBe(4)
+    if (adopted.visualization?.kind === 'ball_stick') {
+      expect(adopted.visualization.atoms.length).toBe(4)
+    }
 
     // Re-read from store to confirm persistence.
     const reread = service.get(created.id, TEACHER)
-    expect(reread?.visualization?.atoms.length).toBe(4)
-    expect(reread?.visualization?.label).toBe('氨气 NH3')
+    expect(reread?.visualization?.kind).toBe('ball_stick')
+    if (reread?.visualization?.kind === 'ball_stick') {
+      expect(reread.visualization.atoms.length).toBe(4)
+      expect(reread.visualization.label).toBe('氨气 NH3')
+    }
   })
 
   it('survives a subsequent unrelated update (visualization preserved)', () => {
@@ -69,7 +74,10 @@ describe('visualization persistence (ADR-0015)', () => {
     service.update(created.id, TEACHER, { difficulty: 4 })
     const reread = service.get(created.id, TEACHER)
     expect(reread?.difficulty).toBe(4)
-    expect(reread?.visualization?.atoms.length).toBe(4)
+    expect(reread?.visualization?.kind).toBe('ball_stick')
+    if (reread?.visualization?.kind === 'ball_stick') {
+      expect(reread.visualization.atoms.length).toBe(4)
+    }
   })
 
   it('clears the visualization when adopted with null', () => {

@@ -1,11 +1,12 @@
 /**
  * visualizationSchema — zod validation + LLM generation for teacher-authored
- * ball-stick visualizations (ADR-0015).
+ * visualizations (ADR-0015 + Phase 4 curve extension).
  *
  * Validation is the trust boundary: the LLM proposes geometry, but nothing
  * reaches the DB or the renderer until `visualizationSchema.parse` accepts it.
- * Bonds referencing unknown atoms, empty atom sets, or non-finite positions are
- * rejected here — the teacher's 3D preview is a second, human check on top.
+ * Bonds referencing unknown atoms, empty atom sets, non-finite positions, or
+ * invalid curve polylines are rejected here — the teacher's 3D preview is a
+ * second, human check on top.
  *
  * Generation reuses `callOpenAICompatible` (the same OpenAI-compatible client
  * the feedback + tutoring layers use). No LLM config → returns an error the
@@ -31,7 +32,7 @@ const bondSchema = z.object({
   to: z.string().min(1)
 })
 
-export const visualizationSchema: z.ZodType<Visualization> = z
+const ballStickSchema = z
   .object({
     kind: z.literal('ball_stick'),
     atoms: z.array(atomSchema).min(1).max(200),
@@ -67,6 +68,24 @@ export const visualizationSchema: z.ZodType<Visualization> = z
     }
   })
 
+/** Pre-sampled curve polyline: 2–2000 finite [x,y,z] points. */
+const pointsSchema = z.array(positionSchema).min(2).max(2000)
+
+const curveSchema = z.object({
+  kind: z.literal('curve'),
+  points: pointsSchema,
+  secondaryPoints: pointsSchema.optional(),
+  label: z.string().max(80).optional()
+})
+
+// z.union (not discriminatedUnion): ballStickSchema uses superRefine for
+// atom-id / bond checks, which yields ZodEffects — discriminatedUnion only
+// accepts plain ZodObject options.
+export const visualizationSchema: z.ZodType<Visualization> = z.union([
+  ballStickSchema,
+  curveSchema
+])
+
 /** Parse + validate unknown input as a Visualization. Throws z.error on bad input. */
 export function parseVisualization(raw: unknown): Visualization {
   return visualizationSchema.parse(raw)
@@ -82,16 +101,22 @@ export interface GenerateVisualizationError {
   message: string
 }
 
-const SYSTEM_PROMPT = `你是化学/生物 3D 结构建模助手。根据用户的自然语言描述，输出一个球棍模型（ball-and-stick）的 JSON。
+const SYSTEM_PROMPT = `你是科学 3D 可视化建模助手。根据用户的自然语言描述，输出一种几何 JSON：球棍模型或曲线。
 规则：
-- 只输出 JSON，不要解释文字。JSON 格式：{"kind":"ball_stick","atoms":[{"id":"A1","element":"C","position":[0,0,0]}],"bonds":[{"from":"A1","to":"A2"}],"label":"简短中文标题"}
-- element 是元素符号（1-2 字母，如 C H O N Na Cl）。
-- position 是合理的三维坐标 [x,y,z]，键长归一化到 1 附近，体现真实空间构型（如甲烷四面体、水 V 形、氨三角锥）。
-- bonds 连接真实化学键对应的原子 id。
-- atoms 1-50 个，id 唯一。`
+- 只输出 JSON，不要解释文字。
+- 分子/晶体/原子结构 → kind "ball_stick"：
+  {"kind":"ball_stick","atoms":[{"id":"A1","element":"C","position":[0,0,0]}],"bonds":[{"from":"A1","to":"A2"}],"label":"简短中文标题"}
+  - element 是元素符号（1-2 字母，如 C H O N Na Cl）。
+  - position 是合理的三维坐标 [x,y,z]，键长归一化到 1 附近，体现真实空间构型（如甲烷四面体、水 V 形、氨三角锥）。
+  - bonds 连接真实化学键对应的原子 id；atoms 1-50 个，id 唯一。
+- 螺旋/轨迹/曲线（磁场螺旋、带电粒子轨迹、DNA 双螺旋等）→ kind "curve"：
+  {"kind":"curve","points":[[x,y,z],...],"secondaryPoints":[[x,y,z],...],"label":"简短中文标题"}
+  - points 是预采样 3D 折线点，采样 50–200 个点，体现真实几何（如磁场螺旋：半径恒定、轴向均匀推进）。
+  - secondaryPoints 可选：DNA 等双链用第二条螺旋；单条螺旋不要带 secondaryPoints。
+  - 坐标量级控制在约 -5..5，便于 3D 预览。`
 
 /**
- * Generate a ball-stick visualization from a natural-language description.
+ * Generate a visualization from a natural-language description (ball_stick or curve).
  * Returns ok=false (never throws) so the route layer can surface a clean error.
  */
 export async function generateVisualization(
@@ -117,14 +142,14 @@ export async function generateVisualization(
         { role: 'system', content: SYSTEM_PROMPT },
         { role: 'user', content: trimmed }
       ],
-      // Validate the LLM payload against the same schema used for adopt.
-      z.object({ kind: z.literal('ball_stick') }).passthrough(),
+      // Accept either kind; full validation happens via visualizationSchema.parse.
+      z.object({ kind: z.enum(['ball_stick', 'curve']) }).passthrough(),
       {
         apiKey: config.apiKey,
         baseUrl: config.baseUrl,
         model: config.model,
         temperature: 0.3,
-        maxTokens: 2000
+        maxTokens: 4000
       }
     )
     const visualization = visualizationSchema.parse(raw)

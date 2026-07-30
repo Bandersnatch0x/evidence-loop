@@ -3,8 +3,9 @@
  *
  * Routing precedence:
  *  1. If the assignment carries a teacher-authored `visualization` (ADR-0015),
- *     render it via the generic BallStickScene — this wins over any hardcoded
- *     registry scene so a teacher's confirmed geometry overrides the default.
+ *     dispatch by `kind` (ball_stick → BallStickScene, curve → CurveScene).
+ *     This wins over any hardcoded registry scene so a teacher's confirmed
+ *     geometry overrides the default.
  *  2. Otherwise route by assignment id via the registry (built-in scenes).
  *  3. No match → render nothing.
  *
@@ -20,6 +21,9 @@ import { lookupScene } from './registry'
 
 const BallStickScene = lazy(() =>
   import('./scenes/BallStickScene').then((m) => ({ default: m.BallStickScene }))
+)
+const CurveScene = lazy(() =>
+  import('./scenes/CurveScene').then((m) => ({ default: m.CurveScene }))
 )
 const MoleculeScene = lazy(() =>
   import('./scenes/MoleculeScene').then((m) => ({ default: m.MoleculeScene }))
@@ -48,9 +52,14 @@ const SCENE_FALLBACK = (
 export function Visualizer({ assignment, submission }: VisualizerProps) {
   // ADR-0015: a teacher-authored visualization overrides everything.
   if (assignment.visualization) {
+    const viz = assignment.visualization
     return (
       <Suspense fallback={SCENE_FALLBACK}>
-        <BallStickScene visualization={assignment.visualization} />
+        {viz.kind === 'curve' ? (
+          <CurveScene visualization={viz} />
+        ) : (
+          <BallStickScene visualization={viz} />
+        )}
       </Suspense>
     )
   }

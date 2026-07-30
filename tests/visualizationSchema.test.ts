@@ -19,7 +19,9 @@ describe('visualizationSchema · validation', () => {
       label: '水分子'
     })
     expect(valid.kind).toBe('ball_stick')
-    expect(valid.atoms.length).toBe(3)
+    if (valid.kind === 'ball_stick') {
+      expect(valid.atoms.length).toBe(3)
+    }
   })
 
   it('rejects empty atoms', () => {
@@ -68,6 +70,103 @@ describe('visualizationSchema · validation', () => {
   })
 })
 
+describe('visualizationSchema · curve', () => {
+  it('accepts a valid curve geometry', () => {
+    const valid = parseVisualization({
+      kind: 'curve',
+      points: [
+        [1, 0, 0],
+        [0, 1, 1],
+        [-1, 0, 2],
+        [0, -1, 3]
+      ],
+      label: '磁场螺旋'
+    })
+    expect(valid.kind).toBe('curve')
+    if (valid.kind === 'curve') {
+      expect(valid.points.length).toBe(4)
+      expect(valid.secondaryPoints).toBeUndefined()
+    }
+  })
+
+  it('accepts curve with secondaryPoints (DNA-style)', () => {
+    const valid = parseVisualization({
+      kind: 'curve',
+      points: [
+        [1, 0, 0],
+        [0, 1, 1]
+      ],
+      secondaryPoints: [
+        [-1, 0, 0],
+        [0, -1, 1]
+      ],
+      label: 'DNA 双螺旋'
+    })
+    expect(valid.kind).toBe('curve')
+    if (valid.kind === 'curve') {
+      expect(valid.secondaryPoints?.length).toBe(2)
+    }
+  })
+
+  it('rejects empty points', () => {
+    expect(() => parseVisualization({ kind: 'curve', points: [] })).toThrow()
+  })
+
+  it('rejects a single point (need a polyline)', () => {
+    expect(() =>
+      parseVisualization({ kind: 'curve', points: [[0, 0, 0]] })
+    ).toThrow()
+  })
+
+  it('rejects non-triple points', () => {
+    expect(() =>
+      parseVisualization({ kind: 'curve', points: [[0, 0], [1, 1]] })
+    ).toThrow()
+  })
+
+  it('rejects non-finite coordinates', () => {
+    expect(() =>
+      parseVisualization({
+        kind: 'curve',
+        points: [
+          [0, 0, 0],
+          [Number.NaN, 0, 1]
+        ]
+      })
+    ).toThrow()
+  })
+
+  it('rejects secondaryPoints that are too short', () => {
+    expect(() =>
+      parseVisualization({
+        kind: 'curve',
+        points: [
+          [0, 0, 0],
+          [1, 0, 0]
+        ],
+        secondaryPoints: [[0, 1, 0]]
+      })
+    ).toThrow()
+  })
+
+  it('routes ball_stick and curve via discriminatedUnion', () => {
+    const ball = parseVisualization({
+      kind: 'ball_stick',
+      atoms: [{ id: 'A1', element: 'C', position: [0, 0, 0] }],
+      bonds: []
+    })
+    const curve = parseVisualization({
+      kind: 'curve',
+      points: [
+        [0, 0, 0],
+        [1, 0, 0]
+      ]
+    })
+    expect(ball.kind).toBe('ball_stick')
+    expect(curve.kind).toBe('curve')
+  })
+})
+
 describe('generateVisualization · fallback paths', () => {
   it('returns invalid for an empty description', async () => {
     const result = await generateVisualization('   ')
@@ -79,8 +178,8 @@ describe('generateVisualization · fallback paths', () => {
     // LLM_* env is not configured in the test environment.
     const result = await generateVisualization('氨气分子 NH3')
     if (result.ok) {
-      // If an LLM happens to be configured, the structure must still validate.
-      expect(result.visualization.kind).toBe('ball_stick')
+      // If an LLM happens to be configured, accept either kind from the prompt.
+      expect(['ball_stick', 'curve']).toContain(result.visualization.kind)
     } else {
       expect(['no-llm', 'llm-failed']).toContain(result.reason)
     }

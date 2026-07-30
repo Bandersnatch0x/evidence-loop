@@ -612,9 +612,8 @@ export interface VisualizationBond {
 
 /**
  * Ball-stick visualization payload (ADR-0015 MVP). Covers molecules, crystals,
- * and helical structures (DNA) — anything expressible as atoms + bonds. The
- * `kind` discriminant leaves room for future curve/primitive kinds (magnetic
- * spirals, circuits) without a schema rewrite.
+ * and structures expressible as atoms + bonds. The `kind` discriminant leaves
+ * room for curve/primitive kinds without a schema rewrite.
  */
 export interface BallStickVisualization {
   kind: 'ball_stick'
@@ -624,8 +623,24 @@ export interface BallStickVisualization {
   label?: string
 }
 
-/** Union of all visualization kinds. MVP has one; the discriminant scales. */
-export type Visualization = BallStickVisualization
+/**
+ * Curve visualization (Phase 4 / ADR-0015 extension). Pre-sampled 3D polyline
+ * points — magnetic helices, DNA strands, trajectories. Pure data + zod
+ * validation; no expression evaluation. Optional secondaryPoints draws a
+ * second strand (DNA double helix) without expanding to multi-strand schema.
+ */
+export interface CurveVisualization {
+  kind: 'curve'
+  /** Primary curve polyline, each point [x, y, z]. */
+  points: readonly (readonly [number, number, number])[]
+  /** Optional second strand (e.g. DNA complementary helix). */
+  secondaryPoints?: readonly (readonly [number, number, number])[]
+  /** Optional human label shown above the canvas. */
+  label?: string
+}
+
+/** Union of all visualization kinds. Discriminant scales per ADR-0015. */
+export type Visualization = BallStickVisualization | CurveVisualization
 
 export interface KnowledgePoint {
   id: string

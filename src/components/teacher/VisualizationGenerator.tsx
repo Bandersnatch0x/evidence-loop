@@ -1,17 +1,17 @@
 /**
  * VisualizationGenerator — teacher AI-generate → preview → adopt flow for a
- * 3D ball-stick visualization (ADR-0015).
+ * 3D visualization (ADR-0015 + Phase 4 curve).
  *
  * Mounted inside QuestionEditor (edit mode only — a questionId is required).
  * The teacher types a natural-language description, the server's LLM proposes
- * a ball-stick geometry, this component previews it live in 3D (BallStickScene),
- * and the teacher confirms (adopt) or discards. Confirms persist onto the
+ * ball_stick or curve geometry, this component previews it live in 3D, and
+ * the teacher confirms (adopt) or discards. Confirms persist onto the
  * Question; the student-side Visualizer then renders it.
  *
  * PRODUCT.md boundary: the LLM only drafts presentation content — it never
  * scores. The "已确认" / "待确认" badge makes the authority grade visible.
  */
-import { Suspense, lazy, useState } from 'react'
+import { Suspense, lazy, useState, type ReactNode } from 'react'
 import { AlertTriangle, Sparkles } from 'lucide-react'
 import type { Question, Visualization } from '../../../shared/contracts'
 import {
@@ -26,6 +26,18 @@ const BallStickScene = lazy(() =>
     default: m.BallStickScene
   }))
 )
+const CurveScene = lazy(() =>
+  import('../visualizer/scenes/CurveScene').then((m) => ({
+    default: m.CurveScene
+  }))
+)
+
+function VisualizationPreview({ visualization }: { visualization: Visualization }): ReactNode {
+  if (visualization.kind === 'curve') {
+    return <CurveScene visualization={visualization} />
+  }
+  return <BallStickScene visualization={visualization} />
+}
 
 export interface VisualizationGeneratorProps {
   questionId: string
@@ -104,7 +116,7 @@ export function VisualizationGenerator({
         <Sparkles size={16} style={{ verticalAlign: 'middle' }} /> 3D 演示生成
       </legend>
       <p className="muted">
-        描述一个分子/晶体/结构，AI 生成球棍模型供预览；确认后学生打开此题即可见。
+        描述分子/晶体（球棍）或螺旋/轨迹（曲线），AI 生成 3D 几何供预览；确认后学生打开此题即可见。
         仅展示，不参与评分。
       </p>
 
@@ -114,7 +126,7 @@ export function VisualizationGenerator({
           rows={2}
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          placeholder="如：氨气分子 NH3，中心氮，三个氢，三角锥形"
+          placeholder="如：氨气 NH3 三角锥；或：带电粒子在磁场中的螺旋轨迹"
           disabled={busy}
         />
       </label>
@@ -136,7 +148,7 @@ export function VisualizationGenerator({
       {preview ? (
         <div className="viz-preview">
           <Suspense fallback={<div className="muted">正在加载 3D 预览…</div>}>
-            <BallStickScene visualization={preview} />
+            <VisualizationPreview visualization={preview} />
           </Suspense>
           <div style={{ marginTop: 8, display: 'flex', gap: 8 }}>
             <button
@@ -165,7 +177,7 @@ export function VisualizationGenerator({
             当前演示（AI 生成 · 教师已确认）
           </div>
           <Suspense fallback={<div className="muted">正在加载 3D 预览…</div>}>
-            <BallStickScene visualization={confirmed} />
+            <VisualizationPreview visualization={confirmed} />
           </Suspense>
           <button
             type="button"
