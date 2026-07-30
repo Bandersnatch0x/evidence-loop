@@ -105,6 +105,16 @@ export class QuestionBankService {
   }
 
   /**
+   * Ownership-free read for presentation-layer lookups (ADR-0015 Phase 5).
+   * Returns undefined when missing — never throws. Used by student-facing
+   * assignment GETs to attach `visualization` / project private questions
+   * into a workspace shell. Does not expose a list surface (by-id only).
+   */
+  public peek(id: string): Question | undefined {
+    return this.store.get(id)
+  }
+
+  /**
    * Resolve a question the teacher may assign: own private bank OR system
    * seed bank (T03 预置库 / T06「老师题库/预置库选」). Edit/delete still use
    * get() and refuse seed rows so teachers cannot rewrite the built-in bank.

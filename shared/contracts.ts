@@ -84,8 +84,9 @@ export interface Assignment extends AssignmentSummary {
   demoVariants: DemoVariant[]
   /**
    * ADR-0015 optional teacher-authored 3D visualization. When present the
-   * unified Visualizer renders it (BallStickScene) in preference to any
-   * hardcoded registry scene. Presentation only — never scored.
+   * unified Visualizer dispatches by kind (ball_stick / curve) in preference
+   * to any hardcoded registry scene. Presentation only — never scored.
+   * Populated for demo seed merges and private-question projections (Phase 5).
    */
   visualization?: Visualization
 }

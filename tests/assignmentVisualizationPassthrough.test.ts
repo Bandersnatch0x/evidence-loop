@@ -1,0 +1,160 @@
+// @vitest-environment node
+
+/**
+ * ADR-0015 Phase 5 — student-facing visualization passthrough.
+ *
+ * Teacher adopts visualization on a private question → student GET
+ * /api/assignments/:questionId receives a projected Assignment shell with
+ * visualization. Demo registry path still merges seed:<id> visualization.
+ */
+import type { AddressInfo } from 'node:net'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { AuditStore } from '../server/audit/AuditStore'
+import { createEvidenceRingServer } from '../server/index'
+import type { Assignment, Question, Visualization } from '../shared/contracts'
+
+const SECRET = 'viz-passthrough-hmac'
+
+const helixViz: Visualization = {
+  kind: 'curve',
+  points: [
+    [1, 0, 0],
+    [0, 1, 1],
+    [-1, 0, 2],
+    [0, -1, 3]
+  ],
+  label: '磁场螺旋'
+}
+
+const ammoniaViz: Visualization = {
+  kind: 'ball_stick',
+  atoms: [
+    { id: 'N', element: 'N', position: [0, 0, 0] },
+    { id: 'H1', element: 'H', position: [0.8, 0.3, 0.5] }
+  ],
+  bonds: [{ from: 'N', to: 'H1' }],
+  label: '氨气片段'
+}
+
+describe('assignment visualization passthrough (Phase 5)', () => {
+  let server: Awaited<ReturnType<typeof createEvidenceRingServer>>
+  let baseUrl: string
+
+  beforeEach(async () => {
+    const audit = new AuditStore({
+      dbPath: ':memory:',
+      hmacSecret: SECRET,
+      flushIntervalMs: 60_000
+    })
+    server = await createEvidenceRingServer({
+      dataFile: ':memory:',
+      auditStore: audit,
+      auditHmacSecret: SECRET,
+      memoryDbPath: ':memory:',
+      productDbPath: ':memory:'
+    })
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve))
+    const address = server.address() as AddressInfo
+    baseUrl = `http://127.0.0.1:${String(address.port)}`
+  })
+
+  afterEach(async () => {
+    await new Promise<void>((resolve, reject) => {
+      server.close((error) => (error ? reject(error) : resolve()))
+    })
+  })
+
+  async function createPrivateQuestion(): Promise<Question> {
+    const created = await fetch(`${baseUrl}/api/questions`, {
+      method: 'POST',
+      headers: {
+        'x-demo-role': 'teacher',
+        'content-type': 'application/json'
+      },
+      body: JSON.stringify({
+        questionBankId: 'passthrough-bank',
+        subject: 'physics',
+        questionType: 'fill_blank',
+        stem: '带电粒子在匀强磁场中的运动轨迹是什么？',
+        payload: { kind: 'fill_blank', acceptedAnswers: ['螺旋线'] },
+        kpIds: ['kp.physics.em.magnetic_force'],
+        difficulty: 3
+      })
+    })
+    expect(created.status).toBe(201)
+    return (await created.json()) as Question
+  }
+
+  it('projects a private question with curve visualization for students', async () => {
+    const question = await createPrivateQuestion()
+
+    const adopt = await fetch(
+      `${baseUrl}/api/questions/${encodeURIComponent(question.id)}/adopt-visualization`,
+      {
+        method: 'POST',
+        headers: {
+          'x-demo-role': 'teacher',
+          'content-type': 'application/json'
+        },
+        body: JSON.stringify({ visualization: helixViz })
+      }
+    )
+    expect(adopt.status).toBe(200)
+
+    const studentView = await fetch(
+      `${baseUrl}/api/assignments/${encodeURIComponent(question.id)}`,
+      { headers: { 'x-demo-role': 'student' } }
+    )
+    expect(studentView.status).toBe(200)
+    const assignment = (await studentView.json()) as Assignment
+    expect(assignment.id).toBe(question.id)
+    expect(assignment.visualization?.kind).toBe('curve')
+    if (assignment.visualization?.kind === 'curve') {
+      expect(assignment.visualization.points.length).toBe(4)
+      expect(assignment.visualization.label).toBe('磁场螺旋')
+    }
+  })
+
+  it('projects a private question with ball_stick visualization', async () => {
+    const question = await createPrivateQuestion()
+
+    const adopt = await fetch(
+      `${baseUrl}/api/questions/${encodeURIComponent(question.id)}/adopt-visualization`,
+      {
+        method: 'POST',
+        headers: {
+          'x-demo-role': 'teacher',
+          'content-type': 'application/json'
+        },
+        body: JSON.stringify({ visualization: ammoniaViz })
+      }
+    )
+    expect(adopt.status).toBe(200)
+
+    const studentView = await fetch(
+      `${baseUrl}/api/assignments/${encodeURIComponent(question.id)}`,
+      { headers: { 'x-demo-role': 'student' } }
+    )
+    expect(studentView.status).toBe(200)
+    const assignment = (await studentView.json()) as Assignment
+    expect(assignment.visualization?.kind).toBe('ball_stick')
+  })
+
+  it('returns 404 for unknown private ids', async () => {
+    const response = await fetch(
+      `${baseUrl}/api/assignments/${encodeURIComponent('q-does-not-exist')}`,
+      { headers: { 'x-demo-role': 'student' } }
+    )
+    expect(response.status).toBe(404)
+  })
+
+  it('still serves demo assignments without visualization', async () => {
+    const response = await fetch(`${baseUrl}/api/assignments/python-average`, {
+      headers: { 'x-demo-role': 'student' }
+    })
+    expect(response.status).toBe(200)
+    const assignment = (await response.json()) as Assignment
+    expect(assignment.id).toBe('python-average')
+    expect(assignment.visualization).toBeUndefined()
+  })
+})

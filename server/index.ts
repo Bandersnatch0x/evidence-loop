@@ -51,8 +51,11 @@ import {
 } from './import'
 import { QuestionBankService } from './questionbank/QuestionBankService'
 import { QuestionStore } from './questionbank/QuestionStore'
+import {
+  projectQuestionToAssignment,
+  resolveVisualizationForAssignmentId
+} from './questionbank/projectQuestionAssignment'
 import { seedDemoProduct } from './questionbank/seedDemoProduct'
-import { SEED_AUTHOR_ID } from './questionbank/seedFromAssignments'
 import {
   AssignmentService,
   SubjectiveGradingService,
@@ -572,16 +575,30 @@ async function handleApi(
 
   const assignmentMatch = requestUrl.pathname.match(/^\/api\/assignments\/([^/]+)$/)
   if (request.method === 'GET' && assignmentMatch?.[1]) {
-    const assignment = assignments.get(decodeURIComponent(assignmentMatch[1]))
+    const requestedId = decodeURIComponent(assignmentMatch[1])
+    const assignment = assignments.get(requestedId)
+
+    // ADR-0015 Phase 5: registry miss → project a bank Question (private or
+    // seed:…) into a workspace shell so student practice can show visualization.
     if (!assignment) {
-      respondJson(response, 404, { error: 'Assignment not found' })
+      const bankQuestion = context.questionBank.peek(requestedId)
+      if (!bankQuestion) {
+        respondJson(response, 404, { error: 'Assignment not found' })
+        return
+      }
+      respondJson(
+        response,
+        200,
+        projectQuestionToAssignment(bankQuestion)
+      )
       return
     }
-    // ADR-0015: merge a teacher-authored visualization from the matching seed
-    // question (seed:<assignmentId>) if one was confirmed. Presentation only.
-    const seedQuestion = context.questionBank.get(
-      `seed:${assignment.id}`,
-      SEED_AUTHOR_ID
+
+    // Demo registry hit: merge teacher-authored visualization from seed:<id>
+    // or bare question id (presentation only — never scored).
+    const visualization = resolveVisualizationForAssignmentId(
+      (id) => context.questionBank.peek(id),
+      assignment.id
     )
     const publicAssignment = {
       id: assignment.id,
@@ -598,9 +615,7 @@ async function handleApi(
       functionSignature: assignment.functionSignature,
       rubric: assignment.rubric,
       demoVariants: assignment.demoVariants,
-      ...(seedQuestion?.visualization
-        ? { visualization: seedQuestion.visualization }
-        : {})
+      ...(visualization ? { visualization } : {})
     }
     respondJson(response, 200, publicAssignment)
     return
