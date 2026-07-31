@@ -1,4 +1,5 @@
 import type { IncomingMessage, ServerResponse } from 'node:http'
+import { ZodError } from 'zod'
 import {
   SECURITY_WARNING_HEADER,
   SECURITY_WARNING_VALUE
@@ -244,6 +245,12 @@ function handleError(response: ServerResponse, error: unknown): boolean {
     error instanceof SolutionValidationError
   ) {
     respondJson(response, 400, { error: error.message })
+    return true
+  }
+  if (error instanceof ZodError) {
+    // visualizationSchema / payload parse failures are client errors, not 500.
+    const first = error.issues[0]?.message ?? '校验失败'
+    respondJson(response, 400, { error: first, issues: error.issues })
     return true
   }
   if (error instanceof BodyTooLargeError) {
