@@ -41,13 +41,13 @@ ADR-0013/0014 落地统一可视化套件 + 内置 3D/2D 场景（分子/截面/
 
 - ~~**曲线类几何未做。**~~ **已做（Phase 4）。** `kind:'curve'` + CurveScene + SYSTEM_PROMPT 曲线分支 + schema/测试。
 - ~~**图元类几何（`kind:'primitives'`）未做。**~~ **已做（Phase 7）。** nodes+edges schema、PrimitivesScene、SYSTEM_PROMPT 图元分支；`numeric-ohm-law` 预置串联电路示意。
-- **DNA 碱基对横线未做。** 双链骨架可用 `secondaryPoints`；碱基对连接是球棍式 bond，需混合几何或扩展 schema，MVP 刻意不做。
-- ~~**学生侧私有题 visualization 透传未闭环。**~~ **已做（Phase 5）。** registry miss 时按题库 id 投影 Assignment 壳；registry hit 时合并 seed/裸 id visualization。`QuestionBankService.peek` 提供无所有权的 by-id 展示读取（不开放 list）。
-- ~~**私有题完整评分 runner 投影未做。**~~ **已做（Phase 6）。** `createQuestionBackedRegistry` + `projectQuestionToExecutable`：payload→RunnerSpec + criteria，EvaluationAgent 可对私有题 id 评分。
-- ~~**曲线/双螺旋 demo seed 未预置。**~~ **已做。** `physics-magnetic-helix` / `bio-dna-double-helix` + `ensureDemoCurveVisualizations`。
-- **生成几何的自动化学校验未做。** 配位数/键角/键长、螺旋几何是否合理靠教师 3D 预览肉眼判断。若未来出现"LLM 生成错误结构未被教师发现"的真实问题，再加规则校验。
-- **学生侧触发生成未做。** 当前仅教师角色可生成（题库教师私有）。学生侧看的是教师确认后的确定数据（有意为之）。
-- **LLM 未配置时的手动几何录入未做。** 生成器返回 `no-llm` 错误并提示；不经 LLM 直接填原子表/点列的 UI 未做——YAGNI。
+- ~~**DNA 碱基对横线未做。**~~ **已做（Phase 8）。** `curve.crossBars` 两端点段；CurveScene 绘制横档；DNA demo 预采样 `barEvery` 横线。
+- ~~**学生侧私有题 visualization 透传未闭环。**~~ **已做（Phase 5）。**
+- ~~**私有题完整评分 runner 投影未做。**~~ **已做（Phase 6）。**
+- ~~**曲线/双螺旋 demo seed 未预置。**~~ **已做。**
+- ~~**生成几何的自动化学校验未做。**~~ **已做（Phase 8）。** `geometrySanity`：hard 进 zod 拒存；soft 警告随 generate 返回（非完整化学模拟）。
+- ~~**学生侧触发生成未做。**~~ **已做（Phase 8）。** `POST /api/student/preview-visualization` + `StudentVizPreview`：**仅预览永不入库**。
+- ~~**LLM 未配置时的手动几何录入未做。**~~ **已做（Phase 8）。** 教师 VisualizationGenerator 支持粘贴 JSON → 预览 → adopt（服务端 schema 仍为信任边界）。
 
 ## 砍掉的（YAGNI，留后续切片）
 
@@ -71,6 +71,6 @@ ADR-0013/0014 落地统一可视化套件 + 内置 3D/2D 场景（分子/截面/
 - 私有题透传与 payload 评分投影已闭环；demo 曲线/电路可视化可无 LLM 预置
 
 ### 代价
-- 依赖 LLM 配置（`LLM_*` 环境变量），未配置时生成不可用（降级提示，不崩）
-- DNA 碱基对混合几何、学科自动校验、手动录入 UI 仍未做
-- 生成几何的学科正确性主要靠教师肉眼
+- 依赖 LLM 配置（`LLM_*` 环境变量），未配置时 AI 生成不可用；可用手动 JSON 录入兜底
+- 几何 sanity 是边界规则而非完整化学/物理校验；最终仍以教师确认为准
+- 学生生成仅预览、不能写题库（产品边界）

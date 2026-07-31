@@ -22,7 +22,7 @@ import { PipelineBar } from './components/PipelineBar'
 import { ResultsPanel } from './components/ResultsPanel'
 import { ReviewView } from './components/ReviewView'
 import { MobileHeader, Sidebar, type AppView } from './components/Sidebar'
-import { StudentWorkbench } from './components/student'
+import { StudentWorkbench, StudentVizPreview } from './components/student'
 import { TeacherWorkbench } from './components/teacher'
 import { TransparencyView } from './components/TransparencyView'
 import { Visualizer } from './components/visualizer/Visualizer'
@@ -413,6 +413,7 @@ export function App() {
           />
         </div>
         <Visualizer assignment={assignment} submission={submission} />
+        {demoRole === 'student' ? <StudentVizPreview /> : null}
         {multimodalEnabled && (
           <div className="math-problem-slot">
             <MathProblem problemId="math-1" />

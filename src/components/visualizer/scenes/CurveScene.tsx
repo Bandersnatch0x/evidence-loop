@@ -1,13 +1,9 @@
 /**
  * CurveScene — R3F polyline renderer for teacher-authored curve visualizations
- * (ADR-0015 Phase 4). Takes pre-sampled points from props and draws them with
- * drei `<Line>` + OrbitRig. Optional secondaryPoints draws a second strand
- * (DNA double helix) without a multi-strand schema.
+ * (ADR-0015 Phase 4/8). Pre-sampled points via drei `<Line>` + OrbitRig.
+ * Optional secondaryPoints (DNA strand) and crossBars (base-pair rungs).
  *
  * Presentation only; never enters the scoring evidence chain.
- *
- * Camera fit copies BallStickScene's bounding-sphere heuristic (ponytail:
- * two small copies beat a shared abstraction until a third scene needs it).
  */
 import { Canvas } from '@react-three/fiber'
 import { Line } from '@react-three/drei'
@@ -24,7 +20,7 @@ function toVectors(points: readonly (readonly [number, number, number])[]) {
   return points.map((p) => new THREE.Vector3(p[0], p[1], p[2]))
 }
 
-/** Max radius from origin across one or more polylines (same idea as BallStickScene). */
+/** Max radius from origin across polylines and cross-bar endpoints. */
 function cameraDistanceFromPoints(
   ...polylines: Array<readonly (readonly [number, number, number])[] | undefined>
 ): number {
@@ -40,16 +36,24 @@ function cameraDistanceFromPoints(
 }
 
 export function CurveScene({ visualization }: CurveSceneProps) {
-  const { points, secondaryPoints, label } = visualization
+  const { points, secondaryPoints, crossBars, label } = visualization
+
+  const barEndpoints = useMemo(() => {
+    if (!crossBars || crossBars.length === 0) return undefined
+    return crossBars.flatMap((bar) => [bar[0], bar[1]])
+  }, [crossBars])
 
   const cameraDistance = useMemo(
-    () => cameraDistanceFromPoints(points, secondaryPoints),
-    [points, secondaryPoints]
+    () => cameraDistanceFromPoints(points, secondaryPoints, barEndpoints),
+    [points, secondaryPoints, barEndpoints]
   )
 
   const primaryLine = useMemo(() => toVectors(points), [points])
   const secondaryLine = useMemo(
-    () => (secondaryPoints && secondaryPoints.length >= 2 ? toVectors(secondaryPoints) : null),
+    () =>
+      secondaryPoints && secondaryPoints.length >= 2
+        ? toVectors(secondaryPoints)
+        : null,
     [secondaryPoints]
   )
 
@@ -80,6 +84,17 @@ export function CurveScene({ visualization }: CurveSceneProps) {
             {secondaryLine ? (
               <Line points={secondaryLine} color="#dc2626" lineWidth={2.5} />
             ) : null}
+            {crossBars?.map((bar, i) => (
+              <Line
+                key={`bar-${i}`}
+                points={[
+                  new THREE.Vector3(bar[0][0], bar[0][1], bar[0][2]),
+                  new THREE.Vector3(bar[1][0], bar[1][1], bar[1][2])
+                ]}
+                color="#a3a3a3"
+                lineWidth={1.5}
+              />
+            ))}
           </Suspense>
         </OrbitRig>
       </Canvas>

@@ -193,7 +193,10 @@ export async function handleQuestionBankApi(
         respondJson(response, 422, { error: result.message, reason: result.reason })
         return true
       }
-      respondJson(response, 200, { visualization: result.visualization })
+      respondJson(response, 200, {
+        visualization: result.visualization,
+        warnings: result.warnings
+      })
       return true
     }
 

@@ -628,7 +628,8 @@ export interface BallStickVisualization {
  * Curve visualization (Phase 4 / ADR-0015 extension). Pre-sampled 3D polyline
  * points — magnetic helices, DNA strands, trajectories. Pure data + zod
  * validation; no expression evaluation. Optional secondaryPoints draws a
- * second strand (DNA double helix) without expanding to multi-strand schema.
+ * second strand (DNA double helix). Optional crossBars draw base-pair rungs
+ * between strands (Phase 8).
  */
 export interface CurveVisualization {
   kind: 'curve'
@@ -636,6 +637,14 @@ export interface CurveVisualization {
   points: readonly (readonly [number, number, number])[]
   /** Optional second strand (e.g. DNA complementary helix). */
   secondaryPoints?: readonly (readonly [number, number, number])[]
+  /**
+   * Optional base-pair / rung segments: each item is two endpoints
+   * [[x,y,z], [x,y,z]] typically linking the two strands.
+   */
+  crossBars?: readonly (readonly [
+    readonly [number, number, number],
+    readonly [number, number, number]
+  ])[]
   /** Optional human label shown above the canvas. */
   label?: string
 }

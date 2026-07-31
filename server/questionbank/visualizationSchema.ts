@@ -18,6 +18,10 @@ import {
   callOpenAICompatible,
   resolveLlmProvider
 } from '../tutoring/callOpenAICompatible'
+import {
+  hardGeometryIssues,
+  softGeometryWarnings
+} from './geometrySanity'
 
 const positionSchema = z.tuple([z.number().finite(), z.number().finite(), z.number().finite()])
 
@@ -66,17 +70,29 @@ const ballStickSchema = z
         })
       }
     }
+    for (const message of hardGeometryIssues(data)) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message })
+    }
   })
 
 /** Pre-sampled curve polyline: 2–2000 finite [x,y,z] points. */
 const pointsSchema = z.array(positionSchema).min(2).max(2000)
 
-const curveSchema = z.object({
-  kind: z.literal('curve'),
-  points: pointsSchema,
-  secondaryPoints: pointsSchema.optional(),
-  label: z.string().max(80).optional()
-})
+const crossBarSchema = z.tuple([positionSchema, positionSchema])
+
+const curveSchema = z
+  .object({
+    kind: z.literal('curve'),
+    points: pointsSchema,
+    secondaryPoints: pointsSchema.optional(),
+    crossBars: z.array(crossBarSchema).max(500).optional(),
+    label: z.string().max(80).optional()
+  })
+  .superRefine((data, ctx) => {
+    for (const message of hardGeometryIssues(data)) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message })
+    }
+  })
 
 const nodeSchema = z.object({
   id: z.string().min(1),
@@ -123,6 +139,9 @@ const primitivesSchema = z
         })
       }
     }
+    for (const message of hardGeometryIssues(data)) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message })
+    }
   })
 
 // z.union (not discriminatedUnion): ballStick/primitives use superRefine
@@ -141,6 +160,8 @@ export function parseVisualization(raw: unknown): Visualization {
 export interface GenerateVisualizationResult {
   ok: true
   visualization: Visualization
+  /** Soft geometry advisories (never blocks save). */
+  warnings: string[]
 }
 export interface GenerateVisualizationError {
   ok: false
@@ -157,9 +178,10 @@ const SYSTEM_PROMPT = `你是科学 3D 可视化建模助手。根据用户的�
   - position 是合理的三维坐标 [x,y,z]，键长归一化到 1 附近，体现真实空间构型（如甲烷四面体、水 V 形、氨三角锥）。
   - bonds 连接真实化学键对应的原子 id；atoms 1-50 个，id 唯一。
 - 螺旋/轨迹/曲线（磁场螺旋、带电粒子轨迹、DNA 双螺旋等）→ kind "curve"：
-  {"kind":"curve","points":[[x,y,z],...],"secondaryPoints":[[x,y,z],...],"label":"简短中文标题"}
+  {"kind":"curve","points":[[x,y,z],...],"secondaryPoints":[[x,y,z],...],"crossBars":[[[x,y,z],[x,y,z]],...],"label":"简短中文标题"}
   - points 是预采样 3D 折线点，采样 50–200 个点，体现真实几何（如磁场螺旋：半径恒定、轴向均匀推进）。
   - secondaryPoints 可选：DNA 等双链用第二条螺旋；单条螺旋不要带 secondaryPoints。
+  - crossBars 可选：DNA 碱基对横档，每项为两端点 [[x,y,z],[x,y,z]]，建议每隔数个采样点连一条。
   - 坐标量级控制在约 -5..5，便于 3D 预览。
 - 电路/节点图/简单结构示意图 → kind "primitives"：
   {"kind":"primitives","nodes":[{"id":"V","label":"电源","position":[-2,0,0],"role":"source"},{"id":"R","label":"R","position":[2,0,0],"role":"resistor"}],"edges":[{"from":"V","to":"R","label":"导线"}],"label":"简短中文标题"}
@@ -205,7 +227,11 @@ export async function generateVisualization(
       }
     )
     const visualization = visualizationSchema.parse(raw)
-    return { ok: true, visualization }
+    return {
+      ok: true,
+      visualization,
+      warnings: softGeometryWarnings(visualization)
+    }
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
     return { ok: false, reason: 'llm-failed', message: `生成失败：${message}` }

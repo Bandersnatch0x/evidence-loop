@@ -21,29 +21,52 @@ export function sampleMagneticHelix(
   return points
 }
 
-/** Sample a DNA-like double helix (two strands, phase offset π). */
+/** Sample a DNA-like double helix (two strands, phase offset π) + base-pair bars. */
 export function sampleDnaDoubleHelix(
   turns = 2,
   samples = 100,
-  radius = 1
+  radius = 1,
+  barEvery = 4
 ): {
   points: Array<readonly [number, number, number]>
   secondaryPoints: Array<readonly [number, number, number]>
+  crossBars: Array<
+    readonly [
+      readonly [number, number, number],
+      readonly [number, number, number]
+    ]
+  >
 } {
   const points: Array<readonly [number, number, number]> = []
   const secondaryPoints: Array<readonly [number, number, number]> = []
+  const crossBars: Array<
+    readonly [
+      readonly [number, number, number],
+      readonly [number, number, number]
+    ]
+  > = []
   const total = Math.max(2, samples)
+  const step = Math.max(1, barEvery)
   for (let i = 0; i < total; i++) {
     const t = (i / (total - 1)) * turns * Math.PI * 2
     const z = t * 0.4
-    points.push([radius * Math.cos(t), radius * Math.sin(t), z])
-    secondaryPoints.push([
+    const a: readonly [number, number, number] = [
+      radius * Math.cos(t),
+      radius * Math.sin(t),
+      z
+    ]
+    const b: readonly [number, number, number] = [
       radius * Math.cos(t + Math.PI),
       radius * Math.sin(t + Math.PI),
       z
-    ])
+    ]
+    points.push(a)
+    secondaryPoints.push(b)
+    if (i % step === 0) {
+      crossBars.push([a, b])
+    }
   }
-  return { points, secondaryPoints }
+  return { points, secondaryPoints, crossBars }
 }
 
 /** Simple series circuit: source → switch → resistor → back to source. */
@@ -77,6 +100,7 @@ export const DNA_DOUBLE_HELIX_VISUALIZATION: Visualization = {
   kind: 'curve',
   points: dna.points,
   secondaryPoints: dna.secondaryPoints,
+  crossBars: dna.crossBars,
   label: 'DNA 双螺旋'
 }
 
@@ -102,7 +126,22 @@ export function ensureDemoCurveVisualizations(store: QuestionStore): number {
     const existing = store.get(id)
     if (!existing) continue
     if (existing.authorId !== SEED_AUTHOR_ID) continue
-    if (existing.visualization !== undefined) continue
+    const current = existing.visualization
+    if (current !== undefined) {
+      // Upgrade DNA seed when base-pair crossBars were added later.
+      if (
+        assignmentId === 'bio-dna-double-helix' &&
+        current.kind === 'curve' &&
+        visualization.kind === 'curve' &&
+        (current.crossBars === undefined || current.crossBars.length === 0) &&
+        visualization.crossBars !== undefined &&
+        visualization.crossBars.length > 0
+      ) {
+        store.save({ ...existing, visualization })
+        updated += 1
+      }
+      continue
+    }
     store.save({ ...existing, visualization })
     updated += 1
   }

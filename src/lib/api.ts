@@ -325,11 +325,11 @@ export function adoptSolution(
 // ADR-0015 — teacher-authored 3D visualization (AI generate → preview → adopt).
 // ---------------------------------------------------------------------------
 
-/** LLM proposes a ball-stick geometry from a description (not persisted). */
+/** LLM proposes geometry from a description (teacher path, not persisted). */
 export function previewVisualization(
   questionId: string,
   description: string
-): Promise<{ visualization: Visualization }> {
+): Promise<{ visualization: Visualization; warnings?: string[] }> {
   return requestJson(
     `/api/questions/${encodeURIComponent(questionId)}/preview-visualization`,
     {
@@ -337,6 +337,23 @@ export function previewVisualization(
       body: JSON.stringify({ description })
     }
   )
+}
+
+/**
+ * Student-only LLM draft geometry. Never persisted (ADR-0015).
+ * Does not require a question id — pure description → preview.
+ */
+export function studentPreviewVisualization(
+  description: string
+): Promise<{
+  visualization: Visualization
+  warnings: string[]
+  persisted: false
+}> {
+  return requestJson('/api/student/preview-visualization', {
+    method: 'POST',
+    body: JSON.stringify({ description })
+  })
 }
 
 /** Confirm a previewed geometry onto the question. Pass null to clear. */

@@ -48,6 +48,7 @@ describe('demo visualizations', () => {
     expect(dna?.visualization?.kind).toBe('curve')
     if (dna?.visualization?.kind === 'curve') {
       expect(dna.visualization.secondaryPoints?.length).toBeGreaterThan(10)
+      expect(dna.visualization.crossBars?.length).toBeGreaterThan(5)
     }
 
     const ohm = store.get('seed:numeric-ohm-law')

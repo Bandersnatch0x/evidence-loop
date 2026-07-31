@@ -1,18 +1,16 @@
 /**
- * VisualizationGenerator — teacher AI-generate → preview → adopt flow for a
- * 3D visualization (ADR-0015: ball_stick / curve / primitives).
+ * VisualizationGenerator — teacher AI-generate / manual JSON → preview → adopt
+ * flow for a 3D visualization (ADR-0015: ball_stick / curve / primitives).
  *
  * Mounted inside QuestionEditor (edit mode only — a questionId is required).
- * The teacher types a natural-language description, the server's LLM proposes
- * geometry, this component previews it live in 3D, and the teacher confirms
- * (adopt) or discards. Confirms persist onto the Question; the student-side
- * Visualizer then renders it.
+ * Paths: (1) natural-language LLM draft, (2) manual JSON paste without LLM.
+ * Confirms persist onto the Question; the student-side Visualizer then renders.
  *
  * PRODUCT.md boundary: the LLM only drafts presentation content — it never
  * scores. The "已确认" / "待确认" badge makes the authority grade visible.
  */
 import { Suspense, lazy, useState, type ReactNode } from 'react'
-import { AlertTriangle, Sparkles } from 'lucide-react'
+import { AlertTriangle, Sparkles, FileJson } from 'lucide-react'
 import type { Question, Visualization } from '../../../shared/contracts'
 import {
   adoptVisualization,
@@ -61,7 +59,9 @@ export function VisualizationGenerator({
   onAdopted
 }: VisualizationGeneratorProps) {
   const [description, setDescription] = useState('')
+  const [manualJson, setManualJson] = useState('')
   const [preview, setPreview] = useState<Visualization>()
+  const [warnings, setWarnings] = useState<string[]>([])
   const [confirmed, setConfirmed] = useState<Visualization | undefined>(initial)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string>()
@@ -76,6 +76,7 @@ export function VisualizationGenerator({
     try {
       const result = await previewVisualization(questionId, description.trim())
       setPreview(result.visualization)
+      setWarnings(result.warnings ?? [])
     } catch (generateError) {
       setError(
         generateError instanceof Error
@@ -83,8 +84,33 @@ export function VisualizationGenerator({
           : '生成失败（可能未配置 LLM）'
       )
       setPreview(undefined)
+      setWarnings([])
     } finally {
       setBusy(false)
+    }
+  }
+
+  /** Parse manual JSON client-side shape check; server re-validates on adopt. */
+  const handleManualPreview = () => {
+    setError(undefined)
+    setWarnings([])
+    try {
+      const raw: unknown = JSON.parse(manualJson)
+      if (typeof raw !== 'object' || raw === null || !('kind' in raw)) {
+        setError('JSON 需包含 kind（ball_stick | curve | primitives）')
+        return
+      }
+      const record = raw as Record<string, unknown>
+      if (typeof record.kind !== 'string') {
+        setError('JSON 需包含 kind（ball_stick | curve | primitives）')
+        return
+      }
+      // Trust boundary is still server-side parse on adopt; client only drafts.
+      setPreview(raw as Visualization)
+      setWarnings(['手动 JSON 预览：确认保存时仍由服务端 schema 校验'])
+    } catch {
+      setError('JSON 解析失败，请检查格式')
+      setPreview(undefined)
     }
   }
 
@@ -96,6 +122,7 @@ export function VisualizationGenerator({
       const result = await adoptVisualization(questionId, preview)
       setConfirmed(result.question.visualization)
       setPreview(undefined)
+      setWarnings([])
       onAdopted?.(result.question)
     } catch (adoptError) {
       setError(adoptError instanceof Error ? adoptError.message : '确认失败')
@@ -124,12 +151,12 @@ export function VisualizationGenerator({
         <Sparkles size={16} style={{ verticalAlign: 'middle' }} /> 3D 演示生成
       </legend>
       <p className="muted">
-        描述分子/晶体（球棍）、螺旋/轨迹（曲线）或电路/节点图（图元），AI 生成 3D 几何供预览；确认后学生打开此题即可见。
-        仅展示，不参与评分。
+        描述分子/晶体（球棍）、螺旋/轨迹（曲线）或电路/节点图（图元），AI 生成 3D 几何供预览；也可粘贴 JSON 手动录入（无 LLM）。
+        确认后学生打开此题即可见。仅展示，不参与评分。
       </p>
 
       <label>
-        结构描述
+        结构描述（AI）
         <textarea
           rows={2}
           value={description}
@@ -144,12 +171,38 @@ export function VisualizationGenerator({
         disabled={busy}
         onClick={() => void handleGenerate()}
       >
-        <Sparkles size={14} /> 生成预览
+        <Sparkles size={14} /> AI 生成预览
+      </button>
+
+      <label style={{ display: 'block', marginTop: 12 }}>
+        手动几何 JSON（无 LLM）
+        <textarea
+          rows={5}
+          value={manualJson}
+          onChange={(e) => setManualJson(e.target.value)}
+          placeholder='{"kind":"curve","points":[[0,0,0],[1,0,1]],"label":"示例"}'
+          disabled={busy}
+          style={{ fontFamily: 'ui-monospace, monospace', fontSize: 12 }}
+        />
+      </label>
+      <button
+        type="button"
+        className="secondary-button"
+        disabled={busy}
+        onClick={handleManualPreview}
+      >
+        <FileJson size={14} /> 预览 JSON
       </button>
 
       {error !== undefined ? (
         <div className="error-banner">
           <AlertTriangle size={18} /> {error}
+        </div>
+      ) : null}
+
+      {warnings.length > 0 ? (
+        <div className="muted" style={{ marginTop: 8, fontSize: 13 }}>
+          几何提示：{warnings.join('；')}
         </div>
       ) : null}
 
@@ -171,7 +224,10 @@ export function VisualizationGenerator({
               type="button"
               className="secondary-button"
               disabled={busy}
-              onClick={() => setPreview(undefined)}
+              onClick={() => {
+                setPreview(undefined)
+                setWarnings([])
+              }}
             >
               丢弃
             </button>

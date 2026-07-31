@@ -173,7 +173,7 @@ describe('assignment visualization passthrough (Phase 5)', () => {
     }
   })
 
-  it('serves pre-seeded DNA double helix with secondaryPoints', async () => {
+  it('serves pre-seeded DNA double helix with secondaryPoints + crossBars', async () => {
     const response = await fetch(
       `${baseUrl}/api/assignments/bio-dna-double-helix`,
       { headers: { 'x-demo-role': 'student' } }
@@ -183,7 +183,35 @@ describe('assignment visualization passthrough (Phase 5)', () => {
     expect(assignment.visualization?.kind).toBe('curve')
     if (assignment.visualization?.kind === 'curve') {
       expect(assignment.visualization.secondaryPoints?.length).toBeGreaterThan(10)
+      expect(assignment.visualization.crossBars?.length).toBeGreaterThan(5)
     }
+  })
+
+  it('allows student preview-visualization without persisting', async () => {
+    const response = await fetch(
+      `${baseUrl}/api/student/preview-visualization`,
+      {
+        method: 'POST',
+        headers: {
+          'x-demo-role': 'student',
+          'content-type': 'application/json'
+        },
+        body: JSON.stringify({ description: '   ' })
+      }
+    )
+    // Empty description → 400; proves route is mounted for students (not 403/404).
+    expect([400, 422]).toContain(response.status)
+
+    const noAuth = await fetch(`${baseUrl}/api/student/preview-visualization`, {
+      method: 'POST',
+      headers: {
+        'x-demo-role': 'teacher',
+        'content-type': 'application/json'
+      },
+      body: JSON.stringify({ description: '水分子' })
+    })
+    // Teacher role has no studentId → 403 on student routes.
+    expect(noAuth.status).toBe(403)
   })
 
   it('serves pre-seeded circuit primitives on Ohm-law demo', async () => {

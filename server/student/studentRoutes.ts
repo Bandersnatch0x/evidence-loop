@@ -8,15 +8,17 @@ import type { SessionUser } from '../auth/SessionProvider'
 import type { StartPracticeRequest } from '../../shared/contracts'
 import type { TeacherTipService } from '../teacher/TeacherTipService'
 import { TeacherTipError } from '../teacher/TeacherTipService'
+import { generateVisualization } from '../questionbank/visualizationSchema'
 import type { PracticeSessionService } from './PracticeSessionService'
 import type { MistakeBookService } from './MistakeBookService'
 
 /**
- * HTTP surface for T07 student practice + T14 tip inbox.
+ * HTTP surface for T07 student practice + T14 tip inbox + ADR-0015 preview.
  *
  * - GET  /api/student/sessions       — list the student's practice sessions
  * - GET  /api/student/mistakes        — mistake book (active + mastered history)
  * - POST /api/student/practice        — start a fresh practice/assessment attempt
+ * - POST /api/student/preview-visualization — LLM draft geometry (NOT persisted)
  * - GET  /api/student/tips            — teacher tip inbox (T14)
  * - POST /api/student/tips/:id/read   — mark tip read (T14)
  *
@@ -24,6 +26,9 @@ import type { MistakeBookService } from './MistakeBookService'
  * a demo role switch can never leak another student's mistake book. Tutoring
  * enablement is derived server-side from the attempt's mode (D1) — the client
  * cannot claim tutoring in assessment mode.
+ *
+ * Student visualization generate is preview-only (never adopt/save) so scoring
+ * and teacher authority stay untouched (ADR-0015 / PRODUCT.md).
  */
 
 const JSON_HEADERS = {
@@ -40,6 +45,10 @@ const startPracticeSchema = z.object({
   termId: z.string().min(1).max(128),
   mode: z.enum(['practice', 'assessment']),
   paperId: z.string().min(1).max(128).optional()
+})
+
+const previewVisualizationSchema = z.object({
+  description: z.string().min(1).max(2000)
 })
 
 export interface StudentRouteContext {
@@ -93,6 +102,38 @@ export async function handleStudentApi(
     const input: StartPracticeRequest = parsed.data
     const result = await context.sessions.startPractice(input, studentId)
     respondJson(response, 201, result)
+    return true
+  }
+
+  // POST /api/student/preview-visualization — ADR-0015 student draft (no save).
+  if (
+    request.method === 'POST' &&
+    pathname === '/api/student/preview-visualization'
+  ) {
+    const parsed = previewVisualizationSchema.safeParse(
+      await readJsonBody(request)
+    )
+    if (!parsed.success) {
+      respondJson(response, 400, {
+        error: 'preview-visualization requires a non-empty description',
+        details: parsed.error.issues.map((issue) => issue.message)
+      })
+      return true
+    }
+    const result = await generateVisualization(parsed.data.description)
+    if (!result.ok) {
+      respondJson(response, 422, {
+        error: result.message,
+        reason: result.reason
+      })
+      return true
+    }
+    respondJson(response, 200, {
+      visualization: result.visualization,
+      warnings: result.warnings,
+      // Explicit contract: students cannot persist visualization.
+      persisted: false
+    })
     return true
   }
 
