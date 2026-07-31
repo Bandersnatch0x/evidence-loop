@@ -251,12 +251,12 @@ function validateEssay(payload: Record<string, unknown>): RunnerSpec {
 
 function validateCode(payload: Record<string, unknown>): RunnerSpec {
   // Code reuses the untagged PythonRunnerSpec shape (no `kind` discriminator).
-  if (!isPythonRunnerSpec(payload as unknown as RunnerSpec)) {
+  if (!isPythonRunnerSpec(payload)) {
     throw new QuestionValidationError(
       'Code payload requires a PythonRunnerSpec (functionName, maxAstNodes, testCases[])'
     )
   }
-  return payload as unknown as RunnerSpec
+  return payload
 }
 
 function isTriple(value: unknown): value is [number, number, number] {

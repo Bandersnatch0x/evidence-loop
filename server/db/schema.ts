@@ -89,7 +89,11 @@ export const users = sqliteTable(
     role: text('role').notNull(),
     loginId: text('login_id').notNull(),
     displayName: text('display_name').notNull(),
-    createdAt: text('created_at').notNull()
+    createdAt: text('created_at').notNull(),
+    /** Platform library reviewer flag (ticket 14: no role enum expansion). */
+    publicLibraryReviewer: integer('public_library_reviewer')
+      .notNull()
+      .default(0)
   },
   (table) => [uniqueIndex('idx_users_login').on(table.loginId)]
 )
@@ -238,8 +242,7 @@ export const questions = sqliteTable(
  * items into `questions` (D2). `items_json` holds ImportDraftItem[].
  */
 export const importDrafts = sqliteTable(
-  'import_drafts',
-  {
+  'import_drafts',  {
     id: text('id').primaryKey(),
     authorId: text('author_id').notNull(),
     questionBankId: text('question_bank_id').notNull(),
@@ -300,5 +303,211 @@ export const teacherTipDeliveries = sqliteTable(
     // Composite PK expressed as unique index + columns (SQLite drizzle style).
     uniqueIndex('idx_teacher_tip_delivery_pk').on(table.tipId, table.studentId),
     index('idx_teacher_tip_deliveries_student').on(table.studentId, table.readAt)
+  ]
+)
+
+// ---------------------------------------------------------------------------
+// Migration 0008 — demonstration module (T-A; spec §3)
+// Presentation/library module only — never touches scoring tables.
+// ---------------------------------------------------------------------------
+
+export const teachingDemonstrations = sqliteTable(
+  'teaching_demonstrations',
+  {
+    id: text('id').primaryKey(),
+    ownerId: text('owner_id').notNull(),
+    /** Current management metadata (title/classification/license/source chain). */
+    metaJson: text('meta_json').notNull(),
+    /** Soft-delete timestamp; NULL = live. */
+    deletedAt: text('deleted_at')
+  },
+  (table) => [
+    index('idx_demonstrations_owner').on(table.ownerId),
+    index('idx_demonstrations_deleted').on(table.deletedAt)
+  ]
+)
+
+export const demonstrationDrafts = sqliteTable(
+  'demonstration_drafts',
+  {
+    id: text('id').primaryKey(),
+    demonstrationId: text('demonstration_id').notNull().unique(),
+    /** SceneDocument (current editable state). */
+    documentJson: text('document_json').notNull(),
+    /** AI checkpoint snapshot series (ticket 09). */
+    checkpointJson: text('checkpoint_json'),
+    updatedAt: text('updated_at').notNull()
+  }
+)
+
+export const demonstrationVersions = sqliteTable(
+  'demonstration_versions',
+  {
+    id: text('id').primaryKey(),
+    demonstrationId: text('demonstration_id').notNull(),
+    status: text('status').notNull(), // submitted|approved|rejected|withdrawn
+    /** Immutable SceneDocument snapshot. */
+    snapshotDocumentJson: text('snapshot_document_json').notNull(),
+    /** Multi-dim classification JSON (format×space×behavior). */
+    classification: text('classification').notNull(),
+    /** Distribution license (v1 whitelist). */
+    license: text('license').notNull(),
+    /** AI disclosure (required, ticket 04). */
+    aiDisclosure: text('ai_disclosure').notNull(),
+    /** Derivation source chain (source work+version+author, ticket 08). */
+    sourceChainJson: text('source_chain_json'),
+    /** Media manifest (blob hash/type/size/state/derivative hash). */
+    mediaManifestJson: text('media_manifest_json').notNull(),
+    /** Rejection reason / review note. */
+    reviewerNote: text('reviewer_note'),
+    frozenAt: text('frozen_at').notNull()
+  },
+  (table) => [
+    index('idx_demo_versions_demo_status').on(
+      table.demonstrationId,
+      table.status
+    ),
+    index('idx_demo_versions_status_frozen').on(table.status, table.frozenAt)
+  ]
+)
+
+export const mediaAssets = sqliteTable(
+  'media_assets',
+  {
+    id: text('id').primaryKey(),
+    ownerId: text('owner_id').notNull(),
+    kind: text('kind').notNull(), // image|audio|model3d|video|subtitle
+    originalBlobHash: text('original_blob_hash').notNull(),
+    status: text('status').notNull(),
+    /** Sanitized display name; never part of the disk path. */
+    displayName: text('display_name').notNull(),
+    createdAt: text('created_at').notNull(),
+    deletedAt: text('deleted_at')
+  }
+)
+
+export const mediaBlobs = sqliteTable(
+  'media_blobs',
+  {
+    /** SHA-256 content-addressed, globally unique. */
+    hash: text('hash').primaryKey(),
+    /** Server-confirmed canonical extension (not the user filename). */
+    canonicalExtension: text('canonical_extension').notNull(),
+    mediaType: text('media_type').notNull(),
+    byteSize: integer('byte_size').notNull(),
+    /** data/media/<hash>.<ext> relative path (paths.ts contract). */
+    storageKey: text('storage_key').notNull(),
+    /** ClamAV result; fail-closed keeps quarantined when unavailable. */
+    scanStatus: text('scan_status').notNull(),
+    createdAt: text('created_at').notNull()
+  }
+)
+
+export const mediaDerivatives = sqliteTable(
+  'media_derivatives',
+  {
+    id: text('id').primaryKey(),
+    assetId: text('asset_id').notNull(),
+    role: text('role').notNull(), // display|thumbnail|poster|playback|caption
+    blobHash: text('blob_hash').notNull(),
+    sourceBlobHash: text('source_blob_hash').notNull(),
+    recipeName: text('recipe_name').notNull(),
+    recipeVersion: text('recipe_version').notNull()
+  },
+  (table) => [
+    uniqueIndex('idx_media_derivatives_idempotent').on(
+      table.sourceBlobHash,
+      table.recipeName,
+      table.recipeVersion
+    )
+  ]
+)
+
+export const uploadSessions = sqliteTable(
+  'upload_sessions',
+  {
+    id: text('id').primaryKey(),
+    ownerId: text('owner_id').notNull(),
+    intendedKind: text('intended_kind').notNull(),
+    declaredBytes: integer('declared_bytes').notNull(),
+    /** Server-counted actual bytes; never trust Content-Length alone. */
+    receivedBytes: integer('received_bytes').notNull(),
+    tempKey: text('temp_key').notNull(),
+    state: text('state').notNull(), // uploading|quarantined|inspecting|processing|ready|rejected|failed
+    quotaReservationBytes: integer('quota_reservation_bytes').notNull(),
+    expiresAt: text('expires_at').notNull(),
+    createdAt: text('created_at').notNull()
+  },
+  (table) => [
+    index('idx_upload_sessions_owner_state').on(table.ownerId, table.state),
+    index('idx_upload_sessions_expires').on(table.expiresAt)
+  ]
+)
+
+export const mediaJobs = sqliteTable(
+  'media_jobs',
+  {
+    id: text('id').primaryKey(),
+    assetId: text('asset_id').notNull(),
+    jobType: text('job_type').notNull(),
+    state: text('state').notNull(),
+    attempts: integer('attempts').notNull().default(0),
+    availableAt: text('available_at').notNull(),
+    leaseOwner: text('lease_owner'),
+    leaseExpiresAt: text('lease_expires_at'),
+    lastErrorCode: text('last_error_code')
+  },
+  (table) => [
+    index('idx_media_jobs_state_available').on(table.state, table.availableAt),
+    index('idx_media_jobs_lease').on(table.leaseExpiresAt)
+  ]
+)
+
+export const externalVideoRefs = sqliteTable(
+  'external_video_refs',
+  {
+    id: text('id').primaryKey(),
+    ownerId: text('owner_id').notNull(),
+    provider: text('provider').notNull(), // youtube|vimeo (v1 whitelist)
+    providerVideoId: text('provider_video_id').notNull(),
+    canonicalUrl: text('canonical_url').notNull(),
+    health: text('health').notNull(), // unknown|healthy|degraded|unavailable|private|embed_forbidden
+    checkedAt: text('checked_at'),
+    consecutiveFailures: integer('consecutive_failures').notNull().default(0),
+    lastFailureCode: text('last_failure_code')
+  },
+  (table) => [
+    index('idx_external_video_provider_health').on(
+      table.provider,
+      table.health
+    )
+  ]
+)
+
+export const demonstrationReferences = sqliteTable(
+  'demonstration_references',
+  {
+    id: text('id').primaryKey(),
+    questionId: text('question_id'),
+    kpId: text('kp_id'),
+    demoVersionId: text('demo_version_id').notNull(),
+    role: text('role').notNull(), // primary|supplementary
+    ord: integer('ord').notNull()
+  },
+  (table) => [
+    uniqueIndex('idx_demo_refs_question_ord').on(
+      table.questionId,
+      table.ord
+    ),
+    uniqueIndex('idx_demo_refs_kp_ord').on(table.kpId, table.ord),
+    // Partial unique indexes matching 0008 SQL — primary at most one per owner
+    // (DB layer double-guard alongside service layer, ticket 12).
+    uniqueIndex('idx_demo_refs_question_primary')
+      .on(table.questionId, table.role)
+      .where(sql`${table.questionId} IS NOT NULL AND ${table.role} = 'primary'`),
+    uniqueIndex('idx_demo_refs_kp_primary')
+      .on(table.kpId, table.role)
+      .where(sql`${table.kpId} IS NOT NULL AND ${table.role} = 'primary'`),
+    index('idx_demo_refs_version').on(table.demoVersionId)
   ]
 )

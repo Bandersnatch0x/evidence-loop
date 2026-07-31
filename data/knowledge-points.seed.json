@@ -3,24 +3,24 @@
     {
       "id": "kp.function.definition",
       "name": "函数定义与调用",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.list.iteration",
       "name": "列表遍历",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.recursion.base_case",
       "name": "递归基例",
       "parentId": "kp.function.definition",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.recursion.step",
       "name": "递归推进步骤",
       "parentId": "kp.function.definition",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.string.reversal",
@@ -30,711 +30,713 @@
     {
       "id": "kp.math.algebra.simplify",
       "name": "代数式化简",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.math.algebra.factor",
       "name": "多项式因式分解",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.math.algebra.quadratic",
       "name": "一元二次方程求解",
-      "weight": 1.0
+      "weight": 1
     },
-
     {
       "id": "kp.math.geometry",
       "name": "几何",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.math.geometry.triangle_congruence",
       "name": "三角形全等（初中）",
       "parentId": "kp.math.geometry",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.math.geometry.pythagorean",
       "name": "勾股定理（初中）",
       "parentId": "kp.math.geometry",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.math.geometry.similarity",
       "name": "相似三角形（初中）",
       "parentId": "kp.math.geometry",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.math.geometry.solid",
       "name": "立体几何截面（高中）",
       "parentId": "kp.math.geometry",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.math.function",
       "name": "函数",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.math.function.linear",
       "name": "一次函数（初中）",
       "parentId": "kp.math.function",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.math.function.quadratic_graph",
       "name": "二次函数与图像（高中）",
       "parentId": "kp.math.function",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.math.function.exponential",
       "name": "指数与对数函数（高中）",
       "parentId": "kp.math.function",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.math.trig.basic",
       "name": "三角函数基础（高中）",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.math.calculus.limit",
       "name": "极限（高中）",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.math.calculus.derivative",
       "name": "导数（高中）",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.math.probability.basic",
       "name": "概率初步（初中）",
       "weight": 0.8
     },
-
     {
       "id": "kp.physics.mechanics",
       "name": "力学",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.physics.mechanics.force_basics",
       "name": "力的基础（初中）",
       "parentId": "kp.physics.mechanics",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.physics.mechanics.newton_first_law",
       "name": "牛顿第一定律（初中）",
       "parentId": "kp.physics.mechanics",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.physics.mechanics.kinematics",
       "name": "运动学（高中）",
       "parentId": "kp.physics.mechanics",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.physics.mechanics.projectile",
       "name": "斜抛运动（高中）",
       "parentId": "kp.physics.mechanics",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.physics.mechanics.projectile_xy",
       "name": "斜抛运动的分量分解（高中）",
       "parentId": "kp.physics.mechanics.projectile",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.physics.mechanics.newton_second_law",
       "name": "牛顿第二定律（高中）",
       "parentId": "kp.physics.mechanics",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.physics.mechanics.energy_conservation",
       "name": "机械能守恒（高中）",
       "parentId": "kp.physics.mechanics",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.physics.electricity",
       "name": "电学",
-      "weight": 1.0
+      "weight": 1
+    },
+    {
+      "id": "kp.physics.em",
+      "name": "电磁学",
+      "weight": 1
+    },
+    {
+      "id": "kp.physics.em.magnetic_force",
+      "name": "磁场力（洛伦兹力）",
+      "parentId": "kp.physics.em",
+      "weight": 1
     },
     {
       "id": "kp.physics.electricity.ohm_law",
       "name": "欧姆定律（初中）",
       "parentId": "kp.physics.electricity",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.physics.electricity.circuit_series",
       "name": "串并联电路（初中）",
       "parentId": "kp.physics.electricity",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.physics.electricity.field",
       "name": "电场与电势（高中）",
       "parentId": "kp.physics.electricity",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.physics.optics",
       "name": "光学",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.physics.optics.reflection",
       "name": "光的反射（初中）",
       "parentId": "kp.physics.optics",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.physics.optics.refraction",
       "name": "折射与全反射（高中）",
       "parentId": "kp.physics.optics",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.physics.thermal.kinetic_theory",
       "name": "分子动理论（高中）",
       "weight": 0.9
     },
-
     {
       "id": "kp.chemistry.matter",
       "name": "物质构成",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.chemistry.matter.states",
       "name": "物质三态与变化（初中）",
       "parentId": "kp.chemistry.matter",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.chemistry.matter.atom_structure",
       "name": "原子结构（初中）",
       "parentId": "kp.chemistry.matter",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.chemistry.matter.periodic_table",
       "name": "元素周期律（高中）",
       "parentId": "kp.chemistry.matter",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.chemistry.matter.molecular_geometry",
       "name": "分子空间结构 VSEPR（高中）",
       "parentId": "kp.chemistry.matter",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.chemistry.matter.crystal_structure",
       "name": "晶体结构（高中）",
       "parentId": "kp.chemistry.matter",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.chemistry.reaction",
       "name": "化学反应",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.chemistry.reaction.equation_balance",
       "name": "化学方程式配平（初中）",
       "parentId": "kp.chemistry.reaction",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.chemistry.reaction.acid_base",
       "name": "酸碱中和（初中）",
       "parentId": "kp.chemistry.reaction",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.chemistry.reaction.redox",
       "name": "氧化还原反应（高中）",
       "parentId": "kp.chemistry.reaction",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.chemistry.reaction.rate_equilibrium",
       "name": "反应速率与化学平衡（高中）",
       "parentId": "kp.chemistry.reaction",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.chemistry.organic",
       "name": "有机化学",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.chemistry.organic.hydrocarbon",
       "name": "烃（高中）",
       "parentId": "kp.chemistry.organic",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.chemistry.organic.functional_group",
       "name": "官能团与衍生物（高中）",
       "parentId": "kp.chemistry.organic",
-      "weight": 1.0
+      "weight": 1
     },
-
     {
       "id": "kp.chinese.language",
       "name": "语言基础",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.chinese.language.characters",
       "name": "字词基础（初中）",
       "parentId": "kp.chinese.language",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.chinese.language.rhetoric",
       "name": "修辞手法（初中）",
       "parentId": "kp.chinese.language",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.chinese.language.grammar",
       "name": "语法与病句辨析（高中）",
       "parentId": "kp.chinese.language",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.chinese.reading",
       "name": "阅读",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.chinese.reading.modern_text",
       "name": "现代文阅读（初中）",
       "parentId": "kp.chinese.reading",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.chinese.reading.classical_chinese",
       "name": "文言文基础（初中）",
       "parentId": "kp.chinese.reading",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.chinese.reading.classical_advanced",
       "name": "文言文进阶（高中）",
       "parentId": "kp.chinese.reading",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.chinese.reading.poetry_appreciation",
       "name": "古诗词鉴赏（高中）",
       "parentId": "kp.chinese.reading",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.chinese.writing",
       "name": "写作",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.chinese.writing.narrative",
       "name": "记叙文写作（初中）",
       "parentId": "kp.chinese.writing",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.chinese.writing.argumentative",
       "name": "议论文写作（高中）",
       "parentId": "kp.chinese.writing",
-      "weight": 1.0
+      "weight": 1
     },
-
     {
       "id": "kp.english.grammar",
       "name": "语法",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.english.grammar.tenses",
       "name": "时态（初中）",
       "parentId": "kp.english.grammar",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.english.grammar.clauses",
       "name": "从句（高中）",
       "parentId": "kp.english.grammar",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.english.grammar.subjunctive",
       "name": "虚拟语气（高中）",
       "parentId": "kp.english.grammar",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.english.vocabulary",
       "name": "词汇",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.english.vocabulary.basic",
       "name": "基础词汇（初中）",
       "parentId": "kp.english.vocabulary",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.english.vocabulary.advanced",
       "name": "高级词汇（高中）",
       "parentId": "kp.english.vocabulary",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.english.reading",
       "name": "阅读",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.english.reading.comprehension",
       "name": "阅读理解（初中）",
       "parentId": "kp.english.reading",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.english.reading.inference",
       "name": "推理判断（高中）",
       "parentId": "kp.english.reading",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.english.writing",
       "name": "写作",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.english.writing.sentence",
       "name": "句子写作（初中）",
       "parentId": "kp.english.writing",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.english.writing.essay",
       "name": "篇章写作（高中）",
       "parentId": "kp.english.writing",
-      "weight": 1.0
+      "weight": 1
     },
-
     {
       "id": "kp.biology.cell",
       "name": "细胞",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.biology.cell.structure",
       "name": "细胞结构（初中）",
       "parentId": "kp.biology.cell",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.biology.cell.division",
       "name": "细胞分裂（高中）",
       "parentId": "kp.biology.cell",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.biology.cell.metabolism",
       "name": "细胞代谢：呼吸与光合（高中）",
       "parentId": "kp.biology.cell",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.biology.genetics",
       "name": "遗传",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.biology.genetics.mendel",
       "name": "遗传基础与孟德尔定律（初中）",
       "parentId": "kp.biology.genetics",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.biology.genetics.dna",
       "name": "DNA 与基因（高中）",
       "parentId": "kp.biology.genetics",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.biology.genetics.variation",
       "name": "变异与进化（高中）",
       "parentId": "kp.biology.genetics",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.biology.ecology",
       "name": "生态",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.biology.ecology.ecosystem",
       "name": "生态系统（初中）",
       "parentId": "kp.biology.ecology",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.biology.ecology.population",
       "name": "种群与群落（高中）",
       "parentId": "kp.biology.ecology",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.biology.physiology",
       "name": "生理",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.biology.physiology.human_systems",
       "name": "人体系统（初中）",
       "parentId": "kp.biology.physiology",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.biology.physiology.homeostasis",
       "name": "稳态与调节（高中）",
       "parentId": "kp.biology.physiology",
-      "weight": 1.0
+      "weight": 1
     },
-
     {
       "id": "kp.politics.morality",
       "name": "道德与法治",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.politics.morality.self_growth",
       "name": "自我成长与青春期（初中）",
       "parentId": "kp.politics.morality",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.politics.morality.social_rules",
       "name": "社会规则与责任（初中）",
       "parentId": "kp.politics.morality",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.politics.law",
       "name": "法律",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.politics.law.basic_rights",
       "name": "公民权利与义务（初中）",
       "parentId": "kp.politics.law",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.politics.law.constitution",
       "name": "宪法与依法治国（高中）",
       "parentId": "kp.politics.law",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.politics.economics",
       "name": "经济",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.politics.economics.market",
       "name": "市场经济（高中）",
       "parentId": "kp.politics.economics",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.politics.economics.distribution",
       "name": "收入分配与分配制度（高中）",
       "parentId": "kp.politics.economics",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.politics.philosophy",
       "name": "哲学",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.politics.philosophy.materialism",
       "name": "辩证唯物主义（高中）",
       "parentId": "kp.politics.philosophy",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.politics.philosophy.dialectics",
       "name": "唯物辩证法（高中）",
       "parentId": "kp.politics.philosophy",
-      "weight": 1.0
+      "weight": 1
     },
-
     {
       "id": "kp.history.ancient_china",
       "name": "中国古代史",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.history.ancient_china.dynasties",
       "name": "中国古代朝代更替（初中）",
       "parentId": "kp.history.ancient_china",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.history.ancient_china.centralization",
       "name": "专制主义中央集权制度（高中）",
       "parentId": "kp.history.ancient_china",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.history.modern_china",
       "name": "中国近现代史",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.history.modern_china.opium_war",
       "name": "鸦片战争与近代化（初中）",
       "parentId": "kp.history.modern_china",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.history.modern_china.revolution",
       "name": "近代民主革命（高中）",
       "parentId": "kp.history.modern_china",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.history.world",
       "name": "世界史",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.history.world.industrial_revolution",
       "name": "工业革命（初中）",
       "parentId": "kp.history.world",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.history.world.two_world_wars",
       "name": "两次世界大战（高中）",
       "parentId": "kp.history.world",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.history.world.cold_war",
       "name": "冷战格局（高中）",
       "parentId": "kp.history.world",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.history.methodology.source_analysis",
       "name": "史料实证方法（高中）",
       "weight": 0.9
     },
-
     {
       "id": "kp.geography.physical",
       "name": "自然地理",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.geography.physical.earth_movement",
       "name": "地球运动（初中）",
       "parentId": "kp.geography.physical",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.geography.physical.climate",
       "name": "气候类型（初中）",
       "parentId": "kp.geography.physical",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.geography.physical.atmosphere",
       "name": "大气环流（高中）",
       "parentId": "kp.geography.physical",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.geography.physical.landforms",
       "name": "地质地貌（高中）",
       "parentId": "kp.geography.physical",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.geography.human",
       "name": "人文地理",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.geography.human.population",
       "name": "人口与城市（初中）",
       "parentId": "kp.geography.human",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.geography.human.agriculture",
       "name": "农业区位（高中）",
       "parentId": "kp.geography.human",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.geography.human.industry",
       "name": "工业区位（高中）",
       "parentId": "kp.geography.human",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.geography.regional",
       "name": "区域地理",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.geography.regional.china",
       "name": "中国地理（初中）",
       "parentId": "kp.geography.regional",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.geography.regional.world",
       "name": "世界地理（初中）",
       "parentId": "kp.geography.regional",
-      "weight": 1.0
+      "weight": 1
     },
     {
       "id": "kp.geography.regional.sustainable",
       "name": "区域可持续发展（高中）",
       "parentId": "kp.geography.regional",
-      "weight": 1.0
+      "weight": 1
     }
   ],
   "edges": [
     {
       "kpId": "kp.recursion.base_case",
       "prereqId": "kp.function.definition",
-      "strength": 1.0
+      "strength": 1
     },
     {
       "kpId": "kp.recursion.step",
       "prereqId": "kp.recursion.base_case",
-      "strength": 1.0
+      "strength": 1
     },
     {
       "kpId": "kp.string.reversal",
@@ -749,14 +751,13 @@
     {
       "kpId": "kp.math.algebra.factor",
       "prereqId": "kp.math.algebra.simplify",
-      "strength": 1.0
+      "strength": 1
     },
     {
       "kpId": "kp.math.algebra.quadratic",
       "prereqId": "kp.math.algebra.factor",
       "strength": 0.9
     },
-
     {
       "kpId": "kp.math.geometry.similarity",
       "prereqId": "kp.math.geometry.triangle_congruence",
@@ -790,14 +791,13 @@
     {
       "kpId": "kp.math.calculus.derivative",
       "prereqId": "kp.math.calculus.limit",
-      "strength": 1.0
+      "strength": 1
     },
     {
       "kpId": "kp.math.trig.basic",
       "prereqId": "kp.math.geometry.similarity",
       "strength": 0.6
     },
-
     {
       "kpId": "kp.physics.mechanics.newton_first_law",
       "prereqId": "kp.physics.mechanics.force_basics",
@@ -838,7 +838,6 @@
       "prereqId": "kp.physics.optics.reflection",
       "strength": 0.8
     },
-
     {
       "kpId": "kp.chemistry.matter.periodic_table",
       "prereqId": "kp.chemistry.matter.atom_structure",
@@ -874,7 +873,6 @@
       "prereqId": "kp.chemistry.organic.hydrocarbon",
       "strength": 0.9
     },
-
     {
       "kpId": "kp.chinese.reading.modern_text",
       "prereqId": "kp.chinese.language.characters",
@@ -905,7 +903,6 @@
       "prereqId": "kp.chinese.writing.narrative",
       "strength": 0.7
     },
-
     {
       "kpId": "kp.english.grammar.clauses",
       "prereqId": "kp.english.grammar.tenses",
@@ -946,7 +943,6 @@
       "prereqId": "kp.english.grammar.clauses",
       "strength": 0.6
     },
-
     {
       "kpId": "kp.biology.cell.division",
       "prereqId": "kp.biology.cell.structure",
@@ -982,7 +978,6 @@
       "prereqId": "kp.biology.physiology.human_systems",
       "strength": 0.8
     },
-
     {
       "kpId": "kp.politics.morality.social_rules",
       "prereqId": "kp.politics.morality.self_growth",
@@ -1008,7 +1003,6 @@
       "prereqId": "kp.politics.philosophy.materialism",
       "strength": 0.9
     },
-
     {
       "kpId": "kp.history.ancient_china.centralization",
       "prereqId": "kp.history.ancient_china.dynasties",
@@ -1034,7 +1028,6 @@
       "prereqId": "kp.history.ancient_china.dynasties",
       "strength": 0.5
     },
-
     {
       "kpId": "kp.geography.physical.atmosphere",
       "prereqId": "kp.geography.physical.climate",

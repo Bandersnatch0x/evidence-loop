@@ -1,6 +1,6 @@
 // @vitest-environment node
 
-import { readdirSync, readFileSync, statSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
@@ -242,6 +242,65 @@ describe('architecture guard: T05 tutoring physical isolation', () => {
     expect(block).not.toMatch(/^\s*(readonly\s+)?score\s*[?:]/m)
     expect(block).not.toMatch(/^\s*(readonly\s+)?evidence\s*[?:]/m)
     expect(block).not.toMatch(/^\s*(readonly\s+)?weight\s*[?:]/m)
+  })
+})
+
+describe('architecture guard: T-A demonstration module isolation (spec §3.4)', () => {
+  const SCORING_LOOP_DIRS = ['server/mastery', 'server/review', 'server/runner']
+  const DEMO_PATTERNS = [
+    /(^|\/)demonstration(\/|$)/,
+    /(^|\/)media(\/|$)/
+  ]
+
+  it('scoring paths never import the demonstration or media modules', () => {
+    const violations = findForbiddenImports(
+      SCORING_LOOP_DIRS,
+      DEMO_PATTERNS
+    )
+
+    expect(
+      violations,
+      violations.length === 0
+        ? ''
+        : [
+            'T-A 违规：评分路径（server/mastery、server/review、server/runner）',
+            '不得 import server/demonstration/* 或 server/media/*。',
+            '演示模块是纯展示层（票 07/12），与 QuestionType/Runner/Rubric/Evidence 物理隔离。',
+            '违规导入：',
+            formatViolations(violations)
+          ].join('\n')
+    ).toEqual([])
+  })
+
+  it('demonstration and media modules never import scoring paths', () => {
+    // Paired guard (reverse direction): demo/media stay pure presentation and
+    // never reach into the scoring loop. server/demonstration lands in T-D,
+    // so only scan directories that already exist.
+    const demoDirs = ['server/demonstration', 'server/media'].filter((dir) =>
+      existsSync(resolve(projectRoot, dir)) &&
+      statSync(resolve(projectRoot, dir)).isDirectory()
+    )
+    const violations = findForbiddenImports(
+      demoDirs,
+      [
+        /(^|\/)domain\/EvaluationAgent/,
+        /(^|\/)mastery(\/|$)/,
+        /(^|\/)review(\/|$)/,
+        /(^|\/)runner(\/|$)/
+      ]
+    )
+
+    expect(
+      violations,
+      violations.length === 0
+        ? ''
+        : [
+            'T-A 违规：演示/媒体模块不得 import 评分路径',
+            '（EvaluationAgent / mastery / review / runner）。',
+            '违规导入：',
+            formatViolations(violations)
+          ].join('\n')
+    ).toEqual([])
   })
 })
 

@@ -104,7 +104,7 @@ export type RunnerSpec =
   | EssayRunnerSpec
   | GeometryRunnerSpec
 
-export function isPythonRunnerSpec(spec: RunnerSpec): spec is PythonRunnerSpec {
+export function isPythonRunnerSpec(spec: unknown): spec is PythonRunnerSpec {
   if (typeof spec !== 'object' || spec === null) return false
   if ('kind' in spec) return false
   return (
@@ -1404,7 +1404,7 @@ const bioDnaHelixAssignment: ExecutableAssignment = {
       visibility: 'public',
       weight: 100,
       expected: '双螺旋',
-      conceptId: 'kp.biology.molecule.dna',
+      conceptId: 'kp.biology.genetics.dna',
       passedMessage: '填空与可接受答案匹配',
       failedMessage: '填空未命中可接受答案'
     }

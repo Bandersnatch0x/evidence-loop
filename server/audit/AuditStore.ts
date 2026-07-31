@@ -3,7 +3,18 @@ import { mkdirSync } from 'node:fs'
 import { dirname } from 'node:path'
 import Database from 'better-sqlite3'
 
-export type AuditAction = 'evaluate' | 'view' | 'export' | 'delete'
+export type AuditAction =
+  | 'evaluate'
+  | 'view'
+  | 'export'
+  | 'delete'
+  | 'publish'
+  | 'withdraw'
+  | 'approve'
+  | 'reject'
+  | 'takedown'
+  | 'report'
+  | 'upgrade_reference'
 export type AuditResourceType =
   | 'evaluation'
   | 'cohort'
@@ -11,6 +22,9 @@ export type AuditResourceType =
   | 'audit'
   | 'knowledge'
   | 'system'
+  | 'demonstration'
+  | 'publication'
+  | 'media'
 /**
  * Interaction modality for audit events (ADR-0005 §7).
  * `'canvas'` is reserved for Phase 2 handwriting — do not emit yet.
