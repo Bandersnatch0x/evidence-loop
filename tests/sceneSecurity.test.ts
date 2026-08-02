@@ -80,21 +80,7 @@ describe('sceneSecurity guards', () => {
   })
 
   it('flags triangle over-budget from inline primitives', () => {
-    const doc = parseSceneDocument({
-      documentMeta: { sceneFormatVersion: '1.0' },
-      geometry3D: [
-        // 128×256 torus = 65,536 tris; 8 of them = 524,288 > 500k cap
-        ...Array.from({ length: 2 }, (_, i) => ({
-          id: `t${i}`,
-          kind: 'torus',
-          radius: 2,
-          tube: 0.4,
-          radialSegments: 128,
-          tubularSegments: 256
-        }))
-      ]
-    })
-    // 2 toruses × 65,536 = 131,072 tris — under cap. Use more to exceed.
+    // 10 toruses × 128×256 segments = 655,360 tris > 500k cap
     const big = parseSceneDocument({
       documentMeta: { sceneFormatVersion: '1.0' },
       geometry3D: Array.from({ length: 10 }, (_, i) => ({

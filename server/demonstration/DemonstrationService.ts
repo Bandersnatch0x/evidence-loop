@@ -19,6 +19,7 @@ import { randomUUID } from 'node:crypto'
 import { parseSceneDocument, type SceneDocument } from './sceneDocumentSchema'
 import { runSecurityGuards } from './sceneSecurity'
 import { assertLicenseAllowed } from './licenseInheritance'
+import { validateLibraryMeta } from './metadataValidation'
 
 export class DemoNotFoundError extends Error {
   public constructor(id: string) {
@@ -122,6 +123,26 @@ export class DemonstrationService {
     return id
   }
 
+  /**
+   * Update the work root's library metadata (author-proposed). Reviewers
+   * verify/correct at approval (T-F); the strict required-field check runs at
+   * submit against whatever is stored here. The immutable source chain
+   * (derivedFrom) is preserved across updates.
+   */
+  public updateMeta(demoId: string, ownerId: string, meta: DemoMeta): void {
+    this.assertOwner(demoId, ownerId)
+    const existing = this.db
+      .prepare(`SELECT meta_json FROM teaching_demonstrations WHERE id = ?`)
+      .get(demoId) as { meta_json: string }
+    const prev = JSON.parse(existing.meta_json) as { derivedFrom?: unknown }
+    const merged = { ...meta }
+    if (prev.derivedFrom) merged.derivedFrom = prev.derivedFrom
+    this.db
+      .prepare(`UPDATE teaching_demonstrations SET meta_json = ? WHERE id = ?`)
+      .run(JSON.stringify(merged), demoId)
+    this.emitAudit('demo.meta.update', ownerId, 'demonstration', demoId, JSON.stringify(meta))
+  }
+
   /** Read the current draft document (already parsed + validated). */
   public getDraft(demoId: string): { document: SceneDocument; updatedAt: string } {
     const draft = this.db
@@ -220,6 +241,12 @@ export class DemonstrationService {
       .get(demoId) as { meta_json: string }
     const parsedMeta = JSON.parse(meta.meta_json) as {
       derivedFrom?: { sourceDemoId: string; sourceVersionId: string; originalAuthorId: string }
+    }
+    // Library metadata preflight (decision 11): missing required fields block
+    // submission — the reviewer verifies/corrects these at approval.
+    const metaIssues = validateLibraryMeta(parsedMeta as Record<string, unknown>)
+    if (metaIssues.length > 0) {
+      throw new DemoSubmitError(`library metadata incomplete: ${metaIssues[0]}`)
     }
     const sourceChain = parsedMeta.derivedFrom
     if (sourceChain) {

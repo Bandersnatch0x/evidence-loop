@@ -8,6 +8,16 @@ import { ReferenceService } from '../server/demonstration/ReferenceService'
 import { NotificationService } from '../server/demonstration/NotificationService'
 import { parseSceneDocument } from '../server/demonstration/sceneDocumentSchema'
 
+const DEFAULT_META = {
+  title: '演示',
+  description: '演示说明',
+  subject: 'physics',
+  grade: 'high',
+  format: 'scene',
+  space: '3d',
+  behavior: 'static'
+}
+
 const baseDoc = () =>
   parseSceneDocument({
     documentMeta: { sceneFormatVersion: '1.0' },
@@ -44,7 +54,7 @@ function makeEnv() {
 }
 
 function published(env: ReturnType<typeof makeEnv>, label = 'demo'): { demoId: string; versionId: string } {
-  const demoId = env.service.createDemonstration('teacher-1', { title: label })
+  const demoId = env.service.createDemonstration('teacher-1', { ...DEFAULT_META, title: label })
   env.service.saveDraft(demoId, 'teacher-1', baseDoc())
   const versionId = env.service.submit(demoId, 'teacher-1', {
     classification: 'physics',

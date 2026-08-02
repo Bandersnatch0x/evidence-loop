@@ -11,6 +11,16 @@ import {
 } from '../server/demonstration/ReferenceService'
 import { parseSceneDocument } from '../server/demonstration/sceneDocumentSchema'
 
+const DEFAULT_META = {
+  title: '演示',
+  description: '演示说明',
+  subject: 'physics',
+  grade: 'high',
+  format: 'scene',
+  space: '3d',
+  behavior: 'static'
+}
+
 const baseDoc = () =>
   parseSceneDocument({
     documentMeta: { sceneFormatVersion: '1.0' },
@@ -48,7 +58,7 @@ function makeEnv() {
 
 /** Create + submit + approve a demo version, returning its version id. */
 function published(env: ReturnType<typeof makeEnv>, label = 'demo'): string {
-  const demo = env.service.createDemonstration('teacher-1', { title: label })
+  const demo = env.service.createDemonstration('teacher-1', { ...DEFAULT_META, title: label })
   env.service.saveDraft(demo, 'teacher-1', baseDoc())
   const v = env.service.submit(demo, 'teacher-1', {
     classification: 'physics',
@@ -108,7 +118,7 @@ describe('ReferenceService — bind/validate/order', () => {
 
   it('rejects binding a non-approved version', () => {
     const env = makeEnv()
-    const demo = env.service.createDemonstration('teacher-1')
+    const demo = env.service.createDemonstration('teacher-1', DEFAULT_META)
     env.service.saveDraft(demo, 'teacher-1', baseDoc())
     const v = env.service.submit(demo, 'teacher-1', {
       classification: 'x',
@@ -201,7 +211,7 @@ describe('ReferenceService — bind/validate/order', () => {
   it('rejects binding an OLDER approved version (only current published accepts new refs)', () => {
     const env = makeEnv()
     // Same demo publishes v1 then v2 → v1 approved but stale.
-    const demo = env.service.createDemonstration('teacher-1', { title: 'demo' })
+    const demo = env.service.createDemonstration('teacher-1', { ...DEFAULT_META, title: 'demo' })
     env.service.saveDraft(demo, 'teacher-1', baseDoc())
     const v1 = env.service.submit(demo, 'teacher-1', {
       classification: 'physics',

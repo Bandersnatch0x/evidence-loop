@@ -10,6 +10,16 @@ import {
 } from '../server/demonstration/DemonstrationService'
 import { parseSceneDocument } from '../server/demonstration/sceneDocumentSchema'
 
+const DEFAULT_META = {
+  title: '演示',
+  description: '演示说明',
+  subject: 'physics',
+  grade: 'high',
+  format: 'scene',
+  space: '3d',
+  behavior: 'static'
+}
+
 const baseDoc = () =>
   parseSceneDocument({
     documentMeta: { sceneFormatVersion: '1.0' },
@@ -30,7 +40,7 @@ function makeService() {
 describe('DemonstrationService — lifecycle', () => {
   it('creates a work root with a 1:1 empty draft', () => {
     const { service, db } = makeService()
-    const id = service.createDemonstration('t-1', { title: '光合作用' })
+    const id = service.createDemonstration('t-1', { ...DEFAULT_META, title: '光合作用' })
     const demo = db.prepare('SELECT * FROM teaching_demonstrations WHERE id = ?').get(id) as { owner_id: string } | undefined
     expect(demo?.owner_id).toBe('t-1')
     const draft = db.prepare('SELECT * FROM demonstration_drafts WHERE demonstration_id = ?').get(id) as { id: string } | undefined
@@ -39,13 +49,13 @@ describe('DemonstrationService — lifecycle', () => {
 
   it('rejects saveDraft on another teacher\'s demo', () => {
     const { service } = makeService()
-    const id = service.createDemonstration('t-1')
+    const id = service.createDemonstration('t-1', DEFAULT_META)
     expect(() => service.saveDraft(id, 't-2', baseDoc())).toThrow(DemoOwnershipError)
   })
 
   it('saves and reads back a draft', () => {
     const { service } = makeService()
-    const id = service.createDemonstration('t-1')
+    const id = service.createDemonstration('t-1', DEFAULT_META)
     service.saveDraft(id, 't-1', baseDoc())
     const { document } = service.getDraft(id)
     expect(document.geometry3D?.[0]?.kind).toBe('box')
@@ -53,7 +63,7 @@ describe('DemonstrationService — lifecycle', () => {
 
   it('submit freezes a snapshot with status submitted', () => {
     const { service, db } = makeService()
-    const id = service.createDemonstration('t-1')
+    const id = service.createDemonstration('t-1', DEFAULT_META)
     service.saveDraft(id, 't-1', baseDoc())
     const versionId = service.submit(id, 't-1', {
       classification: 'physics',
@@ -69,7 +79,7 @@ describe('DemonstrationService — lifecycle', () => {
 
   it('rejects submit without license', () => {
     const { service } = makeService()
-    const id = service.createDemonstration('t-1')
+    const id = service.createDemonstration('t-1', DEFAULT_META)
     service.saveDraft(id, 't-1', baseDoc())
     expect(() =>
       service.submit(id, 't-1', { classification: 'x', license: '', aiDisclosure: 'none' })
@@ -78,7 +88,7 @@ describe('DemonstrationService — lifecycle', () => {
 
   it('rejects a second pending version while one is submitted', () => {
     const { service } = makeService()
-    const id = service.createDemonstration('t-1')
+    const id = service.createDemonstration('t-1', DEFAULT_META)
     service.saveDraft(id, 't-1', baseDoc())
     service.submit(id, 't-1', { classification: 'x', license: 'CC-BY-4.0', aiDisclosure: 'none' })
     expect(() =>
@@ -88,7 +98,7 @@ describe('DemonstrationService — lifecycle', () => {
 
   it('withdraw moves the pending version to withdrawn (then re-submit allowed)', () => {
     const { service } = makeService()
-    const id = service.createDemonstration('t-1')
+    const id = service.createDemonstration('t-1', DEFAULT_META)
     service.saveDraft(id, 't-1', baseDoc())
     const v1 = service.submit(id, 't-1', { classification: 'x', license: 'CC-BY-4.0', aiDisclosure: 'none' })
     service.withdraw(id, 't-1', v1)
@@ -98,7 +108,7 @@ describe('DemonstrationService — lifecycle', () => {
 
   it('rejects submit with a non-ready media ref', () => {
     const { service, db } = makeService()
-    const id = service.createDemonstration('t-1')
+    const id = service.createDemonstration('t-1', DEFAULT_META)
     db.prepare(
       `INSERT INTO media_assets (id, owner_id, kind, original_blob_hash, status, display_name, created_at)
        VALUES (?, ?, 'image', 'abc', 'processing', 'x', ?)`
@@ -115,7 +125,7 @@ describe('DemonstrationService — lifecycle', () => {
 
   it('soft delete hides identity via deleted_at', () => {
     const { service, db } = makeService()
-    const id = service.createDemonstration('t-1')
+    const id = service.createDemonstration('t-1', DEFAULT_META)
     service.softDelete(id, 't-1')
     const row = db.prepare('SELECT deleted_at FROM teaching_demonstrations WHERE id = ?').get(id) as { deleted_at: string | null } | undefined
     expect(row?.deleted_at).toBeTruthy()
@@ -123,7 +133,7 @@ describe('DemonstrationService — lifecycle', () => {
 
   it('emits audit events for create/save/submit', () => {
     const { service, audits } = makeService()
-    const id = service.createDemonstration('t-1')
+    const id = service.createDemonstration('t-1', DEFAULT_META)
     service.saveDraft(id, 't-1', baseDoc())
     service.submit(id, 't-1', { classification: 'x', license: 'CC-BY-4.0', aiDisclosure: 'none' })
     expect(audits.map((a) => a.action)).toEqual(expect.arrayContaining(['demo.create', 'demo.draft.save', 'demo.submit']))
@@ -131,7 +141,7 @@ describe('DemonstrationService — lifecycle', () => {
 
   it('rejects withdraw of an approved version', () => {
     const { service, db } = makeService()
-    const id = service.createDemonstration('t-1')
+    const id = service.createDemonstration('t-1', DEFAULT_META)
     service.saveDraft(id, 't-1', baseDoc())
     const v1 = service.submit(id, 't-1', { classification: 'x', license: 'CC-BY-4.0', aiDisclosure: 'none' })
     // Manually approve (DB-level) — service-level approval lives in ReviewService.

@@ -10,6 +10,16 @@ import {
 } from '../server/demonstration/ReviewService'
 import { parseSceneDocument } from '../server/demonstration/sceneDocumentSchema'
 
+const DEFAULT_META = {
+  title: '演示',
+  description: '演示说明',
+  subject: 'physics',
+  grade: 'high',
+  format: 'scene',
+  space: '3d',
+  behavior: 'static'
+}
+
 const baseDoc = () =>
   parseSceneDocument({
     documentMeta: { sceneFormatVersion: '1.0' },
@@ -44,7 +54,7 @@ function submitDemo(env: ReturnType<typeof makeEnv>, demoId: string): string {
 describe('ReviewService — review state machine', () => {
   it('reviewer sees submitted versions in the queue', () => {
     const env = makeEnv()
-    const demo = env.service.createDemonstration('teacher-1')
+    const demo = env.service.createDemonstration('teacher-1', DEFAULT_META)
     submitDemo(env, demo)
     const q = env.review.queue()
     expect(q.length).toBe(1)
@@ -53,14 +63,14 @@ describe('ReviewService — review state machine', () => {
 
   it('non-reviewer is refused', () => {
     const env = makeEnv()
-    const demo = env.service.createDemonstration('teacher-1')
+    const demo = env.service.createDemonstration('teacher-1', DEFAULT_META)
     const v = submitDemo(env, demo)
     expect(() => env.review.approve('teacher-1', v)).toThrow(ReviewerNotAuthorizedError)
   })
 
   it('approve moves submitted → approved and becomes current published', () => {
     const env = makeEnv()
-    const demo = env.service.createDemonstration('teacher-1')
+    const demo = env.service.createDemonstration('teacher-1', DEFAULT_META)
     const v = submitDemo(env, demo)
     env.review.approve('reviewer-1', v)
     const row = env.db.prepare('SELECT status FROM demonstration_versions WHERE id = ?').get(v) as { status: string } | undefined
@@ -70,7 +80,7 @@ describe('ReviewService — review state machine', () => {
 
   it('approval changes status ONLY — snapshot content untouched', () => {
     const env = makeEnv()
-    const demo = env.service.createDemonstration('teacher-1')
+    const demo = env.service.createDemonstration('teacher-1', DEFAULT_META)
     const v = submitDemo(env, demo)
     const before = env.db.prepare('SELECT snapshot_document_json FROM demonstration_versions WHERE id = ?').get(v) as { snapshot_document_json: string } | undefined
     env.review.approve('reviewer-1', v)
@@ -80,7 +90,7 @@ describe('ReviewService — review state machine', () => {
 
   it('reject moves submitted → rejected with reason; draft stays editable', () => {
     const env = makeEnv()
-    const demo = env.service.createDemonstration('teacher-1')
+    const demo = env.service.createDemonstration('teacher-1', DEFAULT_META)
     const v = submitDemo(env, demo)
     env.review.reject('reviewer-1', v, '版权信息缺失')
     const row = env.db.prepare('SELECT status, reviewer_note FROM demonstration_versions WHERE id = ?').get(v) as { status: string; reviewer_note: string | null } | undefined
@@ -93,7 +103,7 @@ describe('ReviewService — review state machine', () => {
 
   it('rejects approving a non-submitted version', () => {
     const env = makeEnv()
-    const demo = env.service.createDemonstration('teacher-1')
+    const demo = env.service.createDemonstration('teacher-1', DEFAULT_META)
     const v = submitDemo(env, demo)
     env.review.approve('reviewer-1', v)
     expect(() => env.review.approve('reviewer-1', v)).toThrow(ReviewStateError)
@@ -101,7 +111,7 @@ describe('ReviewService — review state machine', () => {
 
   it('newer approved version becomes current; older stays approved (fixed refs keep playing)', () => {
     const env = makeEnv()
-    const demo = env.service.createDemonstration('teacher-1')
+    const demo = env.service.createDemonstration('teacher-1', DEFAULT_META)
     const v1 = submitDemo(env, demo)
     env.review.approve('reviewer-1', v1)
     // Teacher edits + submits again → v2.
@@ -116,7 +126,7 @@ describe('ReviewService — review state machine', () => {
   it('a reviewer cannot approve their own work', () => {
     const env = makeEnv()
     // reviewer-1 is BOTH a reviewer and the author of a demo.
-    const demo = env.service.createDemonstration('reviewer-1')
+    const demo = env.service.createDemonstration('reviewer-1', DEFAULT_META)
     env.service.saveDraft(demo, 'reviewer-1', baseDoc())
     const v = env.service.submit(demo, 'reviewer-1', {
       classification: 'x',
@@ -128,7 +138,7 @@ describe('ReviewService — review state machine', () => {
 
   it('queue excludes versions of soft-deleted demonstrations', () => {
     const env = makeEnv()
-    const demo = env.service.createDemonstration('teacher-1')
+    const demo = env.service.createDemonstration('teacher-1', DEFAULT_META)
     submitDemo(env, demo)
     env.service.softDelete(demo, 'teacher-1')
     expect(env.review.queue().length).toBe(0)
@@ -136,7 +146,7 @@ describe('ReviewService — review state machine', () => {
 
   it('reviewer forced takedown hides the demo identity', () => {
     const env = makeEnv()
-    const demo = env.service.createDemonstration('teacher-1')
+    const demo = env.service.createDemonstration('teacher-1', DEFAULT_META)
     submitDemo(env, demo)
     env.review.takedown('reviewer-1', demo, '版权侵权')
     const row = env.db.prepare('SELECT deleted_at FROM teaching_demonstrations WHERE id = ?').get(demo) as { deleted_at: string | null } | undefined
@@ -145,7 +155,7 @@ describe('ReviewService — review state machine', () => {
 
   it('author takedown hides the demo identity', () => {
     const env = makeEnv()
-    const demo = env.service.createDemonstration('teacher-1')
+    const demo = env.service.createDemonstration('teacher-1', DEFAULT_META)
     env.service.takedown(demo, 'teacher-1')
     const row = env.db.prepare('SELECT deleted_at FROM teaching_demonstrations WHERE id = ?').get(demo) as { deleted_at: string | null } | undefined
     expect(row?.deleted_at).toBeTruthy()

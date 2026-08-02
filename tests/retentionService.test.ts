@@ -9,6 +9,16 @@ import { parseSceneDocument } from '../server/demonstration/sceneDocumentSchema'
 
 const H1 = 'a'.repeat(64)
 
+const DEFAULT_META = {
+  title: '演示',
+  description: '演示说明',
+  subject: 'physics',
+  grade: 'high',
+  format: 'scene',
+  space: '3d',
+  behavior: 'static'
+}
+
 function docWithMedia(hash: string, assetId = 'asset-1') {
   return parseSceneDocument({
     documentMeta: { sceneFormatVersion: '1.0' },
@@ -51,7 +61,7 @@ function makeEnv() {
 describe('RetentionService — blob retention & reclaim', () => {
   it('draft-referenced blob is retained', () => {
     const env = makeEnv()
-    const demo = env.service.createDemonstration('teacher-1')
+    const demo = env.service.createDemonstration('teacher-1', DEFAULT_META)
     env.service.saveDraft(demo, 'teacher-1', docWithMedia(H1))
     expect(env.retention.isRetained(H1)).toBe(true)
   })
@@ -59,7 +69,7 @@ describe('RetentionService — blob retention & reclaim', () => {
   it('version-referenced blob is retained (even after approval)', () => {
     const env = makeEnv()
     seedAsset(env.db)
-    const demo = env.service.createDemonstration('teacher-1')
+    const demo = env.service.createDemonstration('teacher-1', DEFAULT_META)
     env.service.saveDraft(demo, 'teacher-1', docWithMedia(H1))
     const v = env.service.submit(demo, 'teacher-1', {
       classification: 'x',
@@ -73,7 +83,7 @@ describe('RetentionService — blob retention & reclaim', () => {
   it('snapshot keeps blob retained after soft-delete (fixed refs keep playing)', () => {
     const env = makeEnv()
     seedAsset(env.db)
-    const demo = env.service.createDemonstration('teacher-1')
+    const demo = env.service.createDemonstration('teacher-1', DEFAULT_META)
     env.service.saveDraft(demo, 'teacher-1', docWithMedia(H1))
     env.service.submit(demo, 'teacher-1', {
       classification: 'x',
@@ -102,7 +112,7 @@ describe('RetentionService — blob retention & reclaim', () => {
     const env = makeEnv()
     const old = new Date(Date.now() - 5000).toISOString()
     seedBlob(env.db, H1, old)
-    const demo = env.service.createDemonstration('teacher-1')
+    const demo = env.service.createDemonstration('teacher-1', DEFAULT_META)
     env.service.saveDraft(demo, 'teacher-1', docWithMedia(H1))
     expect(env.retention.reclaimableBlobHashes()).not.toContain(H1)
   })
@@ -151,7 +161,7 @@ describe('RetentionService — blob retention & reclaim', () => {
   it('withdrawn-version blob is retained (snapshot survives all statuses)', () => {
     const env = makeEnv()
     seedAsset(env.db)
-    const demo = env.service.createDemonstration('teacher-1')
+    const demo = env.service.createDemonstration('teacher-1', DEFAULT_META)
     env.service.saveDraft(demo, 'teacher-1', docWithMedia(H1))
     const v = env.service.submit(demo, 'teacher-1', {
       classification: 'x',

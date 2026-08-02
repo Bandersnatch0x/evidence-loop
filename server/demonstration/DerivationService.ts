@@ -89,6 +89,20 @@ export class DerivationService {
 
     const demoId = randomUUID()
     const now = new Date().toISOString()
+    // Derived works start with library-defaultable metadata (title from caller,
+    // defaults for the required classification fields) so the author can publish
+    // after filling their content — the strict required-field check still runs
+    // at submit() against whatever the author saved.
+    const baseMeta: Record<string, unknown> = {
+      title: meta.title ?? '派生作品',
+      description: '',
+      subject: '',
+      grade: '',
+      format: 'scene',
+      space: '3d',
+      behavior: 'static',
+      kpIds: []
+    }
     const sourceRef: SourceRef = {
       sourceDemoId,
       sourceVersionId,
@@ -102,7 +116,7 @@ export class DerivationService {
         .run(
           demoId,
           actorId,
-          JSON.stringify({ ...meta, derivedFrom: sourceRef })
+          JSON.stringify({ ...baseMeta, derivedFrom: sourceRef })
         )
       this.db
         .prepare(

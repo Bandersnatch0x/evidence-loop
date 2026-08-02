@@ -8,6 +8,16 @@ import { DerivationError, DerivationService } from '../server/demonstration/Deri
 import { assertLicenseAllowed } from '../server/demonstration/licenseInheritance'
 import { parseSceneDocument } from '../server/demonstration/sceneDocumentSchema'
 
+const DEFAULT_META = {
+  title: '演示',
+  description: '演示说明',
+  subject: 'physics',
+  grade: 'high',
+  format: 'scene',
+  space: '3d',
+  behavior: 'static'
+}
+
 const baseDoc = () =>
   parseSceneDocument({
     documentMeta: { sceneFormatVersion: '1.0' },
@@ -34,7 +44,7 @@ function makeEnv() {
 
 /** Create + submit + approve a demo version, returns { demoId, versionId }. */
 function published(env: ReturnType<typeof makeEnv>, label = 'demo'): { demoId: string; versionId: string } {
-  const demoId = env.service.createDemonstration('teacher-1', { title: label })
+  const demoId = env.service.createDemonstration('teacher-1', { ...DEFAULT_META, title: label })
   env.service.saveDraft(demoId, 'teacher-1', baseDoc())
   const versionId = env.service.submit(demoId, 'teacher-1', {
     classification: 'physics',
@@ -60,7 +70,7 @@ describe('DerivationService — source chain + license inheritance', () => {
 
   it('refuses deriving from a non-approved version', () => {
     const env = makeEnv()
-    const demoId = env.service.createDemonstration('teacher-1')
+    const demoId = env.service.createDemonstration('teacher-1', DEFAULT_META)
     env.service.saveDraft(demoId, 'teacher-1', baseDoc())
     const versionId = env.service.submit(demoId, 'teacher-1', {
       classification: 'x',
@@ -103,7 +113,7 @@ describe('DerivationService — source chain + license inheritance', () => {
 
   it('no source chain → attribution null', () => {
     const env = makeEnv()
-    const demoId = env.service.createDemonstration('teacher-1')
+    const demoId = env.service.createDemonstration('teacher-1', DEFAULT_META)
     expect(env.derive.attribution(demoId)).toBeNull()
   })
 
@@ -111,6 +121,7 @@ describe('DerivationService — source chain + license inheritance', () => {
     const env = makeEnv()
     const src = published(env, 'source') // CC-BY-4.0
     const { demoId } = env.derive.deriveFrom('teacher-2', src.demoId, src.versionId)
+    env.service.updateMeta(demoId, 'teacher-2', { ...DEFAULT_META, title: '派生' })
     // Same content kept (baseDoc has no mediaRefs → sourceContentRemoved=true for
     // our simple doc, but the license check still runs when a source exists).
     env.service.saveDraft(demoId, 'teacher-2', baseDoc())
@@ -130,7 +141,7 @@ describe('DerivationService — source chain + license inheritance', () => {
     const env = makeEnv()
     const H = 'e'.repeat(64)
     // Source version carries a texture blob (CC-BY-4.0).
-    const srcDemo = env.service.createDemonstration('teacher-1', { title: 'src' })
+    const srcDemo = env.service.createDemonstration('teacher-1', { ...DEFAULT_META, title: 'src' })
     env.db.prepare(
       `INSERT INTO media_assets
          (id, owner_id, kind, original_blob_hash, status, display_name, created_at)
@@ -149,6 +160,7 @@ describe('DerivationService — source chain + license inheritance', () => {
     env.review.approve('reviewer-1', srcVersion)
     // Derive and KEEP the source blob → sourceContentRemoved=false.
     const { demoId } = env.derive.deriveFrom('teacher-2', srcDemo, srcVersion)
+    env.service.updateMeta(demoId, 'teacher-2', { ...DEFAULT_META, title: '派生' })
     const keptDoc = parseSceneDocument({
       documentMeta: { sceneFormatVersion: '1.0' },
       mediaRefs: [{ id: 'asset-src', assetId: 'asset-src', blobHash: H, purpose: 'texture' }]
@@ -168,6 +180,7 @@ describe('DerivationService — source chain + license inheritance', () => {
     const a = published(env, 'A')
     const b = env.derive.deriveFrom('teacher-2', a.demoId, a.versionId)
     // B submits + approves (its own version), then C derives from B.
+    env.service.updateMeta(b.demoId, 'teacher-2', { ...DEFAULT_META, title: 'B' })
     env.service.saveDraft(b.demoId, 'teacher-2', baseDoc())
     const bVersion = env.service.submit(b.demoId, 'teacher-2', {
       classification: 'x',
