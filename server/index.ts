@@ -75,6 +75,16 @@ import {
 } from './student'
 import { createTutoringService, handleTutoringApi } from './tutoring'
 import { handleQuestionBankApi } from './questionbank/questionRoutes'
+import {
+  FsBlobStore,
+  type BlobStore
+} from './media/BlobStore'
+import { QuotaService } from './media/QuotaService'
+import { UploadStore } from './media/UploadStore'
+import { MediaProcessor } from './media/MediaProcessor'
+import { createScanner } from './media/Scanner'
+import { MediaWorkerLoop } from './media/MediaWorkerLoop'
+import { handleMediaApi, type MediaRouteContext } from './media/mediaRoutes'
 import { JsonAttemptStore } from './store/AttemptStore'
 import {
   JsonKnowledgeStore,
@@ -168,6 +178,8 @@ interface ApiContext {
   grading: SubjectiveGradingService
   tips: TeacherTipService
   evidenceProjector: EvidenceProjector
+  /** T-B media pipeline services (blob store / upload sessions / worker). */
+  media: MediaRouteContext
 }
 
 interface EvidenceRingServerOptions {
@@ -196,6 +208,11 @@ interface EvidenceRingServerOptions {
    * (test mode) so unit suites never touch disk.
    */
   productDbPath?: string
+  /**
+   * Media data root for the T-B blob store (uploads + CAS media dir). Tests
+   * inject a temp dir; production defaults to the project data dir.
+   */
+  mediaDataRoot?: string
 }
 
 class HttpError extends Error {
@@ -287,6 +304,35 @@ export async function createEvidenceRingServer(
   const authStore = new AuthStore(productDb)
   const auth = new AuthService(authStore)
   const org = new SqliteOrgReader(productDb)
+  // T-B media pipeline: blob store under the media data root, upload sessions
+  // on the product db (migration 0008), worker with the configured scanner
+  // (prod fail-closed without clamd; dev pass-through under MEDIA_DISABLE_SCAN).
+  const mediaDataRoot = options.mediaDataRoot ?? join(projectRoot, 'data')
+  const blobs: BlobStore = new FsBlobStore({ dataRoot: mediaDataRoot })
+  const quotas = new QuotaService(productDb)
+  const uploads = new UploadStore(productDb, quotas)
+  const scanner = createScanner(process.env)
+  const processor = new MediaProcessor({
+    db: productDb,
+    blobs,
+    uploads,
+    scanner
+  })
+  const mediaWorker = new MediaWorkerLoop(uploads, processor)
+  // Start the background worker (unref'd timer — won't keep the process alive).
+  mediaWorker.start()
+  const media: MediaRouteContext = {
+    db: productDb,
+    blobs,
+    uploads,
+    processor,
+    scanner,
+    user: {
+      userId: '',
+      displayName: 'media',
+      role: 'student' // placeholder; overwritten per-request by handleApi
+    }
+  }
   // T03 tail + T07 demo: seed built-in bank + tu-demo unit so "今日该练"
   // and mistake repractice have real question/KP rows on cold start.
   seedDemoProduct({ questions: questionStore, org })
@@ -389,12 +435,14 @@ export async function createEvidenceRingServer(
     sessions,
     memory,
     interventions,
-    stt
+    stt,
+    media
   }
   const server = createServer((request, response) => {
     void routeRequest(request, response, context, vite)
   })
   server.once('close', () => {
+    mediaWorker.stop()
     void runners.dispose().catch((error: unknown) => {
       console.error('Failed to dispose runner registry:', error)
     })
@@ -1351,6 +1399,18 @@ async function handleApi(
       assignments: context.assignmentService,
       grading: context.grading,
       tips: context.tips,
+      user
+    })
+  ) {
+    return
+  }
+  if (
+    await handleMediaApi(request, response, requestUrl, {
+      db: context.media.db,
+      blobs: context.media.blobs,
+      uploads: context.media.uploads,
+      processor: context.media.processor,
+      scanner: context.media.scanner,
       user
     })
   ) {
