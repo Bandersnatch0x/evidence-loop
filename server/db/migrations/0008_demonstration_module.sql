@@ -38,6 +38,9 @@ CREATE INDEX IF NOT EXISTS idx_demo_versions_demo_status
   ON demonstration_versions (demonstration_id, status);
 CREATE INDEX IF NOT EXISTS idx_demo_versions_status_frozen
   ON demonstration_versions (status, frozen_at);
+-- 同一作品最多一个待审版本（DB 层兜底，服务层前置校验）
+CREATE UNIQUE INDEX IF NOT EXISTS idx_demo_versions_pending_unique
+  ON demonstration_versions (demonstration_id) WHERE status = 'submitted';
 
 -- 媒体族（票 03 / 调研 §3.1）--------------------------------------------------
 
