@@ -96,6 +96,7 @@ import {
   handleReviewerApi,
   type ReviewerRouteContext
 } from './demonstration/reviewerRoutes'
+import { handlePlayerApi } from './demonstration/playerRoutes'
 import { JsonAttemptStore } from './store/AttemptStore'
 import {
   JsonKnowledgeStore,
@@ -1509,6 +1510,13 @@ async function handleApi(
       reports: context.demonstration.reports,
       appeals: context.demonstration.appeals,
       user
+    })
+  ) {
+    return
+  }
+  if (
+    await handlePlayerApi(request, response, requestUrl.pathname, {
+      db: context.demonstration.db
     })
   ) {
     return

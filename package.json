@@ -25,6 +25,7 @@
     "mammoth": "^1.8.0",
     "mathjs": "^12.4.3",
     "pdf-parse": "^1.1.1",
+    "playcanvas": "^2.21.3",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "three": "^0.185.1",

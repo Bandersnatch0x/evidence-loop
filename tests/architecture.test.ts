@@ -399,3 +399,68 @@ describe('architecture guard: ADR-0005 multimodal feature-flag red line', () => 
     ).toEqual([])
   })
 })
+
+describe('architecture guard: T-G student player scoring-chain isolation (spec §6.12)', () => {
+  // The player is the ONLY read-only consumer of demonstration snapshots. It
+  // must never import scoring/evidence/attempt/mastery modules, and must never
+  // reach into student submission paths (no render_artifact, no submission).
+  const PLAYER_DIRS = ['src/components/player']
+  const SCORING_PATTERNS = [
+    /(^|\/)domain\/EvaluationAgent/,
+    /(^|\/)mastery(\/|$)/,
+    /(^|\/)review(\/|$)/,
+    /(^|\/)runner(\/|$)/,
+    /attempt/i,
+    /evidence/i,
+    /submission/i
+  ]
+
+  it('player import graph never references scoring/evidence/attempt/submission modules', () => {
+    const violations = findForbiddenImports(PLAYER_DIRS, SCORING_PATTERNS)
+    expect(
+      violations,
+      violations.length === 0
+        ? ''
+        : [
+            'T-G 违规：学生播放器 import 图不得引用评分/证据/Attempt/提交模块。',
+            '播放器是纯展示媒体体验（spec §6.12），不做 render_artifact、不收提交。',
+            '违规导入：',
+            formatViolations(violations)
+          ].join('\n')
+    ).toEqual([])
+  })
+
+  it('player source contains no eval/Function/dynamic-import execution of scene content', () => {
+    const playerFiles = [
+      'src/components/player/StudentPlayer.tsx',
+      'src/components/player/renderers.tsx',
+      'src/components/player/videoOrchestration.tsx',
+      'src/components/player/externalVideo.ts',
+      'src/components/player/determinism.ts',
+      'src/components/player/interactions.ts',
+      'src/components/player/lazyLoad.ts',
+      'src/components/player/budget.ts',
+      'src/components/player/playerState.ts',
+      'src/components/player/svgPrimitives.tsx',
+      'src/components/player/capabilityProbe.ts'
+    ]
+    for (const rel of playerFiles) {
+      const source = readFileSync(resolve(projectRoot, rel), 'utf8')
+      // The player must never execute document content: no eval/new Function.
+      // (React.lazy dynamic import() of the engine chunk is the ONLY allowed
+      // dynamic import — the engine, not the scene document.)
+      const dangerous = /\beval\s*\(|\bnew\s+Function\b|\bFunction\s*\(/
+      expect(
+        dangerous.test(source),
+        `${rel} must not contain eval/new Function — scene documents are declarative data, never code`
+      ).toBe(false)
+    }
+  })
+
+  it('player endpoint serves snapshots only (no draft/submission/grade routes)', () => {
+    const source = readFileSync(resolve(projectRoot, 'server/demonstration/playerRoutes.ts'), 'utf8')
+    // Only the approved-version player route; no mutation verbs.
+    expect(source).toMatch(/request\.method !== 'GET'/)
+    expect(source).toMatch(/api\/demonstrations\//)
+  })
+})
