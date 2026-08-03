@@ -90,6 +90,7 @@ import { EvidencePanelService } from './demonstration/EvidencePanelService'
 import { NotificationService } from './demonstration/NotificationService'
 import { ReportService } from './demonstration/ReportService'
 import { AppealService } from './demonstration/AppealService'
+import { DemonstrationService } from './demonstration/DemonstrationService'
 import { createDemoAuditSink } from './demonstration/demoAuditSink'
 import { isPublicLibraryReviewer } from './demonstration/reviewerAuth'
 import {
@@ -97,6 +98,7 @@ import {
   type ReviewerRouteContext
 } from './demonstration/reviewerRoutes'
 import { handlePlayerApi } from './demonstration/playerRoutes'
+import { handleAuthorApi } from './demonstration/authorRoutes'
 import { JsonAttemptStore } from './store/AttemptStore'
 import {
   JsonKnowledgeStore,
@@ -365,6 +367,7 @@ export async function createEvidenceRingServer(
   // hook bridges the demo.* domain events onto the existing audit HMAC chain
   // (mandatory governance actions only, spec §5.7).
   const demoAudit = createDemoAuditSink(audit)
+  const demonstrationService = new DemonstrationService({ db: productDb, audit: demoAudit })
   const reviewService = new ReviewService({ db: productDb, audit: demoAudit })
   const reportService = new ReportService({ db: productDb, audit: demoAudit })
   const appealService = new AppealService({ db: productDb, audit: demoAudit })
@@ -372,6 +375,7 @@ export async function createEvidenceRingServer(
   const demoNotifications = new NotificationService({ db: productDb })
   const demonstration: ReviewerRouteContext = {
     db: productDb,
+    demoService: demonstrationService,
     review: reviewService,
     evidence: evidencePanel,
     notifications: demoNotifications,
@@ -1504,6 +1508,7 @@ async function handleApi(
   if (
     await handleReviewerApi(request, response, requestUrl, {
       db: context.demonstration.db,
+      demoService: context.demonstration.demoService,
       review: context.demonstration.review,
       evidence: context.demonstration.evidence,
       notifications: context.demonstration.notifications,
@@ -1515,8 +1520,17 @@ async function handleApi(
     return
   }
   if (
-    await handlePlayerApi(request, response, requestUrl.pathname, {
+    handlePlayerApi(request, response, requestUrl.pathname, {
       db: context.demonstration.db
+    })
+  ) {
+    return
+  }
+  if (
+    await handleAuthorApi(request, response, requestUrl.pathname, {
+      db: context.demonstration.db,
+      service: context.demonstration.demoService,
+      getUserId: () => user.userId
     })
   ) {
     return

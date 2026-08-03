@@ -27,6 +27,7 @@ import {
   SECURITY_WARNING_VALUE
 } from '../auth/MockSessionProvider'
 import type { SessionUser } from '../auth/SessionProvider'
+import type { DemonstrationService } from './DemonstrationService'
 import {
   DemoNotFoundError,
   DemoOwnershipError,
@@ -81,6 +82,7 @@ export function resolveForcedTakedownWindowMs(
 
 export interface ReviewerRouteContext {
   db: Database
+  demoService: DemonstrationService
   review: ReviewService
   evidence: EvidencePanelService
   notifications: NotificationService

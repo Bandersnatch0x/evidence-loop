@@ -1,11 +1,12 @@
-import { useState } from 'react'
+import { useState, lazy, Suspense } from 'react'
 import {
   BookMarked,
   Building2,
   ClipboardList,
   MessageSquareText,
   Send,
-  Upload
+  Upload,
+  Presentation
 } from 'lucide-react'
 import type { TeachingUnit } from '../../../shared/contracts'
 import { ClassSetup } from './ClassSetup'
@@ -15,7 +16,14 @@ import { Gradebook } from './Gradebook'
 import { TipComposer } from './TipComposer'
 import { QuestionBankPanel } from './QuestionBankPanel'
 
-type TeacherTab = 'class' | 'bank' | 'roster' | 'assign' | 'tips' | 'grade'
+// TeacherStudio is its own async chunk (spec §8 / 票15 chunk isolation): the
+// teaching workbench entry stays light and the studio render path (incl. the
+// lazy student-player preview) loads only when the tab is opened.
+const TeacherStudio = lazy(() =>
+  import('./TeacherStudio').then((m) => ({ default: m.TeacherStudio }))
+)
+
+type TeacherTab = 'class' | 'bank' | 'roster' | 'assign' | 'tips' | 'grade' | 'studio'
 
 const TABS: Array<{
   id: TeacherTab
@@ -29,7 +37,8 @@ const TABS: Array<{
   { id: 'roster', label: '导入名单', icon: Upload, requiresUnit: true },
   { id: 'assign', label: '布置作业', icon: Send, requiresUnit: true },
   { id: 'tips', label: '发提示', icon: MessageSquareText, requiresUnit: true },
-  { id: 'grade', label: '主观题批改', icon: ClipboardList, requiresUnit: true }
+  { id: 'grade', label: '主观题批改', icon: ClipboardList, requiresUnit: true },
+  { id: 'studio', label: '教学演示创作台', icon: Presentation, requiresUnit: false }
 ]
 
 /**
@@ -103,6 +112,11 @@ export function TeacherWorkbench() {
         ) : null}
         {tab === 'grade' && unit !== undefined ? (
           <Gradebook teachingUnitId={unit.id} />
+        ) : null}
+        {tab === 'studio' ? (
+          <Suspense fallback={<div className="view-loading" role="status">正在加载创作台…</div>}>
+            <TeacherStudio />
+          </Suspense>
         ) : null}
       </section>
     </div>
