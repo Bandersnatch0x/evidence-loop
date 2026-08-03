@@ -216,16 +216,29 @@ export class DemonstrationService {
       throw new DemoSubmitError('a version is already pending approval; wait or withdraw first')
     }
 
-    // Spec §2.3: a candidate with non-ready media must not be submitted.
+    // Spec §2.3: hosted assets must be ready. External video refs are
+    // accepted only through the video purpose and must not be unavailable.
     const mediaRefs = document.mediaRefs ?? []
     if (mediaRefs.length > 0) {
       for (const ref of mediaRefs) {
         const asset = this.db
           .prepare(`SELECT status FROM media_assets WHERE id = ?`)
           .get(ref.id) as { status: string } | undefined
-        if (!asset || asset.status !== 'ready') {
-          throw new DemoSubmitError(`mediaReference ${ref.id} is not ready`)
+        if (asset?.status === 'ready') continue
+
+        if (ref.purpose === 'video') {
+          const external = this.db
+            .prepare(`SELECT health FROM external_video_refs WHERE id = ?`)
+            .get(ref.id) as { health: string } | undefined
+          if (
+            external &&
+            !['unavailable', 'private', 'embed_forbidden'].includes(external.health)
+          ) {
+            continue
+          }
         }
+
+        throw new DemoSubmitError(`mediaReference ${ref.id} is not ready`)
       }
     }
 
@@ -350,9 +363,17 @@ export class DemonstrationService {
   public listVersions(demoId: string): DemoVersionRow[] {
     const rows = this.db
       .prepare(
-        `SELECT id, demonstration_id, status, snapshot_document_json, classification,
-                license, ai_disclosure, source_chain_json, media_manifest_json,
-                reviewer_note, frozen_at
+        `SELECT id,
+                demonstration_id AS demonstrationId,
+                status,
+                snapshot_document_json AS snapshotDocumentJson,
+                classification,
+                license,
+                ai_disclosure AS aiDisclosure,
+                source_chain_json AS sourceChainJson,
+                media_manifest_json AS mediaManifestJson,
+                reviewer_note AS reviewerNote,
+                frozen_at AS frozenAt
          FROM demonstration_versions WHERE demonstration_id = ? ORDER BY frozen_at DESC`
       )
       .all(demoId) as DemoVersionRow[]

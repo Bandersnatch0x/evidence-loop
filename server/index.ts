@@ -85,6 +85,17 @@ import { MediaProcessor } from './media/MediaProcessor'
 import { createScanner } from './media/Scanner'
 import { MediaWorkerLoop } from './media/MediaWorkerLoop'
 import { handleMediaApi, type MediaRouteContext } from './media/mediaRoutes'
+import { ReviewService } from './demonstration/ReviewService'
+import { EvidencePanelService } from './demonstration/EvidencePanelService'
+import { NotificationService } from './demonstration/NotificationService'
+import { ReportService } from './demonstration/ReportService'
+import { AppealService } from './demonstration/AppealService'
+import { createDemoAuditSink } from './demonstration/demoAuditSink'
+import { isPublicLibraryReviewer } from './demonstration/reviewerAuth'
+import {
+  handleReviewerApi,
+  type ReviewerRouteContext
+} from './demonstration/reviewerRoutes'
 import { JsonAttemptStore } from './store/AttemptStore'
 import {
   JsonKnowledgeStore,
@@ -180,6 +191,8 @@ interface ApiContext {
   evidenceProjector: EvidenceProjector
   /** T-B media pipeline services (blob store / upload sessions / worker). */
   media: MediaRouteContext
+  /** T-F reviewer / publication governance services (per-request user below). */
+  demonstration: ReviewerRouteContext
 }
 
 interface EvidenceRingServerOptions {
@@ -213,6 +226,12 @@ interface EvidenceRingServerOptions {
    * inject a temp dir; production defaults to the project data dir.
    */
   mediaDataRoot?: string
+  /**
+   * Product database handle to reuse (tests seed reviewer users / demo data
+   * on a shared in-memory DB). When omitted the server opens its own
+   * connection from productDbPath and owns its lifecycle.
+   */
+  productDb?: Database.Database
 }
 
 class HttpError extends Error {
@@ -287,17 +306,25 @@ export async function createEvidenceRingServer(
   // ---------------------------------------------------------------------------
   // Product database (T02-T08): questions / auth / teaching units / enrollments.
   // Separate connection from audit + memory so WAL locking stays isolated.
-  // In-memory when an auditStore is injected (test mode) — no disk touch.
+  // In-memory when an auditStore is injected (test mode) - no disk touch.
+  // Tests may inject their own connection (productDb) to seed reviewer/demo data
+  // on a shared in-memory DB; the server then does not own its lifecycle.
   // ---------------------------------------------------------------------------
-  const defaultProductDbPath = join(projectRoot, '.data', 'product.sqlite')
-  const productDbPath =
-    options.productDbPath ??
-    (options.auditStore ? ':memory:' : defaultProductDbPath)
-  if (productDbPath !== ':memory:') {
-    mkdirSync(dirname(productDbPath), { recursive: true })
+  const ownsProductDb = options.productDb === undefined
+  let productDb: Database.Database
+  if (options.productDb !== undefined) {
+    productDb = options.productDb
+  } else {
+    const defaultProductDbPath = join(projectRoot, '.data', 'product.sqlite')
+    const productDbPath =
+      options.productDbPath ??
+      (options.auditStore ? ':memory:' : defaultProductDbPath)
+    if (productDbPath !== ':memory:') {
+      mkdirSync(dirname(productDbPath), { recursive: true })
+    }
+    productDb = new Database(productDbPath)
+    productDb.pragma('journal_mode = WAL')
   }
-  const productDb = new Database(productDbPath)
-  productDb.pragma('journal_mode = WAL')
 
   const questionStore = new QuestionStore({ database: productDb })
   const questionBank = new QuestionBankService({ store: questionStore })
@@ -330,6 +357,28 @@ export async function createEvidenceRingServer(
     user: {
       userId: '',
       displayName: 'media',
+      role: 'student' // placeholder; overwritten per-request by handleApi
+    }
+  }
+  // T-F reviewer / publication governance services (spec §5.2/§5.3). The audit
+  // hook bridges the demo.* domain events onto the existing audit HMAC chain
+  // (mandatory governance actions only, spec §5.7).
+  const demoAudit = createDemoAuditSink(audit)
+  const reviewService = new ReviewService({ db: productDb, audit: demoAudit })
+  const reportService = new ReportService({ db: productDb, audit: demoAudit })
+  const appealService = new AppealService({ db: productDb, audit: demoAudit })
+  const evidencePanel = new EvidencePanelService({ db: productDb })
+  const demoNotifications = new NotificationService({ db: productDb })
+  const demonstration: ReviewerRouteContext = {
+    db: productDb,
+    review: reviewService,
+    evidence: evidencePanel,
+    notifications: demoNotifications,
+    reports: reportService,
+    appeals: appealService,
+    user: {
+      userId: '',
+      displayName: 'reviewer',
       role: 'student' // placeholder; overwritten per-request by handleApi
     }
   }
@@ -436,7 +485,8 @@ export async function createEvidenceRingServer(
     memory,
     interventions,
     stt,
-    media
+    media,
+    demonstration
   }
   const server = createServer((request, response) => {
     void routeRequest(request, response, context, vite)
@@ -454,10 +504,12 @@ export async function createEvidenceRingServer(
     } catch (error: unknown) {
       console.error('Failed to close memory layer:', error)
     }
-    try {
-      productDb.close()
-    } catch (error: unknown) {
-      console.error('Failed to close product database:', error)
+    if (ownsProductDb) {
+      try {
+        productDb.close()
+      } catch (error: unknown) {
+        console.error('Failed to close product database:', error)
+      }
     }
   })
 
@@ -901,6 +953,23 @@ async function handleApi(
       })
       return
     }
+    // Spec §2.8: a public-library reviewer principal is never granted
+    // teaching / grade / audit view authority, even when their role is
+    // teacher|admin (the reviewer flag is additive, not a role expansion).
+    if (isPublicLibraryReviewer(context.productDb, user.userId)) {
+      audit.enqueue({
+        actorRole: user.role,
+        actorId: user.userId,
+        action: 'view',
+        resourceType: 'cohort',
+        result: 'denied',
+        metadata: { reason: 'reviewer-isolated' }
+      })
+      respondJson(response, 403, {
+        error: 'Forbidden: public-library reviewers may not view cohort data'
+      })
+      return
+    }
 
     audit.enqueue({
       actorRole: user.role,
@@ -980,6 +1049,21 @@ async function handleApi(
       })
       respondJson(response, 403, {
         error: 'Forbidden: audit log requires teacher or admin role'
+      })
+      return
+    }
+    // Spec §2.8: reviewers never get audit view authority (see /api/cohort).
+    if (isPublicLibraryReviewer(context.productDb, user.userId)) {
+      audit.enqueue({
+        actorRole: user.role,
+        actorId: user.userId,
+        action: 'view',
+        resourceType: 'audit',
+        result: 'denied',
+        metadata: { reason: 'reviewer-isolated' }
+      })
+      respondJson(response, 403, {
+        error: 'Forbidden: public-library reviewers may not view audit data'
       })
       return
     }
@@ -1411,6 +1495,19 @@ async function handleApi(
       uploads: context.media.uploads,
       processor: context.media.processor,
       scanner: context.media.scanner,
+      user
+    })
+  ) {
+    return
+  }
+  if (
+    await handleReviewerApi(request, response, requestUrl, {
+      db: context.demonstration.db,
+      review: context.demonstration.review,
+      evidence: context.demonstration.evidence,
+      notifications: context.demonstration.notifications,
+      reports: context.demonstration.reports,
+      appeals: context.demonstration.appeals,
       user
     })
   ) {

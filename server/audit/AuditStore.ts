@@ -15,6 +15,7 @@ export type AuditAction =
   | 'takedown'
   | 'report'
   | 'upgrade_reference'
+  | 'appeal'
 export type AuditResourceType =
   | 'evaluation'
   | 'cohort'

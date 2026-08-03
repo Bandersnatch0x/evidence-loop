@@ -304,6 +304,54 @@ describe('architecture guard: T-A demonstration module isolation (spec §3.4)', 
   })
 })
 
+describe('architecture guard: T-F reviewer isolation from teaching/grade/student data (spec §2.8)', () => {
+  // The T-F governance files govern the public library only. They must never
+  // import teaching-org, grade, student, cohort or scoring modules - reviewers
+  // are never granted teaching/grade/audit view authority (spec §2.8).
+  const T_F_GOVERNANCE_FILES = [
+    'server/demonstration/reviewerRoutes.ts',
+    'server/demonstration/ReviewService.ts',
+    'server/demonstration/ReportService.ts',
+    'server/demonstration/AppealService.ts',
+    'server/demonstration/EvidencePanelService.ts',
+    'server/demonstration/reviewerAuth.ts',
+    'server/demonstration/demoAuditSink.ts',
+    'server/demonstration/NotificationService.ts'
+  ]
+  const TEACHING_DATA_PATTERNS = [
+    /(^|\/)teacher(\/|$)/,
+    /(^|\/)adaptive(\/|$)/,
+    /(^|\/)student(\/|$)/,
+    /(^|\/)mastery(\/|$)/,
+    /(^|\/)review(\/|$)/,
+    /(^|\/)runner(\/|$)/
+  ]
+
+  it('T-F governance files never import teaching/grade/student/scoring modules', () => {
+    const violations: string[] = []
+    for (const rel of T_F_GOVERNANCE_FILES) {
+      const filePath = resolve(projectRoot, rel)
+      const source = readFileSync(filePath, 'utf8')
+      for (const specifier of extractImportSpecifiers(source)) {
+        if (TEACHING_DATA_PATTERNS.some((pattern) => pattern.test(specifier))) {
+          violations.push(`${rel} -> import '${specifier}'`)
+        }
+      }
+    }
+    expect(
+      violations,
+      violations.length === 0
+        ? ''
+        : [
+            'T-F 违规：审核治理文件不得 import 教学/成绩/学生/评分模块',
+            '（teacher / adaptive / student / mastery / review / runner），',
+            '审核员永不被授予教学/成绩/审计查看权（spec §2.8）。违规导入：',
+            violations.join('\n')
+          ].join('\n')
+    ).toEqual([])
+  })
+})
+
 describe('architecture guard: ADR-0005 multimodal feature-flag red line', () => {
   const MULTIMODAL_PATTERNS = [
     /(^|\/)multimodal(\/|$)/,

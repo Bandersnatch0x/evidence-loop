@@ -13,7 +13,7 @@
  *  - reviewer-gated: only holders of the public_library_reviewer flag act.
  */
 import type { Database } from 'better-sqlite3'
-import { DemoVersionNotFoundError } from './DemonstrationService'
+import { DemoNotFoundError, DemoVersionNotFoundError } from './DemonstrationService'
 
 export class ReviewerNotAuthorizedError extends Error {
   public constructor() {
@@ -168,7 +168,7 @@ export class ReviewService {
     const demo = this.db
       .prepare(`SELECT id FROM teaching_demonstrations WHERE id = ?`)
       .get(demoId) as { id: string } | undefined
-    if (!demo) throw new DemoVersionNotFoundError(demoId)
+    if (!demo) throw new DemoNotFoundError(demoId)
     const now = new Date().toISOString()
     this.db
       .prepare(`UPDATE teaching_demonstrations SET deleted_at = ? WHERE id = ?`)

@@ -511,3 +511,51 @@ export const demonstrationReferences = sqliteTable(
     index('idx_demo_refs_version').on(table.demoVersionId)
   ]
 )
+
+// ---------------------------------------------------------------------------
+// Migration 0009 - publication reports + appeals (T-F; spec §5.2/§5.3)
+// Public-library governance only - never touches scoring/teaching-private data.
+// ---------------------------------------------------------------------------
+
+/** Reader reports against a published demonstration (any logged-in user). */
+export const publicationReports = sqliteTable(
+  'publication_reports',
+  {
+    id: text('id').primaryKey(),
+    demonstrationId: text('demonstration_id').notNull(),
+    reporterId: text('reporter_id').notNull(),
+    category: text('category').notNull(), // copyright|illegal|inappropriate|spam|other
+    reason: text('reason').notNull(),
+    status: text('status').notNull().default('open'), // open|resolved|dismissed
+    createdAt: text('created_at').notNull(),
+    resolvedAt: text('resolved_at'),
+    resolvedBy: text('resolved_by'),
+    resolutionNote: text('resolution_note')
+  },
+  (table) => [
+    index('idx_publication_reports_demo').on(table.demonstrationId),
+    index('idx_publication_reports_status').on(table.status, table.createdAt)
+  ]
+)
+
+/** Author appeals against a rejection or takedown decision (reviewer-resolved). */
+export const publicationAppeals = sqliteTable(
+  'publication_appeals',
+  {
+    id: text('id').primaryKey(),
+    demonstrationId: text('demonstration_id').notNull(),
+    /** Version being appealed (rejection) or NULL when appealing a takedown. */
+    versionId: text('version_id'),
+    appellantId: text('appellant_id').notNull(),
+    reason: text('reason').notNull(),
+    status: text('status').notNull().default('open'), // open|approved|denied
+    createdAt: text('created_at').notNull(),
+    resolvedAt: text('resolved_at'),
+    resolvedBy: text('resolved_by'),
+    resolutionNote: text('resolution_note')
+  },
+  (table) => [
+    index('idx_publication_appeals_demo').on(table.demonstrationId),
+    index('idx_publication_appeals_status').on(table.status, table.createdAt)
+  ]
+)
