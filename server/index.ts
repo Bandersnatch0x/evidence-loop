@@ -103,6 +103,7 @@ import { handleAuthorApi } from './demonstration/authorRoutes'
 import { handleAiApi } from './demonstration/aiRoutes'
 import { AiQuotaStore } from './demonstration/aiAssistant'
 import { handleReferenceApi } from './demonstration/referenceRoutes'
+import { ensureDemonstrationMigration } from './demonstration/migrationRunner'
 import { JsonAttemptStore } from './store/AttemptStore'
 import {
   JsonKnowledgeStore,
@@ -397,6 +398,13 @@ export async function createEvidenceRingServer(
   // T03 tail + T07 demo: seed built-in bank + tu-demo unit so "今日该练"
   // and mistake repractice have real question/KP rows on cold start.
   seedDemoProduct({ questions: questionStore, org })
+  // T-K Phase E: migrate legacy question visualizations to preset
+  // demonstrations (idempotent, never overwrites teacher data).
+  try {
+    ensureDemonstrationMigration(productDb, questionStore)
+  } catch (error) {
+    console.error('Phase E demonstration migration failed:', error)
+  }
   // ADR-0015 Phase 6: EvaluationAgent resolves private/seed question ids via
   // payload→ExecutableAssignment projection when the demo registry misses.
   const assignments = createQuestionBackedRegistry(demoAssignments, (id) =>
