@@ -74,11 +74,13 @@ describe('T-H TeacherStudio', () => {
     await waitFor(() => expect(screen.getByText(/v-123/)).not.toBeNull())
   })
 
-  it('AI drawer is an explicit placeholder until T-I (never silent)', () => {
+  it('AI drawer (T-I) exposes description input + generate + confirm/reject', () => {
     render(<TeacherStudio />)
     fireEvent.click(screen.getByRole('button', { name: 'AI 起稿' }))
     expect(screen.getByRole('dialog', { name: 'AI 起稿' })).not.toBeNull()
-    expect(screen.getByText(/T-I 接入/)).not.toBeNull()
+    expect(screen.getByLabelText('描述场景')).not.toBeNull()
+    // Generate disabled when description empty (explicit, not silent).
+    expect(screen.getByRole('button', { name: '生成场景' })).toBeDisabled()
   })
 
   it('preview step mounts the student player', async () => {

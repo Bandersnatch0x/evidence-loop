@@ -178,6 +178,58 @@ export class DemonstrationService {
   }
 
   /**
+   * AI checkpoint snapshot (ticket 09): append a generated candidate to the
+   * draft's checkpoint_json series. The draft document itself is NOT touched;
+   * the teacher confirms (saveDraft) to accept a checkpoint. Rollback restores
+   * the draft from a checkpoint without touching the series.
+   */
+  public saveCheckpoint(demoId: string, ownerId: string, document: SceneDocument): string {
+    this.assertOwner(demoId, ownerId)
+    parseSceneDocument(document)
+    const issues = runSecurityGuards(document)
+    if (issues.length > 0) {
+      throw new DemoSubmitError(`security guard failed: ${issues[0]?.message ?? 'unknown'}`)
+    }
+    const checkpointId = randomUUID()
+    const row = this.db
+      .prepare(`SELECT checkpoint_json FROM demonstration_drafts WHERE demonstration_id = ?`)
+      .get(demoId) as { checkpoint_json: string | null } | undefined
+    if (!row) throw new DemoNotFoundError(demoId)
+    const series: Array<{ id: string; savedAt: string; document: unknown }> = row.checkpoint_json
+      ? (JSON.parse(row.checkpoint_json) as Array<{ id: string; savedAt: string; document: unknown }>)
+      : []
+    series.push({ id: checkpointId, savedAt: new Date().toISOString(), document: JSON.parse(JSON.stringify(document)) as unknown })
+    this.db
+      .prepare(`UPDATE demonstration_drafts SET checkpoint_json = ? WHERE demonstration_id = ?`)
+      .run(JSON.stringify(series), demoId)
+    this.emitAudit('demo.ai.checkpoint', ownerId, 'demonstration', demoId, '')
+    return checkpointId
+  }
+
+  /** Read the AI checkpoint series (id → document) for the teacher's rollback UI. */
+  public listCheckpoints(demoId: string): Array<{ id: string; savedAt: string; document: SceneDocument }> {
+    const row = this.db
+      .prepare(`SELECT checkpoint_json FROM demonstration_drafts WHERE demonstration_id = ?`)
+      .get(demoId) as { checkpoint_json: string | null } | undefined
+    if (!row) throw new DemoNotFoundError(demoId)
+    if (!row.checkpoint_json) return []
+    const series = JSON.parse(row.checkpoint_json) as Array<{ id: string; savedAt: string; document: unknown }>
+    return series.map((c) => ({ id: c.id, savedAt: c.savedAt, document: parseSceneDocument(c.document) }))
+  }
+
+  /** Restore the draft from a checkpoint (rollback). Keeps the series intact. */
+  public rollbackToCheckpoint(demoId: string, ownerId: string, checkpointId: string): void {
+    this.assertOwner(demoId, ownerId)
+    const checkpoints = this.listCheckpoints(demoId)
+    const target = checkpoints.find((c) => c.id === checkpointId)
+    if (!target) throw new DemoNotFoundError(`checkpoint ${checkpointId}`)
+    this.db
+      .prepare(`UPDATE demonstration_drafts SET document_json = ?, updated_at = ? WHERE demonstration_id = ?`)
+      .run(JSON.stringify(target.document), new Date().toISOString(), demoId)
+    this.emitAudit('demo.ai.rollback', ownerId, 'demonstration', demoId, checkpointId)
+  }
+
+  /**
    * Freeze a snapshot from the draft → demonstration_versions (status
    * submitted). Preflight: at most one pending version; media all ready;
    * license + ai disclosure required.

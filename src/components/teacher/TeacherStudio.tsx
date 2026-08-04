@@ -51,6 +51,11 @@ export function TeacherStudio({ demonstrationId, onSave, onSubmit }: TeacherStud
   const [professionalOpen, setProfessionalOpen] = useState(false)
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
   const [aiDrawerOpen, setAiDrawerOpen] = useState(false)
+  const [aiDescription, setAiDescription] = useState('')
+  const [aiCandidate, setAiCandidate] = useState<SceneDocument | null>(null)
+  const [aiStatus, setAiStatus] = useState<'idle' | 'generating' | 'error' | 'no-llm' | 'quota'>('idle')
+  const [aiMessage, setAiMessage] = useState('')
+  const [checkpoints, setCheckpoints] = useState<Array<{ id: string; savedAt: string }>>([])
   const [lastVersionId, setLastVersionId] = useState<string | null>(null)
 
   const saveDraft = useCallback(async () => {
@@ -73,6 +78,90 @@ export function TeacherStudio({ demonstrationId, onSave, onSubmit }: TeacherStud
       return false
     }
   }, [document, demonstrationId, onSave])
+
+  const generateAi = useCallback(async () => {
+    setAiStatus('generating')
+    setAiMessage('')
+    try {
+      const res = await fetch(`/api/demonstrations/${demonstrationId ?? 'new'}/ai-draft`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ description: aiDescription })
+      })
+      const data = (await res.json()) as {
+        ok: boolean
+        document?: unknown
+        reason?: string
+        message?: string
+      }
+      if (!res.ok || !data.ok) {
+        setAiStatus(data.reason === 'no-llm' ? 'no-llm' : data.reason === 'quota' ? 'quota' : 'error')
+        setAiMessage(data.message ?? '生成失败')
+        return
+      }
+      const candidate = parseSceneDocument(data.document)
+      setAiCandidate(candidate)
+      setAiStatus('idle')
+    } catch (error) {
+      setAiStatus('error')
+      setAiMessage(error instanceof Error ? error.message : '生成失败')
+    }
+  }, [aiDescription, demonstrationId])
+
+  const loadCheckpoints = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/demonstrations/${demonstrationId ?? 'new'}/ai-checkpoints`)
+      if (res.ok) {
+        const data = (await res.json()) as { checkpoints: Array<{ id: string; savedAt: string }> }
+        setCheckpoints(data.checkpoints)
+      }
+    } catch {
+      // Non-fatal: rollback list stays empty.
+    }
+  }, [demonstrationId])
+
+  const confirmAiCandidate = useCallback(async () => {
+    if (!aiCandidate) return
+    // Teacher confirmation: save checkpoint + apply as draft (explicit action).
+    try {
+      await fetch(`/api/demonstrations/${demonstrationId ?? 'new'}/ai-checkpoint`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ document: aiCandidate })
+      })
+      setDocument(aiCandidate)
+      setAiCandidate(null)
+      setAiMessage('已确认：AI 生成内容已保存为草稿（标注 ai_disclosure）')
+      await loadCheckpoints()
+    } catch (error) {
+      setAiMessage(error instanceof Error ? error.message : '保存失败')
+    }
+  }, [aiCandidate, demonstrationId, loadCheckpoints])
+
+  const rejectAiCandidate = useCallback(() => {
+    setAiCandidate(null)
+    setAiMessage('已拒绝该生成结果')
+  }, [])
+
+  const rollback = useCallback(async (checkpointId: string) => {
+    try {
+      const res = await fetch(`/api/demonstrations/${demonstrationId ?? 'new'}/ai-rollback`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ checkpointId })
+      })
+      if (res.ok) {
+        const draft = await fetch(`/api/demonstrations/${demonstrationId ?? 'new'}/draft`)
+        if (draft.ok) {
+          const data = (await draft.json()) as { document: unknown }
+          setDocument(parseSceneDocument(data.document))
+        }
+        setAiMessage('已回滚到检查点')
+      }
+    } catch (error) {
+      setAiMessage(error instanceof Error ? error.message : '回滚失败')
+    }
+  }, [demonstrationId])
 
   const submitDraft = useCallback(async () => {
     setSubmitState('submitting')
@@ -363,9 +452,61 @@ export function TeacherStudio({ demonstrationId, onSave, onSubmit }: TeacherStud
                 <span>AI 起稿</span>
                 <button type="button" onClick={() => setAiDrawerOpen(false)}>✕</button>
               </div>
-              <p className="studio-ai-notice">
-                AI 创作助手将在 T-I 接入。当前版本仅支持手动创作（显式占位，不静默）。
-              </p>
+              <label className="studio-ai-label">
+                描述场景
+                <textarea
+                  value={aiDescription}
+                  onChange={(e) => setAiDescription(e.target.value)}
+                  rows={4}
+                  placeholder="例如：画一个 DNA 双螺旋，带碱基对横档，可旋转查看"
+                />
+              </label>
+              <button
+                type="button"
+                className="studio-btn studio-btn-primary"
+                onClick={() => void generateAi()}
+                disabled={aiStatus === 'generating' || aiDescription.trim() === ''}
+              >
+                {aiStatus === 'generating' ? '生成中…' : '生成场景'}
+              </button>
+              {aiStatus === 'no-llm' && (
+                <p className="studio-ai-notice" role="status">
+                  AI 起稿不可用（未配置 LLM）。可改用手动创建。
+                </p>
+              )}
+              {aiStatus === 'quota' && (
+                <p className="studio-ai-notice" role="status">{aiMessage}</p>
+              )}
+              {aiStatus === 'error' && (
+                <p className="studio-ai-error" role="alert">{aiMessage}</p>
+              )}
+              {aiCandidate && (
+                <div className="studio-ai-candidate" role="region" aria-label="生成结果">
+                  <p>AI 生成候选（{aiCandidate.objectTree?.length ?? 0} 个对象）— 需教师确认</p>
+                  <div className="studio-ai-actions">
+                    <button type="button" className="studio-btn" onClick={() => void confirmAiCandidate()}>
+                      确认并保存
+                    </button>
+                    <button type="button" className="studio-btn" onClick={rejectAiCandidate}>
+                      拒绝
+                    </button>
+                  </div>
+                </div>
+              )}
+              {aiMessage && <p className="studio-ai-note" role="status">{aiMessage}</p>}
+              <button type="button" className="studio-ai-checks" onClick={() => void loadCheckpoints()}>
+                加载检查点（{checkpoints.length}）
+              </button>
+              <ul className="studio-checkpoint-list">
+                {checkpoints.map((cp) => (
+                  <li key={cp.id}>
+                    <span>{new Date(cp.savedAt).toLocaleTimeString()}</span>
+                    <button type="button" onClick={() => void rollback(cp.id)}>
+                      回滚
+                    </button>
+                  </li>
+                ))}
+              </ul>
             </div>
           )}
         </aside>

@@ -99,6 +99,8 @@ import {
 } from './demonstration/reviewerRoutes'
 import { handlePlayerApi } from './demonstration/playerRoutes'
 import { handleAuthorApi } from './demonstration/authorRoutes'
+import { handleAiApi } from './demonstration/aiRoutes'
+import { AiQuotaStore } from './demonstration/aiAssistant'
 import { JsonAttemptStore } from './store/AttemptStore'
 import {
   JsonKnowledgeStore,
@@ -376,6 +378,7 @@ export async function createEvidenceRingServer(
   const demonstration: ReviewerRouteContext = {
     db: productDb,
     demoService: demonstrationService,
+    aiQuota: new AiQuotaStore(),
     review: reviewService,
     evidence: evidencePanel,
     notifications: demoNotifications,
@@ -1509,6 +1512,7 @@ async function handleApi(
     await handleReviewerApi(request, response, requestUrl, {
       db: context.demonstration.db,
       demoService: context.demonstration.demoService,
+      aiQuota: context.demonstration.aiQuota,
       review: context.demonstration.review,
       evidence: context.demonstration.evidence,
       notifications: context.demonstration.notifications,
@@ -1530,6 +1534,16 @@ async function handleApi(
     await handleAuthorApi(request, response, requestUrl.pathname, {
       db: context.demonstration.db,
       service: context.demonstration.demoService,
+      getUserId: () => user.userId
+    })
+  ) {
+    return
+  }
+  if (
+    await handleAiApi(request, response, requestUrl.pathname, {
+      db: context.demonstration.db,
+      service: context.demonstration.demoService,
+      quota: context.demonstration.aiQuota,
       getUserId: () => user.userId
     })
   ) {

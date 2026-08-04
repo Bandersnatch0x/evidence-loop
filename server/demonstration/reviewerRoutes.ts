@@ -28,6 +28,7 @@ import {
 } from '../auth/MockSessionProvider'
 import type { SessionUser } from '../auth/SessionProvider'
 import type { DemonstrationService } from './DemonstrationService'
+import type { AiQuotaStore } from './aiAssistant'
 import {
   DemoNotFoundError,
   DemoOwnershipError,
@@ -83,6 +84,7 @@ export function resolveForcedTakedownWindowMs(
 export interface ReviewerRouteContext {
   db: Database
   demoService: DemonstrationService
+  aiQuota: AiQuotaStore
   review: ReviewService
   evidence: EvidencePanelService
   notifications: NotificationService
