@@ -225,4 +225,40 @@ export class ReferenceService {
       detailJson: ''
     })
   }
+
+  /**
+   * Manual upgrade (ticket T-J / spec §2.7): point an existing reference at a
+   * NEWER current approved version of the SAME demonstration. Never automatic;
+   * the teacher confirms first. Fails if the target version belongs to a
+   * different demonstration (prevents cross-demo rebinding via this path).
+   */
+  public upgradeReference(actorId: string, actorRole: string, referenceId: string, newVersionId: string): void {
+    this.assertTeacher(actorId, actorRole)
+    const ref = this.db
+      .prepare(`SELECT id, question_id AS questionId, demo_version_id AS demoVersionId FROM demonstration_references WHERE id = ?`)
+      .get(referenceId) as { id: string; questionId: string | null; demoVersionId: string } | undefined
+    if (!ref) throw new ReferenceNotFoundError(referenceId)
+    if (ref.questionId) this.assertOwnerContext(actorId, ref.questionId)
+    this.assertVersionApproved(newVersionId)
+    const oldVersion = this.db
+      .prepare(`SELECT demonstration_id AS demonstrationId FROM demonstration_versions WHERE id = ?`)
+      .get(ref.demoVersionId) as { demonstrationId: string } | undefined
+    const newVersion = this.db
+      .prepare(`SELECT demonstration_id AS demonstrationId FROM demonstration_versions WHERE id = ?`)
+      .get(newVersionId) as { demonstrationId: string } | undefined
+    if ((oldVersion?.demonstrationId ?? '') !== (newVersion?.demonstrationId ?? '')) {
+      throw new ReferenceValidationError('upgrade must target a newer version of the SAME demonstration')
+    }
+    this.db
+      .prepare(`UPDATE demonstration_references SET demo_version_id = ? WHERE id = ?`)
+      .run(newVersionId, referenceId)
+    this.audit?.({
+      action: 'demo.reference.upgrade',
+      actorId,
+      actorRole,
+      resourceType: 'reference',
+      resourceId: referenceId,
+      detailJson: JSON.stringify({ fromDemoVersionId: ref.demoVersionId, toDemoVersionId: newVersionId })
+    })
+  }
 }

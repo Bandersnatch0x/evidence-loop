@@ -29,6 +29,7 @@ import {
 import type { SessionUser } from '../auth/SessionProvider'
 import type { DemonstrationService } from './DemonstrationService'
 import type { AiQuotaStore } from './aiAssistant'
+import type { ReferenceService } from './ReferenceService'
 import {
   DemoNotFoundError,
   DemoOwnershipError,
@@ -85,6 +86,7 @@ export interface ReviewerRouteContext {
   db: Database
   demoService: DemonstrationService
   aiQuota: AiQuotaStore
+  references: ReferenceService
   review: ReviewService
   evidence: EvidencePanelService
   notifications: NotificationService

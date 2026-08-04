@@ -88,6 +88,7 @@ import { handleMediaApi, type MediaRouteContext } from './media/mediaRoutes'
 import { ReviewService } from './demonstration/ReviewService'
 import { EvidencePanelService } from './demonstration/EvidencePanelService'
 import { NotificationService } from './demonstration/NotificationService'
+import { ReferenceService } from './demonstration/ReferenceService'
 import { ReportService } from './demonstration/ReportService'
 import { AppealService } from './demonstration/AppealService'
 import { DemonstrationService } from './demonstration/DemonstrationService'
@@ -101,6 +102,7 @@ import { handlePlayerApi } from './demonstration/playerRoutes'
 import { handleAuthorApi } from './demonstration/authorRoutes'
 import { handleAiApi } from './demonstration/aiRoutes'
 import { AiQuotaStore } from './demonstration/aiAssistant'
+import { handleReferenceApi } from './demonstration/referenceRoutes'
 import { JsonAttemptStore } from './store/AttemptStore'
 import {
   JsonKnowledgeStore,
@@ -375,10 +377,12 @@ export async function createEvidenceRingServer(
   const appealService = new AppealService({ db: productDb, audit: demoAudit })
   const evidencePanel = new EvidencePanelService({ db: productDb })
   const demoNotifications = new NotificationService({ db: productDb })
+  const referenceService = new ReferenceService({ db: productDb, audit: demoAudit })
   const demonstration: ReviewerRouteContext = {
     db: productDb,
     demoService: demonstrationService,
     aiQuota: new AiQuotaStore(),
+    references: referenceService,
     review: reviewService,
     evidence: evidencePanel,
     notifications: demoNotifications,
@@ -1513,6 +1517,7 @@ async function handleApi(
       db: context.demonstration.db,
       demoService: context.demonstration.demoService,
       aiQuota: context.demonstration.aiQuota,
+      references: context.demonstration.references,
       review: context.demonstration.review,
       evidence: context.demonstration.evidence,
       notifications: context.demonstration.notifications,
@@ -1545,6 +1550,17 @@ async function handleApi(
       service: context.demonstration.demoService,
       quota: context.demonstration.aiQuota,
       getUserId: () => user.userId
+    })
+  ) {
+    return
+  }
+  if (
+    await handleReferenceApi(request, response, requestUrl.pathname, requestUrl, {
+      db: context.demonstration.db,
+      references: context.demonstration.references,
+      notifications: context.demonstration.notifications,
+      getUserId: () => user.userId,
+      getRole: () => user.role
     })
   ) {
     return

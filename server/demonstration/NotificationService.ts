@@ -15,6 +15,7 @@
  * T-J decision; here we produce the event payloads a caller can route.
  */
 import type { Database } from 'better-sqlite3'
+import { randomUUID } from 'node:crypto'
 
 export type DemoNotificationKind = 'new_version' | 'source_unavailable' | 'forced_takedown'
 
@@ -123,5 +124,70 @@ export class NotificationService {
       kind: 'forced_takedown' as const,
       detail: { ...n.detail, reason, replaceDeadline }
     }))
+  }
+
+  /** Persist notifications to the demo_notifications channel (T-J). */
+  public persist(notifications: DemoNotification[]): void {
+    const insert = this.db.prepare(
+      `INSERT INTO demo_notifications
+         (id, recipient_id, kind, demo_version_id, question_id, kp_id, detail_json, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+    )
+    const now = new Date().toISOString()
+    this.db.transaction(() => {
+      for (const n of notifications) {
+        insert.run(
+          randomUUID(),
+          n.recipientId,
+          n.kind,
+          n.demoVersionId ?? null,
+          n.questionId ?? null,
+          n.kpId ?? null,
+          JSON.stringify(n.detail),
+          now
+        )
+      }
+    })()
+  }
+
+  /** List notifications for a teacher (newest first), with unread count. */
+  public listForTeacher(teacherId: string): {
+    id: string
+    kind: string
+    demoVersionId: string | null
+    detail: Record<string, unknown>
+    readAt: string | null
+    createdAt: string
+  }[] {
+    const rows = this.db
+      .prepare(
+        `SELECT id, kind, demo_version_id AS demoVersionId, detail_json AS detailJson,
+                read_at AS readAt, created_at AS createdAt
+         FROM demo_notifications WHERE recipient_id = ?
+         ORDER BY created_at DESC LIMIT 100`
+      )
+      .all(teacherId) as Array<{
+      id: string
+      kind: string
+      demoVersionId: string | null
+      detailJson: string
+      readAt: string | null
+      createdAt: string
+    }>
+    return rows.map((r) => ({
+      id: r.id,
+      kind: r.kind,
+      demoVersionId: r.demoVersionId,
+      detail: JSON.parse(r.detailJson) as Record<string, unknown>,
+      readAt: r.readAt,
+      createdAt: r.createdAt
+    }))
+  }
+
+  /** Mark a notification read (idempotent). */
+  public markRead(notificationId: string, teacherId: string): void {
+    this.db
+      .prepare(`UPDATE demo_notifications SET read_at = ? WHERE id = ? AND recipient_id = ?`)
+      .run(new Date().toISOString(), notificationId, teacherId)
   }
 }
