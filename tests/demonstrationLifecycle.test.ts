@@ -57,7 +57,7 @@ describe('DemonstrationService — lifecycle', () => {
     const { service } = makeService()
     const id = service.createDemonstration('t-1', DEFAULT_META)
     service.saveDraft(id, 't-1', baseDoc())
-    const { document } = service.getDraft(id)
+    const { document } = service.getDraft(id, 't-1')
     expect(document.geometry3D?.[0]?.kind).toBe('box')
   })
 

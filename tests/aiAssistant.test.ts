@@ -181,16 +181,16 @@ describe('T-I checkpoints and confirmation', () => {
     env.service.saveDraft(demoId, 'teacher-1', baseDoc())
 
     // Candidate generation never touches the draft.
-    const before = env.service.getDraft(demoId)
+    const before = env.service.getDraft(demoId, 'teacher-1')
     expect(before.document.objectTree).toHaveLength(0)
 
     // Explicit confirmation: save checkpoint.
     const checkpointId = env.service.saveCheckpoint(demoId, 'teacher-1', parseSceneDocument(validAiOutput))
     expect(checkpointId).toBeTruthy()
-    const checkpoints = env.service.listCheckpoints(demoId)
+    const checkpoints = env.service.listCheckpoints(demoId, 'teacher-1')
     expect(checkpoints).toHaveLength(1)
     // Draft still holds the pre-confirmation document (checkpoint series separate).
-    const after = env.service.getDraft(demoId)
+    const after = env.service.getDraft(demoId, 'teacher-1')
     expect(after.document.objectTree).toHaveLength(0)
   })
 
@@ -202,14 +202,21 @@ describe('T-I checkpoints and confirmation', () => {
     const cp1 = env.service.saveCheckpoint(demoId, 'teacher-1', parseSceneDocument(validAiOutput))
     // Teacher accepts: save the AI output as the draft.
     env.service.saveDraft(demoId, 'teacher-1', parseSceneDocument(validAiOutput))
-    expect(env.service.getDraft(demoId).document.objectTree).toHaveLength(1)
+    expect(env.service.getDraft(demoId, 'teacher-1').document.objectTree).toHaveLength(1)
     // Checkpoint 2: an empty scene (teacher reverted manually).
     env.service.saveCheckpoint(demoId, 'teacher-1', baseDoc())
     env.service.saveDraft(demoId, 'teacher-1', baseDoc())
-    expect(env.service.getDraft(demoId).document.objectTree).toHaveLength(0)
+    expect(env.service.getDraft(demoId, 'teacher-1').document.objectTree).toHaveLength(0)
     // Rollback to checkpoint 1 restores the AI output.
     env.service.rollbackToCheckpoint(demoId, 'teacher-1', cp1)
-    expect(env.service.getDraft(demoId).document.objectTree).toHaveLength(1)
+    expect(env.service.getDraft(demoId, 'teacher-1').document.objectTree).toHaveLength(1)
+  })
+
+  it('checkpoint series is owner-only', () => {
+    const env = makeEnv()
+    const demoId = env.service.createDemonstration('teacher-1', { ...META })
+    env.service.saveCheckpoint(demoId, 'teacher-1', baseDoc())
+    expect(() => env.service.listCheckpoints(demoId, 'teacher-2')).toThrow()
   })
 
   it('rollback to unknown checkpoint fails', () => {

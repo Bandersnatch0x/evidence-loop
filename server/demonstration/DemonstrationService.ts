@@ -144,7 +144,8 @@ export class DemonstrationService {
   }
 
   /** Read the current draft document (already parsed + validated). */
-  public getDraft(demoId: string): { document: SceneDocument; updatedAt: string } {
+  public getDraft(demoId: string, ownerId: string): { document: SceneDocument; updatedAt: string } {
+    this.assertOwner(demoId, ownerId)
     const draft = this.db
       .prepare(
         `SELECT document_json, updated_at FROM demonstration_drafts WHERE demonstration_id = ?`
@@ -207,7 +208,8 @@ export class DemonstrationService {
   }
 
   /** Read the AI checkpoint series (id → document) for the teacher's rollback UI. */
-  public listCheckpoints(demoId: string): Array<{ id: string; savedAt: string; document: SceneDocument }> {
+  public listCheckpoints(demoId: string, ownerId: string): Array<{ id: string; savedAt: string; document: SceneDocument }> {
+    this.assertOwner(demoId, ownerId)
     const row = this.db
       .prepare(`SELECT checkpoint_json FROM demonstration_drafts WHERE demonstration_id = ?`)
       .get(demoId) as { checkpoint_json: string | null } | undefined
@@ -220,7 +222,7 @@ export class DemonstrationService {
   /** Restore the draft from a checkpoint (rollback). Keeps the series intact. */
   public rollbackToCheckpoint(demoId: string, ownerId: string, checkpointId: string): void {
     this.assertOwner(demoId, ownerId)
-    const checkpoints = this.listCheckpoints(demoId)
+    const checkpoints = this.listCheckpoints(demoId, ownerId)
     const target = checkpoints.find((c) => c.id === checkpointId)
     if (!target) throw new DemoNotFoundError(`checkpoint ${checkpointId}`)
     this.db

@@ -4,8 +4,8 @@
  * contract. jsdom environment (vitest.config). The player is pure presentation:
  * no scoring, no evidence, no submission props.
  */
-import { describe, it, expect } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { describe, it, expect, vi } from 'vitest'
+import { render, screen, fireEvent, act } from '@testing-library/react'
 import { StudentPlayer } from '../src/components/player/StudentPlayer'
 import type { PlayerPayload } from '../server/demonstration/playerRoutes'
 import { parseSceneDocument } from '../server/demonstration/sceneDocumentSchema'
@@ -66,6 +66,42 @@ describe('T-G StudentPlayer component', () => {
     render(<StudentPlayer payload={payload()} device={{ webgl: 'webgl2', tier: 'high', prefersReducedMotion: false, maxTextureSize: 4096 }} />)
     expect(document.querySelector('.student-player-svg')).not.toBeNull()
     expect(screen.getByRole('toolbar', { name: '播放控制' })).not.toBeNull()
+  })
+
+  it('advances animation samples on every frame and applies node transforms', () => {
+    let frame: FrameRequestCallback | undefined
+    const raf = vi.spyOn(globalThis, 'requestAnimationFrame').mockImplementation((callback) => {
+      frame = callback
+      return 1
+    })
+    const cancel = vi.spyOn(globalThis, 'cancelAnimationFrame').mockImplementation(() => {})
+    const animated = parseSceneDocument({
+      ...BASE_DOC,
+      timeline: {
+        duration: 2,
+        chapters: [],
+        tracks: [{
+          nodeId: 'leaf',
+          keyframes: [
+            { time: 0, property: 'transform.position', value: [0, 0, 0], easing: 'linear' },
+            { time: 2, property: 'transform.position', value: [10, 0, 0], easing: 'linear' }
+          ]
+        }]
+      }
+    })
+    render(
+      <StudentPlayer
+        payload={payload({ document: animated })}
+        play
+        device={{ webgl: 'webgl2', tier: 'high', prefersReducedMotion: false, maxTextureSize: 4096 }}
+      />
+    )
+    expect(frame).toBeDefined()
+    act(() => frame?.(performance.now() + 1000))
+    const transform = document.querySelector('.student-player-svg g')?.getAttribute('transform') ?? ''
+    expect(transform).not.toContain('translate(0 0)')
+    raf.mockRestore()
+    cancel.mockRestore()
   })
 
   it('negotiates static-alternative for reduced-motion devices', () => {

@@ -99,7 +99,7 @@ export async function handleAiApi(
 
   if (request.method === 'GET' && action === 'ai-checkpoints') {
     try {
-      const checkpoints = ctx.service.listCheckpoints(demoId)
+      const checkpoints = ctx.service.listCheckpoints(demoId, userId)
       respondJson(response, 200, { checkpoints })
     } catch (error) {
       respondJson(response, 404, { error: error instanceof Error ? error.message : 'not found' })

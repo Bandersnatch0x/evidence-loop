@@ -38,7 +38,13 @@ function makeApi(overrides: Partial<NonNullable<Parameters<typeof ReferenceDrawe
     getReferences: vi.fn(() => Promise.resolve([...refs])),
     setReferences: vi.fn((entries: Array<{ demoVersionId: string; role: 'primary' | 'supplementary' }>) => {
       refs.length = 0
-      entries.forEach((e, i) => refs.push({ id: `ref-${i}`, demoVersionId: e.demoVersionId, role: e.role, ord: i }))
+      entries.forEach((e, i) => refs.push({
+        id: `ref-${i}`,
+        demoVersionId: e.demoVersionId,
+        demoId: CARDS.find((card) => card.latestVersionId === e.demoVersionId)?.id ?? 'unknown',
+        role: e.role,
+        ord: i
+      }))
       return Promise.resolve()
     }),
     removeReference: vi.fn((id: string) => {
@@ -88,20 +94,33 @@ describe('T-J ReferenceDrawer', () => {
   it('supplementary add is capped at 8 via UI disable', async () => {
     const fullApi = makeApi()
     fullApi.getReferences.mockResolvedValue(
-      Array.from({ length: 8 }, (_, i) => ({ id: `s${i}`, demoVersionId: `v${i}`, role: 'supplementary' as const, ord: i }))
+      Array.from({ length: 8 }, (_, i) => ({ id: `s${i}`, demoVersionId: `v${i}`, demoId: `d${i}`, role: 'supplementary' as const, ord: i }))
     )
     render(<ReferenceDrawer questionId="q1" api={fullApi} />)
     await waitFor(() => expect(fullApi.getReferences).toHaveBeenCalled())
     // Search to surface result cards.
     fireEvent.change(screen.getByLabelText('检索'), { target: { value: 'DNA' } })
     fireEvent.click(screen.getByRole('button', { name: '检索' }))
-    await waitFor(() => expect(screen.getByText('DNA 双螺旋')).not.toBeNull())
+    await waitFor(() => expect(screen.getAllByText('DNA 双螺旋').length).toBeGreaterThan(0))
     await waitFor(() => expect(screen.getAllByRole('button', { name: '加入补充' })[0]!).toBeDisabled())
+  })
+
+  it('upgrade resolves by demo id and requires explicit confirmation', async () => {
+    const api = makeApi()
+    api.getReferences.mockResolvedValue([
+      { id: 'r1', demoVersionId: 'v1-old', demoId: 'd1', role: 'primary', ord: 0 }
+    ])
+    render(<ReferenceDrawer questionId="q1" api={api} />)
+    await waitFor(() => expect(screen.getByRole('button', { name: '升级到 v2' })).not.toBeNull())
+    fireEvent.click(screen.getByRole('button', { name: '升级到 v2' }))
+    expect(api.upgradeReference).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('button', { name: '确认升级到 v2' }))
+    await waitFor(() => expect(api.upgradeReference).toHaveBeenCalledWith('r1', 'v2'))
   })
 
   it('remove shows confirm then unbinds', async () => {
     const api = makeApi()
-    api.getReferences.mockResolvedValue([{ id: 'r1', demoVersionId: 'v2', role: 'primary', ord: 0 }])
+    api.getReferences.mockResolvedValue([{ id: 'r1', demoVersionId: 'v2', demoId: 'd1', role: 'primary', ord: 0 }])
     render(<ReferenceDrawer questionId="q1" api={api} />)
     await waitFor(() => expect(screen.getByRole('button', { name: '移除' })).not.toBeNull())
     fireEvent.click(screen.getByRole('button', { name: '移除' }))

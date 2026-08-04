@@ -15,6 +15,7 @@ import type { PlayerPayload } from '../../../server/demonstration/playerRoutes'
 export interface ReferenceEntry {
   id: string
   demoVersionId: string
+  demoId: string
   role: 'primary' | 'supplementary'
   ord: number
 }
@@ -62,6 +63,7 @@ export function ReferenceDrawer({ questionId, kpId, api }: ReferenceDrawerProps)
   const [preview, setPreview] = useState<{ demoId: string; versionId: string; document: unknown; mediaManifest: PlayerPayload['mediaManifest'] } | null>(null)
   const [confirmReplace, setConfirmReplace] = useState<string | null>(null)
   const [confirmRemove, setConfirmRemove] = useState<string | null>(null)
+  const [confirmUpgrade, setConfirmUpgrade] = useState<string | null>(null)
   const [notice, setNotice] = useState('')
 
   const realApi = useMemo(() => {
@@ -105,8 +107,9 @@ export function ReferenceDrawer({ questionId, kpId, api }: ReferenceDrawerProps)
   }, [api, parentId, parentType])
 
   const refresh = useCallback(async () => {
-    const list = await realApi.getReferences()
+    const [list, cards] = await Promise.all([realApi.getReferences(), realApi.list('')])
     setEntries(list)
+    setResults(cards)
   }, [realApi])
 
   useEffect(() => {
@@ -185,7 +188,12 @@ export function ReferenceDrawer({ questionId, kpId, api }: ReferenceDrawerProps)
   }
 
   const upgrade = async (entry: ReferenceEntry, card: LibraryCard): Promise<void> => {
+    if (confirmUpgrade !== entry.id) {
+      setConfirmUpgrade(entry.id)
+      return
+    }
     await realApi.upgradeReference(entry.id, card.latestVersionId)
+    setConfirmUpgrade(null)
     setNotice(`已升级到 v${card.versionSeq}`)
     await refresh()
   }
@@ -270,16 +278,16 @@ export function ReferenceDrawer({ questionId, kpId, api }: ReferenceDrawerProps)
         {entries.length === 0 && <div className="ref-empty">尚未引用任何演示</div>}
         {entries.map((entry, i) => {
           const isPrimary = entry.role === 'primary'
-          const card = results.find((r) => r.id === entry.demoVersionId)
+          const card = results.find((r) => r.id === entry.demoId)
           return (
             <div key={entry.id} className={`ref-bound-row ${isPrimary ? 'primary' : ''}`}>
               <span className="ref-role">{isPrimary ? '主' : `补充${i}`}</span>
               <span className="ref-version-fixed">v{card?.versionSeq ?? '?'}</span>
               <span className="ref-title">{card?.title ?? entry.demoVersionId.slice(0, 8)}</span>
               {card && card.health !== 'healthy' && <span className="ref-unavailable">源不可用（继续播放）</span>}
-              {card && card.versionSeq > 1 && (
+              {card && entry.demoVersionId !== card.latestVersionId && (
                 <button type="button" onClick={() => void upgrade(entry, card)}>
-                  升级到 v{card.versionSeq}
+                  {confirmUpgrade === entry.id ? `确认升级到 v${card.versionSeq}` : `升级到 v${card.versionSeq}`}
                 </button>
               )}
               {!isPrimary && (

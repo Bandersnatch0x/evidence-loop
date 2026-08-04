@@ -103,6 +103,7 @@ import { handleAuthorApi } from './demonstration/authorRoutes'
 import { handleAiApi } from './demonstration/aiRoutes'
 import { AiQuotaStore } from './demonstration/aiAssistant'
 import { handleReferenceApi } from './demonstration/referenceRoutes'
+import { handleLibraryApi } from './demonstration/libraryRoutes'
 import { ensureDemonstrationMigration } from './demonstration/migrationRunner'
 import { JsonAttemptStore } from './store/AttemptStore'
 import {
@@ -1574,6 +1575,14 @@ async function handleApi(
       notifications: context.demonstration.notifications,
       getUserId: () => user.userId,
       getRole: () => user.role
+    })
+  ) {
+    return
+  }
+  if (
+    handleLibraryApi(request, response, requestUrl.pathname, requestUrl, {
+      db: context.demonstration.db,
+      getUserId: () => user.userId
     })
   ) {
     return

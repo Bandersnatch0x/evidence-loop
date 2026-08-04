@@ -18,7 +18,7 @@
  * Rendering itself stays deterministic: same (document, state) → same DOM.
  */
 import type { ReactNode } from 'react'
-import type { Geometry2DPrimitive, SceneDocument, Transform } from '../../../server/demonstration/sceneDocumentSchema'
+import type { Geometry2DPrimitive, ObjectNode, SceneDocument, Transform } from '../../../server/demonstration/sceneDocumentSchema'
 import type { PlayerPayload } from '../../../server/demonstration/playerRoutes'
 import type { SceneRuntimeState } from './playerState'
 import { render2DPrimitive } from './svgPrimitives'
@@ -36,16 +36,26 @@ export interface RendererProps {
 /** SVG namespace + viewBox helpers. */
 const SVG_NS = 'http://www.w3.org/2000/svg'
 
-/** Resolve the effective transform for a geometry's owning node (animation). */
-function effectiveTransform(
+/** Find the object-tree node that owns a geometry reference. */
+function findOwnerNode(nodes: ObjectNode[], geometryRef: string): ObjectNode | undefined {
+  for (const node of nodes) {
+    if (node.meshRef === geometryRef || node.id === geometryRef) return node
+    const nested = findOwnerNode(node.children ?? [], geometryRef)
+    if (nested) return nested
+  }
+  return undefined
+}
+
+/** Resolve owning node id + effective transform for animation/visibility. */
+function effectiveNode(
   document: SceneDocument,
-  meshRef: string | undefined,
+  geometryRef: string,
   runtime: SceneRuntimeState
-): Transform {
-  const node = (document.objectTree ?? []).find((n) => n.id === meshRef)
+): { nodeId: string; transform: Transform } {
+  const node = findOwnerNode(document.objectTree ?? [], geometryRef)
+  const nodeId = node?.id ?? geometryRef
   const base = node?.transform ?? { position: [0, 0, 0], rotation: [0, 0, 0], scale: [1, 1, 1] }
-  const sampled = meshRef ? runtime.nodeTransforms.get(meshRef) : undefined
-  return sampled ?? base
+  return { nodeId, transform: runtime.nodeTransforms.get(nodeId) ?? base }
 }
 
 /** Node visible? All visible unless step-visibility interaction narrowed it. */
@@ -83,10 +93,10 @@ export function SvgSceneRenderer({
       preserveAspectRatio="xMidYMid meet"
     >
       {primitives.map((p, i) => {
-        const t = effectiveTransform(document, p.id, runtime)
-        const visible = nodeVisible(p.id, runtime)
+        const { nodeId, transform: t } = effectiveNode(document, p.id, runtime)
+        const visible = nodeVisible(nodeId, runtime)
         const transform = `translate(${t.position[0]} ${t.position[1]}) rotate(${t.rotation[2]}) scale(${t.scale[0]} ${t.scale[1]})`
-        const highlighted = highlight !== null && p.id === highlight
+        const highlighted = highlight !== null && (nodeId === highlight || p.id === highlight)
         return (
           <g key={`g2d-${i}`} transform={transform} data-highlighted={highlighted ? 'true' : 'false'}>
             {render2DPrimitive(p, `g2d-shape-${i}`, {

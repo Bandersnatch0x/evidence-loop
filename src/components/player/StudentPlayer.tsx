@@ -94,15 +94,15 @@ export function StudentPlayer({ payload, device, play = false }: StudentPlayerPr
     const tick = (now: number): void => {
       const dt = (now - last) / 1000
       last = now
-      setCurrentTime((prev) => {
-        const next = prev + dt
-        const max = scene.timeline?.duration ?? 0
-        if (max > 0 && next >= max) {
-          setPlaying(false)
-          return max
-        }
-        return next
-      })
+      // Advance the authoritative clock ref BEFORE sampling (the overlay must
+      // sample the same time the scrubber displays — spec §6.3 determinism).
+      const next = Math.min(currentTimeRef.current + dt, scene.timeline?.duration ?? Number.MAX_SAFE_INTEGER)
+      currentTimeRef.current = next
+      setCurrentTime(next)
+      if (scene.timeline?.duration !== undefined && next >= scene.timeline.duration) {
+        setPlaying(false)
+        return
+      }
       // Sample deterministic keyframe interpolation into the runtime overlay.
       const nextRuntime: SceneRuntimeState = {
         ...runtimeRef.current,
@@ -110,7 +110,7 @@ export function StudentPlayer({ payload, device, play = false }: StudentPlayerPr
       }
       const visible = new Set(nextRuntime.visibleNodeIds ?? [])
       for (const track of scene.timeline?.tracks ?? []) {
-        const sample = sampleTrack(track.keyframes, currentTimeRef.current + dt)
+        const sample = sampleTrack(track.keyframes, next)
         if (sample.value === undefined) continue
         const base = nextRuntime.nodeTransforms.get(track.nodeId) ?? {
           position: [0, 0, 0] as [number, number, number],

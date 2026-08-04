@@ -13,6 +13,14 @@ import type Database from 'better-sqlite3'
 
 export const PER_TEACHER_QUOTA_BYTES = 5 * 1024 ** 3 // 5 GiB (spec §9 table)
 
+/** Resolve the per-teacher quota from env (ticket T-M §9: 配置 ≠ 常量). */
+export function resolveQuotaBytes(env: NodeJS.ProcessEnv = process.env): number {
+  const raw = env.MEDIA_QUOTA_TEACHER_BYTES
+  if (raw === undefined || raw === '') return PER_TEACHER_QUOTA_BYTES
+  const n = Number(raw)
+  return Number.isFinite(n) && n > 0 ? n : PER_TEACHER_QUOTA_BYTES
+}
+
 /** States whose reservation still counts against the live quota. */
 const ACTIVE_STATES = ['uploading', 'quarantined', 'inspecting', 'processing']
 
@@ -45,9 +53,10 @@ export class QuotaService {
    */
   reserveWithin(ownerId: string, sessionId: string, bytes: number): void {
     const usage = this.usageBytes(ownerId, sessionId)
-    if (usage + bytes > PER_TEACHER_QUOTA_BYTES) {
+    const quota = resolveQuotaBytes()
+    if (usage + bytes > quota) {
       throw new Error(
-        `Media quota exceeded for ${ownerId}: ${usage + bytes} > ${PER_TEACHER_QUOTA_BYTES}`
+        `Media quota exceeded for ${ownerId}: ${usage + bytes} > ${quota}`
       )
     }
     // No extra row to write: usage is derived from session rows. The caller's

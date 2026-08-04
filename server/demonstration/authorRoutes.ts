@@ -90,7 +90,7 @@ export async function handleAuthorApi(
 
   if (request.method === 'GET' && action === '/draft') {
     try {
-      const draft = ctx.service.getDraft(demoId)
+      const draft = ctx.service.getDraft(demoId, userId)
       respondJson(response, 200, draft)
     } catch {
       respondJson(response, 404, { error: 'draft not found' })

@@ -59,45 +59,50 @@ export function ensureDemonstrationMigration(
   const counts: MigrationCounts = { migrated: 0, skippedExisting: 0, skippedNoVisualization: 0 }
 
   const questions = questionStore.list({ limit: 2000 })
-  for (const question of questions) {
-    if (!question.visualization) {
-      counts.skippedNoVisualization += 1
-      continue
-    }
-    const already = db
-      .prepare(`SELECT question_id, demo_id, version_id FROM visualization_migration_map WHERE question_id = ?`)
-      .get(question.id) as GuardRow | undefined
-    if (already) {
-      counts.skippedExisting += 1
-      continue
-    }
+  const insertGuard = db.prepare(
+    `INSERT INTO visualization_migration_map (question_id, demo_id, version_id, migrated_at)
+     VALUES (?, ?, ?, ?)`
+  )
+  // One transaction for the whole sweep: a crash mid-migration rolls back all
+  // created demos + guard rows so re-runs never leave orphans or duplicate
+  // presets (spec §7.3 idempotency guarantee).
+  db.transaction(() => {
+    for (const question of questions) {
+      if (!question.visualization) {
+        counts.skippedNoVisualization += 1
+        continue
+      }
+      const already = db
+        .prepare(`SELECT question_id, demo_id, version_id FROM visualization_migration_map WHERE question_id = ?`)
+        .get(question.id) as GuardRow | undefined
+      if (already) {
+        counts.skippedExisting += 1
+        continue
+      }
 
-    const document = visualizationToSceneDocument(question.visualization)
-    const demoId = demo.createDemonstration(SEED_DEMO_AUTHOR_ID, {
-      title: question.stem?.slice(0, 80) ?? `演示 ${question.id}`,
-      description: `由旧可视化迁移（${question.visualization.kind}）`,
-      subject: question.subject ?? '',
-      grade: 'grade9',
-      kpIds: question.kpIds,
-      format: 'scene',
-      space: question.visualization.kind === 'ball_stick' ? '3d' : '2d',
-      behavior: 'interactive',
-      source: 'migration'
-    })
-    demo.saveDraft(demoId, SEED_DEMO_AUTHOR_ID, document)
-    const versionId = demo.submit(demoId, SEED_DEMO_AUTHOR_ID, {
-      classification: question.subject ?? 'general',
-      license: 'CC-BY-4.0',
-      aiDisclosure: 'none'
-    })
-    approveSql.run(versionId)
-
-    db.prepare(
-      `INSERT INTO visualization_migration_map (question_id, demo_id, version_id, migrated_at)
-       VALUES (?, ?, ?, ?)`
-    ).run(question.id, demoId, versionId, new Date().toISOString())
-    counts.migrated += 1
-  }
+      const document = visualizationToSceneDocument(question.visualization)
+      const demoId = demo.createDemonstration(SEED_DEMO_AUTHOR_ID, {
+        title: question.stem?.slice(0, 80) ?? `演示 ${question.id}`,
+        description: `由旧可视化迁移（${question.visualization.kind}）`,
+        subject: question.subject ?? '',
+        grade: 'grade9',
+        kpIds: question.kpIds,
+        format: 'scene',
+        space: question.visualization.kind === 'ball_stick' ? '3d' : '2d',
+        behavior: 'interactive',
+        source: 'migration'
+      })
+      demo.saveDraft(demoId, SEED_DEMO_AUTHOR_ID, document)
+      const versionId = demo.submit(demoId, SEED_DEMO_AUTHOR_ID, {
+        classification: question.subject ?? 'general',
+        license: 'CC-BY-4.0',
+        aiDisclosure: 'none'
+      })
+      approveSql.run(versionId)
+      insertGuard.run(question.id, demoId, versionId, new Date().toISOString())
+      counts.migrated += 1
+    }
+  })()
   return counts
 }
 

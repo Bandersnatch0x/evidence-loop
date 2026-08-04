@@ -185,20 +185,22 @@ export class ReferenceService {
   public listReferences(parentId: string, parentType: 'question' | 'kp'): Array<{
     id: string
     demoVersionId: string
+    demoId: string
     role: 'primary' | 'supplementary'
     ord: number
   }> {
     const rows = this.db
       .prepare(
-        parentType === 'question'
-          ? `SELECT id, demo_version_id AS demoVersionId, role, ord FROM demonstration_references
-             WHERE question_id = ? ORDER BY ord ASC`
-          : `SELECT id, demo_version_id AS demoVersionId, role, ord FROM demonstration_references
-             WHERE kp_id = ? ORDER BY ord ASC`
+        `SELECT r.id, r.demo_version_id AS demoVersionId, v.demonstration_id AS demoId, r.role, r.ord
+         FROM demonstration_references r
+         JOIN demonstration_versions v ON v.id = r.demo_version_id
+         WHERE r.${parentType === 'question' ? 'question_id' : 'kp_id'} = ?
+         ORDER BY r.ord ASC`
       )
       .all(parentId) as Array<{
       id: string
       demoVersionId: string
+      demoId: string
       role: 'primary' | 'supplementary'
       ord: number
     }>

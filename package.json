@@ -10,8 +10,9 @@
     "preview": "tsx server/index.ts --production",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:e2e": "playwright test",
     "lint": "eslint . --max-warnings 0",
-    "check": "npm run lint && npm run test && npm run build",
+    "check": "npm run lint && npm run test && npm run build && npm run test:e2e",
     "db:generate": "drizzle-kit generate",
     "db:studio": "drizzle-kit studio"
   },
@@ -34,6 +35,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.17.0",
+    "@playwright/test": "^1.54.2",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.1.0",
     "@testing-library/user-event": "^14.5.2",

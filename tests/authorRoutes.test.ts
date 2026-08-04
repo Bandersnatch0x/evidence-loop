@@ -141,6 +141,12 @@ describe('T-H author routes', () => {
     const c = capture()
     await handleAuthorApi(put.request, c.res, `/api/demonstrations/${demoId}/draft`, ctx(env, 'teacher-2'))
     expect(c.status()).toBe(403)
+
+    const get = req('GET', `/api/demonstrations/${demoId}/draft`)
+    const c2 = capture()
+    await handleAuthorApi(get.request, c2.res, `/api/demonstrations/${demoId}/draft`, ctx(env, 'teacher-2'))
+    // Read path conceals resource existence from non-owners.
+    expect(c2.status()).toBe(404)
   })
 
   it('submit freezes a pending version; withdraw reverses it', async () => {

@@ -5,9 +5,11 @@ import {
   ALLOWED_KINDS,
   detectKind,
   kindLimits,
+  resolveKindLimits,
   validateMedia,
   verifyTriangle
 } from '../server/media/mediaGate'
+import { resolveQuotaBytes } from '../server/media/QuotaService'
 
 /**
  * T-B slice 3 — media gate: magic-byte sniffing, kind allowlist, per-kind size
@@ -65,6 +67,16 @@ describe('kind allowlist + size caps', () => {
     expect(kindLimits('glb')?.maxBytes).toBe(200 * 1024 * 1024)
     expect(kindLimits('video')?.maxBytes).toBe(2 * 1024 ** 3)
     expect(kindLimits('vtt')?.maxBytes).toBe(2 * 1024 * 1024)
+  })
+
+  it('resolves media and account budgets from environment overrides', () => {
+    const env = {
+      MEDIA_LIMIT_IMAGE_BYTES: '1234',
+      MEDIA_QUOTA_TEACHER_BYTES: '9876'
+    } as NodeJS.ProcessEnv
+    expect(resolveKindLimits(env).image.maxBytes).toBe(1234)
+    expect(resolveQuotaBytes(env)).toBe(9876)
+    expect(resolveKindLimits({ MEDIA_LIMIT_IMAGE_BYTES: 'invalid' }).image.maxBytes).toBe(25 * 1024 * 1024)
   })
 
   it('rejects over-limit payloads', () => {

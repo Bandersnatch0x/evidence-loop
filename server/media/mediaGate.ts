@@ -32,18 +32,40 @@ const KIND_LIMITS: Record<MediaKind, KindLimit> = {
   audio: { maxBytes: 250 * 1024 * 1024 } // 音频 250MiB / 120min
 }
 
+/**
+ * Resolve kind size limits from env (ticket T-M §9: 配置值 ≠ 代码常量).
+ * Env overrides per kind; defaults stay the spec §9 table.
+ */
+export function resolveKindLimits(
+  env: NodeJS.ProcessEnv = process.env
+): Record<MediaKind, KindLimit> {
+  return {
+    image: { maxBytes: bytesEnv(env.MEDIA_LIMIT_IMAGE_BYTES, KIND_LIMITS.image.maxBytes) },
+    glb: { maxBytes: bytesEnv(env.MEDIA_LIMIT_GLB_BYTES, KIND_LIMITS.glb.maxBytes) },
+    video: { maxBytes: bytesEnv(env.MEDIA_LIMIT_VIDEO_BYTES, KIND_LIMITS.video.maxBytes) },
+    vtt: { maxBytes: bytesEnv(env.MEDIA_LIMIT_VTT_BYTES, KIND_LIMITS.vtt.maxBytes) },
+    audio: { maxBytes: bytesEnv(env.MEDIA_LIMIT_AUDIO_BYTES, KIND_LIMITS.audio.maxBytes) }
+  }
+}
+
+function bytesEnv(raw: string | undefined, fallback: number): number {
+  if (raw === undefined || raw === '') return fallback
+  const n = Number(raw)
+  return Number.isFinite(n) && n > 0 ? n : fallback
+}
+
 function isMediaKind(kind: string | null): kind is MediaKind {
   return kind !== null && ALLOWED_KINDS.includes(kind as MediaKind)
 }
 
 export function kindLimits(kind: string | null): KindLimit | null {
-  if (isMediaKind(kind)) return KIND_LIMITS[kind]
+  if (isMediaKind(kind)) return resolveKindLimits()[kind]
   return null
 }
 
 /** Pure size-cap check; returns a human-readable reason or null when fine. */
 export function validateMedia(kind: MediaKind, byteSize: number): string | null {
-  const limit = KIND_LIMITS[kind]
+  const limit = resolveKindLimits()[kind]
   if (limit && byteSize > limit.maxBytes) {
     return `Payload of ${byteSize} bytes exceeds the ${kind} limit of ${limit.maxBytes}`
   }
@@ -173,7 +195,7 @@ export function verifyTriangle(input: TriangleInput): TriangleResult {
       reason: `kind mismatch: declared ${declaredKind}, sniffed ${sniffedKind}`
     }
   }
-  if (!(declaredKind in KIND_LIMITS)) {
+  if (!(declaredKind in resolveKindLimits())) {
     return { ok: false, reason: `kind not in allowlist: ${declaredKind}` }
   }
   if (actualBytes > declaredBytes) {

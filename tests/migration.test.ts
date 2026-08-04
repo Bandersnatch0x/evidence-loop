@@ -144,6 +144,27 @@ describe('T-K migration runner (idempotent, zero overwrite)', () => {
     expect(after?.visualization).toEqual(before?.visualization)
   })
 
+  it('rolls back created demos when guard insertion fails', () => {
+    const env = makeEnv()
+    seedQuestionWithViz(env, 'q-atomic', HELIX)
+    env.db.exec(`
+      CREATE TABLE IF NOT EXISTS visualization_migration_map (
+        question_id TEXT PRIMARY KEY,
+        demo_id TEXT NOT NULL,
+        version_id TEXT NOT NULL,
+        migrated_at TEXT NOT NULL
+      );
+      CREATE TRIGGER force_guard_failure
+      BEFORE INSERT ON visualization_migration_map
+      BEGIN
+        SELECT RAISE(ABORT, 'forced guard failure');
+      END;
+    `)
+    expect(() => ensureDemonstrationMigration(env.db, env.store)).toThrow(/forced guard failure/)
+    expect(env.db.prepare(`SELECT COUNT(*) AS c FROM teaching_demonstrations`).get()).toEqual({ c: 0 })
+    expect(env.db.prepare(`SELECT COUNT(*) AS c FROM demonstration_versions`).get()).toEqual({ c: 0 })
+  })
+
   it('resolveMigratedDemonstration returns the new-path mapping (dual-read new path)', () => {
     const env = makeEnv()
     seedQuestionWithViz(env, 'q-helix', HELIX)

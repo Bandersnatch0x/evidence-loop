@@ -7,7 +7,9 @@ import { ReviewService } from '../server/demonstration/ReviewService'
 import { ReferenceService } from '../server/demonstration/ReferenceService'
 import { DerivationService } from '../server/demonstration/DerivationService'
 import { LibrarySearchService } from '../server/demonstration/LibrarySearchService'
+import { handleLibraryApi } from '../server/demonstration/libraryRoutes'
 import { parseSceneDocument } from '../server/demonstration/sceneDocumentSchema'
+import type { IncomingMessage, ServerResponse } from 'node:http'
 
 const baseDoc = () =>
   parseSceneDocument({
@@ -284,5 +286,46 @@ describe('LibrarySearchService — discovery', () => {
     expect(card.authorId).toBe('teacher-1')
     expect(card.health).toBe('healthy')
     expect(card.versionSeq).toBe(1)
+  })
+})
+
+describe('libraryRoutes — mounted discovery contract', () => {
+  function capture(): { response: ServerResponse; status: () => number; body: () => unknown } {
+    let status = 0
+    let body = ''
+    const response = {
+      writeHead: (code: number) => { status = code },
+      end: (chunk?: unknown) => { body = typeof chunk === 'string' ? chunk : JSON.stringify(chunk ?? '') }
+    } as unknown as ServerResponse
+    return { response, status: () => status, body: () => JSON.parse(body) as unknown }
+  }
+
+  it('serves approved library cards through GET /api/library', () => {
+    const env = makeEnv()
+    publish(env, 'teacher-1', { title: '磁场演示', subject: 'physics' })
+    const out = capture()
+    const handled = handleLibraryApi(
+      { method: 'GET' } as IncomingMessage,
+      out.response,
+      '/api/library',
+      new URL('http://localhost/api/library?q=磁场&subject=physics'),
+      { db: env.db, getUserId: () => 'teacher-1' }
+    )
+    expect(handled).toBe(true)
+    expect(out.status()).toBe(200)
+    expect((out.body() as { items: Array<{ title: string }> }).items[0]?.title).toBe('磁场演示')
+  })
+
+  it('rejects anonymous library reads', () => {
+    const env = makeEnv()
+    const out = capture()
+    handleLibraryApi(
+      { method: 'GET' } as IncomingMessage,
+      out.response,
+      '/api/library',
+      new URL('http://localhost/api/library'),
+      { db: env.db, getUserId: () => null }
+    )
+    expect(out.status()).toBe(401)
   })
 })
