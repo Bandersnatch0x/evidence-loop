@@ -184,6 +184,8 @@ interface ApiContext {
   productDb: Database.Database
   auth: AuthService
   questionBank: QuestionBankService
+  /** T-K/T-L Phase E/C migration store (write-path switch). */
+  questionStore: QuestionStore
   tutoring: ReturnType<typeof createTutoringService>
   importService: ImportService
   nextPractice: NextPracticeService
@@ -477,6 +479,7 @@ export async function createEvidenceRingServer(
     productDb,
     auth,
     questionBank,
+    questionStore,
     tutoring,
     importService,
     nextPractice,
@@ -1456,6 +1459,8 @@ async function handleApi(
   if (
     await handleQuestionBankApi(request, response, requestUrl, {
       questionBank: context.questionBank,
+      db: context.productDb,
+      questionStore: context.questionStore,
       user
     })
   ) {
