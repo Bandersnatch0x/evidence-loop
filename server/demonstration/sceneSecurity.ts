@@ -47,6 +47,29 @@ const HARD_BUDGET = {
   maxMediaRefs: 200
 }
 
+/**
+ * Resolve the resource budget from environment config (ticket T-M §9.1:
+ * 配置值 ≠ 代码常量). Env overrides apply per cap; defaults stay the spec
+ * HARD_BUDGET so unconfigured servers keep the same guardrails.
+ */
+export function resolveResourceBudget(
+  env: NodeJS.ProcessEnv = process.env
+): typeof HARD_BUDGET {
+  return {
+    maxNodes: intEnv(env.DEMO_BUDGET_MAX_NODES, HARD_BUDGET.maxNodes),
+    maxTriangles: intEnv(env.DEMO_BUDGET_MAX_TRIANGLES, HARD_BUDGET.maxTriangles),
+    maxTexturePixels: intEnv(env.DEMO_BUDGET_MAX_TEXTURE_PIXELS, HARD_BUDGET.maxTexturePixels),
+    maxAnimationSeconds: intEnv(env.DEMO_BUDGET_MAX_ANIMATION_SECONDS, HARD_BUDGET.maxAnimationSeconds),
+    maxMediaRefs: intEnv(env.DEMO_BUDGET_MAX_MEDIA_REFS, HARD_BUDGET.maxMediaRefs)
+  }
+}
+
+function intEnv(raw: string | undefined, fallback: number): number {
+  if (raw === undefined || raw === '') return fallback
+  const n = Number(raw)
+  return Number.isFinite(n) && n > 0 ? n : fallback
+}
+
 /** Count ALL nodes recursively (top-level + nested children). */
 function countNodes(doc: SceneDocument): number {
   let count = 0
@@ -152,24 +175,25 @@ export function checkFontWhitelist(doc: SceneDocument): SecurityIssue[] {
   return issues
 }
 
-/** Resource budget caps (spec §6.5 + HARD_BUDGET defaults). */
+/** Resource budget caps (spec §6.5 + env-configurable via resolveResourceBudget). */
 export function checkResourceBudget(doc: SceneDocument): SecurityIssue[] {
+  const budget = resolveResourceBudget()
   const issues: SecurityIssue[] = []
   const nodeCount = countNodes(doc)
-  if (nodeCount > HARD_BUDGET.maxNodes) {
-    issues.push({ code: 'resource-over-budget', message: `nodes ${nodeCount} > ${HARD_BUDGET.maxNodes}` })
+  if (nodeCount > budget.maxNodes) {
+    issues.push({ code: 'resource-over-budget', message: `nodes ${nodeCount} > ${budget.maxNodes}` })
   }
   const tris = estimateTriangles(doc)
-  if (tris > HARD_BUDGET.maxTriangles) {
-    issues.push({ code: 'resource-over-budget', message: `estimated triangles ${tris} > ${HARD_BUDGET.maxTriangles}` })
+  if (tris > budget.maxTriangles) {
+    issues.push({ code: 'resource-over-budget', message: `estimated triangles ${tris} > ${budget.maxTriangles}` })
   }
   const dur = doc.timeline?.duration ?? 0
-  if (dur > HARD_BUDGET.maxAnimationSeconds) {
-    issues.push({ code: 'resource-over-budget', message: `timeline ${dur}s > ${HARD_BUDGET.maxAnimationSeconds}s` })
+  if (dur > budget.maxAnimationSeconds) {
+    issues.push({ code: 'resource-over-budget', message: `timeline ${dur}s > ${budget.maxAnimationSeconds}s` })
   }
   const refs = (doc.mediaRefs ?? []).length
-  if (refs > HARD_BUDGET.maxMediaRefs) {
-    issues.push({ code: 'resource-over-budget', message: `mediaRefs ${refs} > ${HARD_BUDGET.maxMediaRefs}` })
+  if (refs > budget.maxMediaRefs) {
+    issues.push({ code: 'resource-over-budget', message: `mediaRefs ${refs} > ${budget.maxMediaRefs}` })
   }
   return issues
 }

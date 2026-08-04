@@ -31,7 +31,7 @@ export interface DemoAuditEvent {
   detailJson: string
 }
 
-const ACTION_MAP: Record<
+export const ACTION_MAP: Record<
   string,
   { action: AuditAction; resourceType: AuditResourceType }
 > = {
