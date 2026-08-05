@@ -85,7 +85,7 @@ describe('assignment visualization passthrough (Phase 5)', () => {
     return (await created.json()) as Question
   }
 
-  it('projects a private question with curve visualization for students', async () => {
+  it('projects a private question with curve visualization for students (reference-first)', async () => {
     const question = await createPrivateQuestion()
 
     const adopt = await fetch(
@@ -108,11 +108,13 @@ describe('assignment visualization passthrough (Phase 5)', () => {
     expect(studentView.status).toBe(200)
     const assignment = (await studentView.json()) as Assignment
     expect(assignment.id).toBe(question.id)
-    expect(assignment.visualization?.kind).toBe('curve')
-    if (assignment.visualization?.kind === 'curve') {
-      expect(assignment.visualization.points.length).toBe(4)
-      expect(assignment.visualization.label).toBe('磁场螺旋')
-    }
+    // Phase C: adopt-visualization now migrates to a preset demonstration, so
+    // the NEW reference wins and legacy visualization is superseded.
+    expect(assignment.visualization).toBeUndefined()
+    expect(assignment.demonstrations?.[0]?.role).toBe('primary')
+    // Migration presets publish under the seed author (T-K), hence public.
+    expect(assignment.demonstrations?.[0]?.source).toBe('public')
+    expect(assignment.demonstrations?.[0]?.versionId).toBeTruthy()
   })
 
   it('projects a private question with ball_stick visualization', async () => {
@@ -137,7 +139,8 @@ describe('assignment visualization passthrough (Phase 5)', () => {
     )
     expect(studentView.status).toBe(200)
     const assignment = (await studentView.json()) as Assignment
-    expect(assignment.visualization?.kind).toBe('ball_stick')
+    // Reference-first: migrated preset demonstration supersedes legacy field.
+    expect(assignment.demonstrations?.[0]?.versionId).toBeTruthy()
   })
 
   it('returns 404 for unknown private ids', async () => {
@@ -158,7 +161,7 @@ describe('assignment visualization passthrough (Phase 5)', () => {
     expect(assignment.visualization).toBeUndefined()
   })
 
-  it('serves pre-seeded magnetic helix curve on demo assignment', async () => {
+  it('serves pre-seeded magnetic helix curve on demo assignment (migration reference)', async () => {
     const response = await fetch(
       `${baseUrl}/api/assignments/physics-magnetic-helix`,
       { headers: { 'x-demo-role': 'student' } }
@@ -166,11 +169,12 @@ describe('assignment visualization passthrough (Phase 5)', () => {
     expect(response.status).toBe(200)
     const assignment = (await response.json()) as Assignment
     expect(assignment.id).toBe('physics-magnetic-helix')
-    expect(assignment.visualization?.kind).toBe('curve')
-    if (assignment.visualization?.kind === 'curve') {
-      expect(assignment.visualization.points.length).toBeGreaterThan(10)
-      expect(assignment.visualization.label).toContain('螺旋')
-    }
+    // Boot migration turned the seeded visualization into a preset demo.
+    expect(assignment.visualization).toBeUndefined()
+    const primary = assignment.demonstrations?.find((r) => r.role === 'primary')
+    expect(primary).toBeDefined()
+    expect(primary?.source).toBe('public')
+    expect(primary?.health).toBe('healthy')
   })
 
   it('serves pre-seeded DNA double helix with secondaryPoints + crossBars', async () => {
@@ -180,11 +184,11 @@ describe('assignment visualization passthrough (Phase 5)', () => {
     )
     expect(response.status).toBe(200)
     const assignment = (await response.json()) as Assignment
-    expect(assignment.visualization?.kind).toBe('curve')
-    if (assignment.visualization?.kind === 'curve') {
-      expect(assignment.visualization.secondaryPoints?.length).toBeGreaterThan(10)
-      expect(assignment.visualization.crossBars?.length).toBeGreaterThan(5)
-    }
+    expect(assignment.id).toBe('bio-dna-double-helix')
+    const primary = assignment.demonstrations?.find((r) => r.role === 'primary')
+    expect(primary).toBeDefined()
+    expect(primary?.source).toBe('public')
+    expect(primary?.versionId).toBeTruthy()
   })
 
   it('allows student preview-visualization without persisting', async () => {
@@ -214,18 +218,18 @@ describe('assignment visualization passthrough (Phase 5)', () => {
     expect(noAuth.status).toBe(403)
   })
 
-  it('serves pre-seeded circuit primitives on Ohm-law demo', async () => {
+  it('serves pre-seeded circuit primitives on Ohm-law demo (migration reference)', async () => {
     const response = await fetch(
       `${baseUrl}/api/assignments/numeric-ohm-law`,
       { headers: { 'x-demo-role': 'student' } }
     )
     expect(response.status).toBe(200)
     const assignment = (await response.json()) as Assignment
-    expect(assignment.visualization?.kind).toBe('primitives')
-    if (assignment.visualization?.kind === 'primitives') {
-      expect(assignment.visualization.nodes.length).toBeGreaterThanOrEqual(3)
-      expect(assignment.visualization.edges.length).toBeGreaterThanOrEqual(3)
-    }
+    expect(assignment.id).toBe('numeric-ohm-law')
+    const primary = assignment.demonstrations?.find((r) => r.role === 'primary')
+    expect(primary).toBeDefined()
+    expect(primary?.source).toBe('public')
+    expect(primary?.title).toBeTruthy()
   })
 
   it('scores a private fill_blank question via payload projection', async () => {

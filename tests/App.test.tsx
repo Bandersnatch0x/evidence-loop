@@ -237,6 +237,39 @@ describe('App', () => {
     )
   })
 
+  it('renders student demonstrations when the assignment carries fixed references', async () => {
+    // StudentDemonstration fetches the player payload over the network; stub
+    // it to a 404 so the player shows its refuse/alert state without crashing.
+    const fetchStub = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response('{"error":"not found"}', { status: 404, headers: { 'content-type': 'application/json' } })
+    )
+    vi.mocked(api.getAssignment).mockResolvedValue({
+      ...assignment,
+      demonstrations: [
+        {
+          id: 'ref-1',
+          role: 'primary',
+          title: 'DNA 双螺旋',
+          authorName: '张三',
+          license: 'CC-BY-4.0',
+          versionSeq: 2,
+          source: 'public',
+          demoId: 'demo-1',
+          versionId: 'v2',
+          health: 'healthy'
+        }
+      ]
+    })
+    render(<App />)
+    await screen.findByRole('heading', { name: assignment.title })
+    await waitFor(() => {
+      expect(screen.getByText('公共库')).toBeInTheDocument()
+    })
+    expect(screen.getByText('v2')).toBeInTheDocument()
+    expect(screen.queryByText('生成演示', { exact: false })).toBeNull()
+    fetchStub.mockRestore()
+  })
+
   it('starts dual-mode practice with the seed bank question id, not the bare assignment id', async () => {
     const user = userEvent.setup()
     render(<App />)

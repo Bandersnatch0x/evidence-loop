@@ -133,4 +133,28 @@ describe('QuestionBankPanel (T03 hand-entry)', () => {
       await screen.findByText(/已采纳为标准解析/)
     ).toBeTruthy()
   })
+
+  it('exposes the reference binding drawer in edit mode', async () => {
+    // ReferenceDrawer refreshes bound refs + library cards on mount.
+    const fetchStub = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response('{"error":"not found"}', { status: 404, headers: { 'content-type': 'application/json' } })
+    )
+    const user = userEvent.setup()
+    render(<QuestionBankPanel />)
+    await waitFor(() => {
+      expect(screen.getByText(/2\+2=\?/)).toBeTruthy()
+    })
+    await user.click(screen.getByRole('button', { name: /编辑/ }))
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: /编辑题目/ })).toBeTruthy()
+    })
+    // Drawer starts collapsed; opening mounts the search/bind surface.
+    expect(screen.queryByLabelText('检索')).toBeNull()
+    await user.click(screen.getByRole('button', { name: /管理教学演示引用/ }))
+    await waitFor(() => {
+      expect(screen.getByLabelText('检索')).toBeTruthy()
+    })
+    expect(screen.getByText(/已引用/)).toBeTruthy()
+    fetchStub.mockRestore()
+  })
 })

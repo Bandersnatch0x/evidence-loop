@@ -74,6 +74,19 @@ export interface AssignmentSummary {
   status: 'ready' | 'coming-soon'
 }
 
+export interface DemonstrationReferenceView {
+  id: string
+  role: 'primary' | 'supplementary'
+  title: string
+  authorName: string
+  license: string
+  versionSeq: number
+  source: 'public' | 'mine'
+  demoId: string
+  versionId: string
+  health: 'healthy' | 'unavailable'
+}
+
 export interface Assignment extends AssignmentSummary {
   objective: string
   scenario: string
@@ -89,6 +102,12 @@ export interface Assignment extends AssignmentSummary {
    * Populated for demo seed merges and private-question projections (Phase 5).
    */
   visualization?: Visualization
+  /**
+   * Fixed approved demonstration versions for student presentation. New
+   * references take precedence over legacy visualization; display only and
+   * never consumed by runners, rubrics, scoring, or evidence services.
+   */
+  demonstrations?: DemonstrationReferenceView[]
 }
 
 /**

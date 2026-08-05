@@ -12,19 +12,9 @@
 import { useEffect, useState } from 'react'
 import { StudentPlayer } from '../player/StudentPlayer'
 import type { PlayerPayload } from '../../../server/demonstration/playerRoutes'
+import type { DemonstrationReferenceView } from '../../../shared/contracts'
 
-export interface StudentRef {
-  id: string
-  role: 'primary' | 'supplementary'
-  title: string
-  authorName: string
-  license: string
-  versionSeq: number
-  source: 'public' | 'mine'
-  demoId: string
-  versionId: string
-  health: string
-}
+export type StudentRef = DemonstrationReferenceView
 
 export interface StudentDemonstrationProps {
   refs: StudentRef[]

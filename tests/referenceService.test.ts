@@ -258,3 +258,79 @@ describe('ReferenceService — bind/validate/order', () => {
     expect(env.refs.listReferences('q-1', 'question').length).toBe(0)
   })
 })
+
+describe('ReferenceService — student assignment resolution (reference-first)', () => {
+  /** Create a migration-map preset demo + guard row for a question. */
+  function migratePreset(env: ReturnType<typeof makeEnv>, questionId: string): string {
+    const demo = env.service.createDemonstration('seed', { ...DEFAULT_META, title: `预设 ${questionId}` })
+    env.service.saveDraft(demo, 'seed', baseDoc())
+    const v = env.service.submit(demo, 'seed', {
+      classification: 'physics',
+      license: 'CC-BY-4.0',
+      aiDisclosure: 'none'
+    })
+    env.db.prepare(`UPDATE demonstration_versions SET status = 'approved' WHERE id = ?`).run(v)
+    env.db.prepare(
+      `INSERT INTO visualization_migration_map (question_id, demo_id, version_id, migrated_at)
+       VALUES (?, ?, ?, ?)`
+    ).run(questionId, demo, v, new Date().toISOString())
+    return v
+  }
+
+  it('returns an empty list when no references or migration exist', () => {
+    const env = makeEnv()
+    expect(env.refs.listStudentReferencesForAssignment('q-1')).toEqual([])
+    // Seed-prefixed candidate also resolves nothing.
+    expect(env.refs.listStudentReferencesForAssignment('python-average')).toEqual([])
+  })
+
+  it('explicit references win over migration mapping', () => {
+    const env = makeEnv()
+    const explicit = published(env, 'explicit')
+    migratePreset(env, 'q-1')
+    env.refs.setReferences('teacher-1', 'teacher', {
+      questionId: 'q-1',
+      entries: [{ demoVersionId: explicit, role: 'primary' }]
+    })
+    const refs = env.refs.listStudentReferencesForAssignment('q-1')
+    expect(refs).toHaveLength(1)
+    expect(refs[0]?.role).toBe('primary')
+    expect(refs[0]?.source).toBe('mine')
+    expect(refs[0]?.versionId).toBe(explicit)
+    expect(refs[0]?.title).toBe('explicit')
+    expect(refs[0]?.authorName).toBe('teacher-1')
+  })
+
+  it('falls back to the migration mapping when no explicit reference exists', () => {
+    const env = makeEnv()
+    migratePreset(env, 'q-1')
+    const refs = env.refs.listStudentReferencesForAssignment('q-1')
+    expect(refs).toHaveLength(1)
+    expect(refs[0]?.role).toBe('primary')
+    expect(refs[0]?.source).toBe('public')
+    expect(refs[0]?.health).toBe('healthy')
+    expect(refs[0]?.title).toContain('预设')
+  })
+
+  it('prefers the seed:<id> candidate over the bare assignment id', () => {
+    const env = makeEnv()
+    migratePreset(env, 'seed:demo-1')
+    // Bare id has no mapping; seed candidate resolves.
+    const refs = env.refs.listStudentReferencesForAssignment('demo-1')
+    expect(refs).toHaveLength(1)
+    expect(refs[0]?.source).toBe('public')
+  })
+
+  it('marks a soft-deleted demo source as unavailable while keeping the ref playable', () => {
+    const env = makeEnv()
+    migratePreset(env, 'q-1')
+    const mapped = env.db
+      .prepare(`SELECT demo_id FROM visualization_migration_map WHERE question_id = ?`)
+      .get('q-1') as { demo_id: string }
+    env.db.prepare(`UPDATE teaching_demonstrations SET deleted_at = ? WHERE id = ?`)
+      .run(new Date().toISOString(), mapped.demo_id)
+    const refs = env.refs.listStudentReferencesForAssignment('q-1')
+    expect(refs[0]?.health).toBe('unavailable')
+    expect(refs[0]?.versionId).toBeTruthy()
+  })
+})

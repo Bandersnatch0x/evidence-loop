@@ -44,4 +44,19 @@ test.describe('T-M browser matrix', () => {
     const overflowX = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)
     expect(overflowX).toBeLessThanOrEqual(0)
   })
+
+  test('teacher question editor exposes the demonstration reference drawer', async ({ page }) => {
+    // T-J/T-17 business loop: 题库 → 编辑题 → 教学演示引用抽屉挂载（检索/已引用）。
+    await gotoApp(page)
+    await page.getByLabel('演示角色切换').selectOption('teacher')
+    await page.getByRole('button', { name: '教师工作台' }).click()
+    await page.getByRole('tab', { name: /题库录入/i }).click()
+    await page.getByRole('button', { name: /编辑/i }).first().click()
+    await expect(page.getByText('编辑题目', { exact: true })).toBeVisible()
+    const refToggle = page.getByText('管理教学演示引用')
+    await expect(refToggle).toBeVisible()
+    await refToggle.click()
+    await expect(page.getByLabel('检索')).toBeVisible()
+    await expect(page.getByText(/已引用/)).toBeVisible()
+  })
 })

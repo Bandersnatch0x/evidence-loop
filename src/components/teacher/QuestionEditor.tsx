@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react'
-import { AlertTriangle, CheckCircle2, Save, Sparkles } from 'lucide-react'
+import { lazy, Suspense, useMemo, useState } from 'react'
+import { AlertTriangle, CheckCircle2, Link2, Save, Sparkles } from 'lucide-react'
 import type {
   Question,
   QuestionType,
@@ -21,6 +21,11 @@ import {
   type PayloadFormFields
 } from './payloadDefaults'
 import { VisualizationGenerator } from './VisualizationGenerator'
+// Lazy-load the reference drawer: it transitively imports StudentPlayer, so a
+// static import would pull the entire player renderer into the teacher bundle.
+const ReferenceDrawer = lazy(async () => ({
+  default: (await import('../demonstration/ReferenceDrawer')).ReferenceDrawer
+}))
 
 const SUBJECTS = Object.keys(SUBJECT_LABELS) as SubjectLanguage[]
 const QUESTION_TYPES = Object.keys(QUESTION_TYPE_LABELS) as QuestionType[]
@@ -73,6 +78,7 @@ export function QuestionEditor({
   const [error, setError] = useState<string>()
   const [success, setSuccess] = useState<string>()
   const [busy, setBusy] = useState(false)
+  const [showReferences, setShowReferences] = useState(false)
 
   const hasAuthoredSolution = useMemo(
     () => (initial?.solution?.content ?? solutionContent).trim() !== '',
@@ -351,11 +357,28 @@ export function QuestionEditor({
       </fieldset>
 
       {isEdit && initial ? (
-        <VisualizationGenerator
-          questionId={initial.id}
-          initial={initial.visualization}
-          onAdopted={onSaved}
-        />
+        <>
+          <VisualizationGenerator
+            questionId={initial.id}
+            initial={initial.visualization}
+            onAdopted={onSaved}
+          />
+          <section className="question-demo-references" aria-label="教学演示引用">
+            <button
+              type="button"
+              className="secondary-button"
+              aria-expanded={showReferences}
+              onClick={() => setShowReferences((open) => !open)}
+            >
+              <Link2 size={16} /> 管理教学演示引用
+            </button>
+            {showReferences ? (
+              <Suspense fallback={<div className="muted">正在加载引用面板…</div>}>
+                <ReferenceDrawer questionId={initial.id} />
+              </Suspense>
+            ) : null}
+          </section>
+        </>
       ) : null}
 
       {error !== undefined ? (

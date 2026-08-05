@@ -26,7 +26,9 @@ export default defineConfig({
   ],
   webServer: {
     command: 'npm run dev',
-    url: 'http://localhost:4173',
+    // Probe an EvidenceRing-specific endpoint so Playwright never reuses an
+    // unrelated Vite app that happens to occupy port 4173.
+    url: 'http://localhost:4173/api/health',
     reuseExistingServer: true,
     timeout: 120_000
   }

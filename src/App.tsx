@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type ReactNode } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useState, type ReactNode } from 'react'
 import { AlertTriangle, RefreshCw } from 'lucide-react'
 import type {
   Assignment,
@@ -23,6 +23,11 @@ import { ResultsPanel } from './components/ResultsPanel'
 import { ReviewView } from './components/ReviewView'
 import { MobileHeader, Sidebar, type AppView } from './components/Sidebar'
 import { StudentWorkbench } from './components/student'
+// Lazy-load the student demonstration player so its renderer/3D probe stays
+// off the critical path (build budget gate: StudentPlayer chunk ≤ 100 KiB).
+const StudentDemonstration = lazy(async () => ({
+  default: (await import('./components/demonstration/StudentDemonstration')).StudentDemonstration
+}))
 import { TeacherWorkbench } from './components/teacher'
 import { TransparencyView } from './components/TransparencyView'
 import { Visualizer } from './components/visualizer/Visualizer'
@@ -392,6 +397,14 @@ export function App() {
         )}
         <div className="workspace-grid">
           <AssignmentPanel assignment={assignment} />
+          {assignment.demonstrations && assignment.demonstrations.length > 0 ? (
+            <Suspense fallback={<div className="view-loading">正在加载演示…</div>}>
+              <StudentDemonstration
+                refs={assignment.demonstrations}
+                expanded={evaluation !== undefined}
+              />
+            </Suspense>
+          ) : null}
           <SubmissionPanel
             assignment={assignment}
             value={submission}
@@ -412,7 +425,9 @@ export function App() {
             }
           />
         </div>
-        <Visualizer assignment={assignment} submission={submission} />
+        {assignment.demonstrations?.some((ref) => ref.role === 'primary') !== true ? (
+          <Visualizer assignment={assignment} submission={submission} />
+        ) : null}
         {/* T-L Phase C: StudentVizPreview (student-side generation entry) removed
             per ticket 07 player contract — students never author/bind demos.
             File retained (baseline user work) but unmounted. */}

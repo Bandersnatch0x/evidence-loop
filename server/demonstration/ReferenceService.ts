@@ -15,6 +15,42 @@
  */
 import type { Database } from 'better-sqlite3'
 import { randomUUID } from 'node:crypto'
+import type { DemonstrationReferenceView } from '../../shared/contracts'
+
+interface StudentReferenceRow {
+  id: string
+  role: 'primary' | 'supplementary'
+  demoId: string
+  versionId: string
+  license: string
+  versionSeq: number
+  ownerId: string
+  authorName: string
+  metaJson: string
+  health: 'healthy' | 'unavailable'
+}
+
+function toStudentReference(row: StudentReferenceRow): DemonstrationReferenceView {
+  let title = '教学演示'
+  try {
+    const meta = JSON.parse(row.metaJson) as { title?: unknown }
+    if (typeof meta.title === 'string' && meta.title.trim() !== '') title = meta.title
+  } catch {
+    // Invalid legacy metadata must not block student assignment loading.
+  }
+  return {
+    id: row.id,
+    role: row.role,
+    title,
+    authorName: row.authorName,
+    license: row.license,
+    versionSeq: row.versionSeq,
+    source: row.ownerId === 'seed' ? 'public' : 'mine',
+    demoId: row.demoId,
+    versionId: row.versionId,
+    health: row.health
+  }
+}
 
 export class ReferenceValidationError extends Error {
   public constructor(message: string) {
@@ -205,6 +241,55 @@ export class ReferenceService {
       ord: number
     }>
     return rows
+  }
+
+  /**
+   * Resolve student-facing fixed-version references for an assignment. Explicit
+   * question references win; Phase-E migration mapping supplies a primary
+   * reference only when no explicit list exists. Seed question ids are checked
+   * before bare registry ids, matching legacy assignment resolution.
+   */
+  public listStudentReferencesForAssignment(assignmentId: string): DemonstrationReferenceView[] {
+    const candidates = assignmentId.startsWith('seed:')
+      ? [assignmentId]
+      : [`seed:${assignmentId}`, assignmentId]
+    const explicit = this.db.prepare(
+      `SELECT r.id, r.role,
+              d.id AS demoId, v.id AS versionId, v.license,
+              (SELECT COUNT(*) FROM demonstration_versions v2
+               WHERE v2.demonstration_id = d.id AND v2.frozen_at <= v.frozen_at) AS versionSeq,
+              d.owner_id AS ownerId, COALESCE(u.display_name, '平台') AS authorName,
+              d.meta_json AS metaJson,
+              CASE WHEN d.deleted_at IS NULL THEN 'healthy' ELSE 'unavailable' END AS health
+       FROM demonstration_references r
+       JOIN demonstration_versions v ON v.id = r.demo_version_id
+       JOIN teaching_demonstrations d ON d.id = v.demonstration_id
+       LEFT JOIN users u ON u.id = d.owner_id
+       WHERE r.question_id = ?
+       ORDER BY r.ord ASC`
+    )
+    const migrated = this.db.prepare(
+      `SELECT ('migration:' || m.question_id) AS id, 'primary' AS role,
+              d.id AS demoId, v.id AS versionId, v.license,
+              (SELECT COUNT(*) FROM demonstration_versions v2
+               WHERE v2.demonstration_id = d.id AND v2.frozen_at <= v.frozen_at) AS versionSeq,
+              d.owner_id AS ownerId, COALESCE(u.display_name, '平台') AS authorName,
+              d.meta_json AS metaJson,
+              CASE WHEN d.deleted_at IS NULL THEN 'healthy' ELSE 'unavailable' END AS health
+       FROM visualization_migration_map m
+       JOIN demonstration_versions v ON v.id = m.version_id
+       JOIN teaching_demonstrations d ON d.id = m.demo_id
+       LEFT JOIN users u ON u.id = d.owner_id
+       WHERE m.question_id = ?`
+    )
+
+    for (const questionId of candidates) {
+      const rows = explicit.all(questionId) as StudentReferenceRow[]
+      if (rows.length > 0) return rows.map(toStudentReference)
+      const migration = migrated.get(questionId) as StudentReferenceRow | undefined
+      if (migration) return [toStudentReference(migration)]
+    }
+    return []
   }
 
   /** Remove a single reference (DELETE semantics, §5.6). */
