@@ -26,16 +26,6 @@ const helixViz: Visualization = {
   label: '磁场螺旋'
 }
 
-const ammoniaViz: Visualization = {
-  kind: 'ball_stick',
-  atoms: [
-    { id: 'N', element: 'N', position: [0, 0, 0] },
-    { id: 'H1', element: 'H', position: [0.8, 0.3, 0.5] }
-  ],
-  bonds: [{ from: 'N', to: 'H1' }],
-  label: '氨气片段'
-}
-
 describe('assignment visualization passthrough (Phase 5)', () => {
   let server: Awaited<ReturnType<typeof createEvidenceRingServer>>
   let baseUrl: string
@@ -85,7 +75,7 @@ describe('assignment visualization passthrough (Phase 5)', () => {
     return (await created.json()) as Question
   }
 
-  it('projects a private question with curve visualization for students (reference-first)', async () => {
+  it('adopt-visualization no longer persists or migrates (column deleted, #30)', async () => {
     const question = await createPrivateQuestion()
 
     const adopt = await fetch(
@@ -108,30 +98,14 @@ describe('assignment visualization passthrough (Phase 5)', () => {
     expect(studentView.status).toBe(200)
     const assignment = (await studentView.json()) as Assignment
     expect(assignment.id).toBe(question.id)
-    // Phase C: adopt-visualization now migrates to a preset demonstration, so
-    // the NEW reference wins and legacy visualization is superseded.
+    // Phase C (#30): the legacy visualization column is deleted and adopt no
+    // longer migrates into a demonstration — the field and demos are absent.
     expect(assignment.visualization).toBeUndefined()
-    expect(assignment.demonstrations?.[0]?.role).toBe('primary')
-    // Migration presets publish under the seed author (T-K), hence public.
-    expect(assignment.demonstrations?.[0]?.source).toBe('public')
-    expect(assignment.demonstrations?.[0]?.versionId).toBeTruthy()
+    expect(assignment.demonstrations).toBeUndefined()
   })
 
-  it('projects a private question with ball_stick visualization', async () => {
+  it('serves a private question without any legacy visualization', async () => {
     const question = await createPrivateQuestion()
-
-    const adopt = await fetch(
-      `${baseUrl}/api/questions/${encodeURIComponent(question.id)}/adopt-visualization`,
-      {
-        method: 'POST',
-        headers: {
-          'x-demo-role': 'teacher',
-          'content-type': 'application/json'
-        },
-        body: JSON.stringify({ visualization: ammoniaViz })
-      }
-    )
-    expect(adopt.status).toBe(200)
 
     const studentView = await fetch(
       `${baseUrl}/api/assignments/${encodeURIComponent(question.id)}`,
@@ -139,8 +113,7 @@ describe('assignment visualization passthrough (Phase 5)', () => {
     )
     expect(studentView.status).toBe(200)
     const assignment = (await studentView.json()) as Assignment
-    // Reference-first: migrated preset demonstration supersedes legacy field.
-    expect(assignment.demonstrations?.[0]?.versionId).toBeTruthy()
+    expect(assignment.visualization).toBeUndefined()
   })
 
   it('returns 404 for unknown private ids', async () => {
@@ -161,7 +134,7 @@ describe('assignment visualization passthrough (Phase 5)', () => {
     expect(assignment.visualization).toBeUndefined()
   })
 
-  it('serves pre-seeded magnetic helix curve on demo assignment (migration reference)', async () => {
+  it('serves pre-seeded magnetic helix curve on demo assignment (no legacy viz)', async () => {
     const response = await fetch(
       `${baseUrl}/api/assignments/physics-magnetic-helix`,
       { headers: { 'x-demo-role': 'student' } }
@@ -169,15 +142,13 @@ describe('assignment visualization passthrough (Phase 5)', () => {
     expect(response.status).toBe(200)
     const assignment = (await response.json()) as Assignment
     expect(assignment.id).toBe('physics-magnetic-helix')
-    // Boot migration turned the seeded visualization into a preset demo.
+    // Phase C (#30): the legacy seed visualization is deleted and no longer
+    // migrates into a demonstration — the assignment serves without one.
     expect(assignment.visualization).toBeUndefined()
-    const primary = assignment.demonstrations?.find((r) => r.role === 'primary')
-    expect(primary).toBeDefined()
-    expect(primary?.source).toBe('public')
-    expect(primary?.health).toBe('healthy')
+    expect(assignment.demonstrations).toBeUndefined()
   })
 
-  it('serves pre-seeded DNA double helix with secondaryPoints + crossBars', async () => {
+  it('serves pre-seeded DNA double helix demo assignment (no legacy viz)', async () => {
     const response = await fetch(
       `${baseUrl}/api/assignments/bio-dna-double-helix`,
       { headers: { 'x-demo-role': 'student' } }
@@ -185,10 +156,7 @@ describe('assignment visualization passthrough (Phase 5)', () => {
     expect(response.status).toBe(200)
     const assignment = (await response.json()) as Assignment
     expect(assignment.id).toBe('bio-dna-double-helix')
-    const primary = assignment.demonstrations?.find((r) => r.role === 'primary')
-    expect(primary).toBeDefined()
-    expect(primary?.source).toBe('public')
-    expect(primary?.versionId).toBeTruthy()
+    expect(assignment.demonstrations).toBeUndefined()
   })
 
   it('allows student preview-visualization without persisting', async () => {
@@ -218,7 +186,7 @@ describe('assignment visualization passthrough (Phase 5)', () => {
     expect(noAuth.status).toBe(403)
   })
 
-  it('serves pre-seeded circuit primitives on Ohm-law demo (migration reference)', async () => {
+  it('serves pre-seeded circuit demo assignment (no legacy viz)', async () => {
     const response = await fetch(
       `${baseUrl}/api/assignments/numeric-ohm-law`,
       { headers: { 'x-demo-role': 'student' } }
@@ -226,10 +194,7 @@ describe('assignment visualization passthrough (Phase 5)', () => {
     expect(response.status).toBe(200)
     const assignment = (await response.json()) as Assignment
     expect(assignment.id).toBe('numeric-ohm-law')
-    const primary = assignment.demonstrations?.find((r) => r.role === 'primary')
-    expect(primary).toBeDefined()
-    expect(primary?.source).toBe('public')
-    expect(primary?.title).toBeTruthy()
+    expect(assignment.demonstrations).toBeUndefined()
   })
 
   it('scores a private fill_blank question via payload projection', async () => {

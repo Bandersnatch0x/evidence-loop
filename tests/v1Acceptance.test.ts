@@ -56,6 +56,24 @@ describe('T-M quality budget configuration (配置值 ≠ 代码常量)', () => 
     ]
     for (const name of expected) expect(example).toContain(name)
   })
+
+  it('.env.production.example carries production tiers for every budget env var (#30)', () => {
+    const prod = readFileSync(resolve(process.cwd(), '.env.production.example'), 'utf8')
+    const expected = [
+      'DEMO_BUDGET_MAX_NODES',
+      'DEMO_BUDGET_MAX_TRIANGLES',
+      'DEMO_BUDGET_MAX_TEXTURE_PIXELS',
+      'DEMO_BUDGET_MAX_ANIMATION_SECONDS',
+      'DEMO_BUDGET_MAX_MEDIA_REFS',
+      'MEDIA_LIMIT_IMAGE_BYTES',
+      'MEDIA_LIMIT_GLB_BYTES',
+      'MEDIA_LIMIT_VIDEO_BYTES',
+      'MEDIA_LIMIT_VTT_BYTES',
+      'MEDIA_LIMIT_AUDIO_BYTES',
+      'MEDIA_QUOTA_TEACHER_BYTES'
+    ]
+    for (const name of expected) expect(prod).toContain(name)
+  })
 })
 
 describe('T-M player budget second gate', () => {

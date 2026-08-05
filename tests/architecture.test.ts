@@ -506,16 +506,14 @@ describe('architecture guard: #29 reference resolution stays in the display laye
     ).toEqual([])
   })
 
-  it('assignment display layer resolves new references before legacy visualization fallback', () => {
+  it('assignment display layer serves demonstrations; legacy visualization fallback is removed', () => {
     const source = readFileSync(resolve(projectRoot, 'server/index.ts'), 'utf8')
-    // New-reference-first: listStudentReferencesForAssignment must appear before
-    // the legacy `visualization` fallback in the assignment GET projection.
-    const refIdx = source.indexOf('listStudentReferencesForAssignment')
-    const legacyIdx = source.indexOf('assignment.visualization')
-    expect(refIdx).toBeGreaterThanOrEqual(0)
-    expect(legacyIdx).toBeGreaterThan(refIdx)
-    // Legacy fallback is gated on the absence of a primary demonstration.
-    expect(source).toMatch(/!hasPrimaryDemonstration && assignment.visualization/)
+    // New-reference-first: the display layer resolves demonstration references.
+    expect(source).toMatch(/listStudentReferencesForAssignment/)
+    // Phase C (#30): the legacy visualization fallback is deleted — the
+    // assignment projection must no longer spread `assignment.visualization`.
+    expect(source).not.toMatch(/!hasPrimaryDemonstration && assignment.visualization/)
+    expect(source).not.toMatch(/assignment\.visualization\s*}/)
   })
 
   it('student-facing demonstration read endpoints never write demonstration tables', () => {

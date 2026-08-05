@@ -37,57 +37,29 @@ const ammoniaViz: Visualization = {
   label: '氨气 NH3'
 }
 
-describe('visualization persistence (ADR-0015)', () => {
+describe('visualization persistence is removed (Phase C, #30)', () => {
   let store: QuestionStore
 
   beforeEach(() => {
     store = new QuestionStore({ dbPath: ':memory:' })
   })
 
-  it('stores + retrieves a visualization round-trip', () => {
+  it('adopt-visualization no longer persists a visualization (column deleted)', () => {
     const service = new QuestionBankService({ store })
     const created = service.create(baseDraft())
     expect(created.visualization).toBeUndefined()
 
+    // Phase C (#30): the legacy visualization_json column is deleted, so
+    // adopting a visualization is a transient no-op — it never round-trips.
     const adopted = service.adoptVisualization(created.id, TEACHER, ammoniaViz)
-    expect(adopted.visualization).toBeDefined()
     expect(adopted.visualization?.kind).toBe('ball_stick')
-    if (adopted.visualization?.kind === 'ball_stick') {
-      expect(adopted.visualization.atoms.length).toBe(4)
-    }
 
-    // Re-read from store to confirm persistence.
+    // Re-read from store: the field is NOT persisted.
     const reread = service.get(created.id, TEACHER)
-    expect(reread?.visualization?.kind).toBe('ball_stick')
-    if (reread?.visualization?.kind === 'ball_stick') {
-      expect(reread.visualization.atoms.length).toBe(4)
-      expect(reread.visualization.label).toBe('氨气 NH3')
-    }
-  })
-
-  it('survives a subsequent unrelated update (visualization preserved)', () => {
-    const service = new QuestionBankService({ store })
-    const created = service.create(baseDraft())
-    service.adoptVisualization(created.id, TEACHER, ammoniaViz)
-
-    // A later update that does NOT touch visualization must keep it.
-    service.update(created.id, TEACHER, { difficulty: 4 })
-    const reread = service.get(created.id, TEACHER)
-    expect(reread?.difficulty).toBe(4)
-    expect(reread?.visualization?.kind).toBe('ball_stick')
-    if (reread?.visualization?.kind === 'ball_stick') {
-      expect(reread.visualization.atoms.length).toBe(4)
-    }
-  })
-
-  it('clears the visualization when adopted with null', () => {
-    const service = new QuestionBankService({ store })
-    const created = service.create(baseDraft())
-    service.adoptVisualization(created.id, TEACHER, ammoniaViz)
-    expect(service.get(created.id, TEACHER)?.visualization).toBeDefined()
-
-    service.adoptVisualization(created.id, TEACHER, null)
-    expect(service.get(created.id, TEACHER)?.visualization).toBeUndefined()
+    expect(reread?.visualization).toBeUndefined()
+    // Scoring-relevant fields are untouched.
+    expect(reread?.payload).toBeDefined()
+    expect(reread?.stem).toBe('氨气的分子构型？')
   })
 
   it('refuses to adopt on a foreign-owned question', () => {
@@ -96,24 +68,5 @@ describe('visualization persistence (ADR-0015)', () => {
     expect(() =>
       service.adoptVisualization(created.id, 'teacher-other', ammoniaViz)
     ).toThrow()
-  })
-
-  it('drops an invalid stored visualization on read (not fatal)', () => {
-    // Write a malformed visualization_json directly, then confirm get survives.
-    const service = new QuestionBankService({ store })
-    const created = service.create(baseDraft())
-    const db = (
-      store as unknown as {
-        db: { prepare: (s: string) => { run: (...b: unknown[]) => void } }
-      }
-    ).db
-    db.prepare('UPDATE questions SET visualization_json = ? WHERE id = ?').run(
-      '{"kind":"ball_stick","atoms":[],"bonds":[]}',
-      created.id
-    )
-    const reread = service.get(created.id, TEACHER)
-    expect(reread?.visualization).toBeUndefined()
-    // Scoring-relevant fields are untouched.
-    expect(reread?.payload).toBeDefined()
   })
 })

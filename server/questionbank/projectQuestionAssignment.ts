@@ -56,10 +56,7 @@ export function projectQuestionToAssignment(question: Question): Assignment {
         description: '从空白开始作答',
         code: ''
       }
-    ],
-    ...(question.visualization
-      ? { visualization: question.visualization }
-      : {})
+    ]
   }
 }
 
@@ -98,32 +95,12 @@ export function createQuestionBackedRegistry(
     list: () => registry.list(),
     get: (id: string) => {
       const fromRegistry = registry.get(id)
-      if (fromRegistry) {
-        // Attach seed/private visualization onto registry demos when present.
-        const visualization = resolveVisualizationForAssignmentId(peek, id)
-        return visualization
-          ? { ...fromRegistry, visualization }
-          : fromRegistry
-      }
+      if (fromRegistry) return fromRegistry
       const question = peek(id)
       if (!question) return undefined
       return projectQuestionToExecutable(question)
     }
   }
-}
-
-/**
- * Resolve teacher-authored visualization for an assignment id.
- * Prefer seed:<id> (demo path), then bare id (private question as workspace id).
- */
-export function resolveVisualizationForAssignmentId(
-  peek: (id: string) => Question | undefined,
-  assignmentId: string
-): Question['visualization'] {
-  return (
-    peek(`seed:${assignmentId}`)?.visualization ??
-    peek(assignmentId)?.visualization
-  )
 }
 
 // ---------------------------------------------------------------------------

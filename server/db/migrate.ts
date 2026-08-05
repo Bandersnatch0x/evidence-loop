@@ -53,7 +53,11 @@ export function applyProductMigrations(db: Database.Database): void {
 
   ensureEvaluationsProvenanceColumn(db)
   ensureQuestionSolutionColumn(db)
-  ensureQuestionVisualizationColumn(db)
+
+  // Phase C (ticket #30): physical removal of the legacy visualization column.
+  // Fresh DBs never create it (0007 migration deleted); existing DBs drop it
+  // here idempotently. Guarded by PRAGMA so a missing column is a no-op.
+  dropQuestionVisualizationColumn(db)
 }
 
 /**
@@ -74,6 +78,22 @@ function ensureEvaluationsProvenanceColumn(db: Database.Database): void {
 }
 
 /**
+ * Phase C (ticket #30): drop the legacy `questions.visualization_json` column.
+ * Idempotent — no-op when already absent. Runs after the 0008+ demonstration
+ * module migrations so the dual-read window is fully closed before removal.
+ */
+function dropQuestionVisualizationColumn(db: Database.Database): void {
+  const columns = db
+    .prepare(`PRAGMA table_info(questions)`)
+    .all() as Array<{ name: string }>
+  if (columns.length === 0) return
+  const hasViz = columns.some((column) => column.name === 'visualization_json')
+  if (hasViz) {
+    db.exec(`ALTER TABLE questions DROP COLUMN visualization_json`)
+  }
+}
+
+/**
  * Backfill path (T09) for DBs that created `questions` (migration 0003) before
  * the standard-solution column existed. Safe on fresh schemas where migration
  * 0004 already added the column. No-op when the questions table is absent.
@@ -86,21 +106,5 @@ function ensureQuestionSolutionColumn(db: Database.Database): void {
   const hasSolution = columns.some((column) => column.name === 'solution_json')
   if (!hasSolution) {
     db.exec(`ALTER TABLE questions ADD COLUMN solution_json TEXT`)
-  }
-}
-
-/**
- * Backfill path (ADR-0015) for DBs that created `questions` before the
- * visualization column existed. Safe on fresh schemas where migration 0007
- * already added the column. No-op when the questions table is absent.
- */
-function ensureQuestionVisualizationColumn(db: Database.Database): void {
-  const columns = db
-    .prepare(`PRAGMA table_info(questions)`)
-    .all() as Array<{ name: string }>
-  if (columns.length === 0) return
-  const hasViz = columns.some((column) => column.name === 'visualization_json')
-  if (!hasViz) {
-    db.exec(`ALTER TABLE questions ADD COLUMN visualization_json TEXT`)
   }
 }

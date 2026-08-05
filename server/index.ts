@@ -711,8 +711,7 @@ async function handleApi(
     // Presentation-only reference lookup. This stays outside AssignmentRegistry
     // so EvaluationAgent/scoring never reads demonstration tables.
     const demonstrations = context.demonstration.references.listStudentReferencesForAssignment(requestedId)
-    const hasPrimaryDemonstration = demonstrations.some((ref) => ref.role === 'primary')
-    // Question-backed registry: demo hit (with seed viz merge) or private/seed
+    // Question-backed registry: demo hit or private/seed
     // projection. Presentation fields only — never expose runner/criteria.
     const assignment = assignments.get(requestedId)
     if (!assignment) {
@@ -723,7 +722,6 @@ async function handleApi(
         return
       }
       const projected = projectQuestionToAssignment(bankQuestion)
-      if (hasPrimaryDemonstration) delete projected.visualization
       if (demonstrations.length > 0) projected.demonstrations = demonstrations
       respondJson(response, 200, projected)
       return
@@ -744,9 +742,6 @@ async function handleApi(
       functionSignature: assignment.functionSignature,
       rubric: assignment.rubric,
       demoVariants: assignment.demoVariants,
-      ...(!hasPrimaryDemonstration && assignment.visualization
-        ? { visualization: assignment.visualization }
-        : {}),
       ...(demonstrations.length > 0 ? { demonstrations } : {})
     }
     respondJson(response, 200, publicAssignment)

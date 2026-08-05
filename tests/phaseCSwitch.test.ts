@@ -11,7 +11,7 @@ import Database from 'better-sqlite3'
 import { applyProductMigrations } from '../server/db/migrate'
 import { QuestionStore } from '../server/questionbank/QuestionStore'
 import { QuestionBankService } from '../server/questionbank/QuestionBankService'
-import { ensureDemonstrationMigration, resolveMigratedDemonstration } from '../server/demonstration/migrationRunner'
+import { ensureDemonstrationMigration } from '../server/demonstration/migrationRunner'
 import { SEED_AUTHOR_ID } from '../server/questionbank/seedFromAssignments'
 import type { Visualization } from '../shared/contracts'
 
@@ -57,28 +57,21 @@ function seedQuestion(
 }
 
 describe('T-L write-path switch (Phase C)', () => {
-  it('adopt-visualization writes the new model via migration; legacy field retained as fallback', () => {
+  it('adopt-visualization no longer persists a legacy field (column deleted, #30)', () => {
     const env = makeEnv()
     seedQuestion(env, 'q1')
     env.bank.adoptVisualization('q1', SEED_AUTHOR_ID, HELIX)
 
-    // New model: migration creates the demo + approved version.
-    ensureDemonstrationMigration(env.db, env.store)
-    const mapped = resolveMigratedDemonstration(env.db, 'q1')
-    expect(mapped).not.toBeNull()
-    const version = env.db
-      .prepare(`SELECT status FROM demonstration_versions WHERE id = ?`)
-      .get(mapped!.versionId) as { status: string }
-    expect(version.status).toBe('approved')
-
-    // Legacy fallback field retained (dual-read window).
+    // Phase C (#30): the legacy visualization_json column is deleted, so
+    // adopting a visualization cannot persist it. The field stays transient
+    // (a no-op write) and the store never returns it.
     const question = env.store.get('q1')
-    expect(question?.visualization?.kind).toBe('curve')
+    expect(question?.visualization).toBeUndefined()
   })
 
   it('new-model failure does not block scoring/answering (rollback path, spec §7.5)', () => {
     const env = makeEnv()
-    seedQuestion(env, 'q1', HELIX)
+    seedQuestion(env, 'q1')
     // Simulate new-model failure: corrupt the migration guard table schema by
     // dropping the demo tables — migration runner must fail WITHOUT touching
     // the question (old path keeps working).
@@ -88,22 +81,7 @@ describe('T-L write-path switch (Phase C)', () => {
     expect(() => ensureDemonstrationMigration(env.db, env.store)).toThrow()
     // Question untouched — scoring/answering unaffected.
     const question = env.store.get('q1')
-    expect(question?.visualization?.kind).toBe('curve')
     expect(question?.stem).toBe('演示题')
-  })
-
-  it('clearing a visualization removes the new-model mapping on next migration', () => {
-    const env = makeEnv()
-    seedQuestion(env, 'q1', HELIX)
-    ensureDemonstrationMigration(env.db, env.store)
-    expect(resolveMigratedDemonstration(env.db, 'q1')).not.toBeNull()
-
-    // Teacher clears the visualization (null) — the demo mapping stays for
-    // fixed references (spec §2.9: 已固定引用继续播放), new content stops.
-    env.bank.adoptVisualization('q1', SEED_AUTHOR_ID, null)
-    expect(env.store.get('q1')?.visualization).toBeUndefined()
-    // Guard table still holds the historical mapping (no rewrite).
-    expect(resolveMigratedDemonstration(env.db, 'q1')).not.toBeNull()
   })
 })
 

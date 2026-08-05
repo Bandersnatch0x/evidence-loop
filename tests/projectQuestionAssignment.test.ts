@@ -5,8 +5,7 @@ import { createAssignmentRegistry } from '../server/data/assignments'
 import {
   createQuestionBackedRegistry,
   projectQuestionToAssignment,
-  projectQuestionToExecutable,
-  resolveVisualizationForAssignmentId
+  projectQuestionToExecutable
 } from '../server/questionbank/projectQuestionAssignment'
 import type { Question, Visualization } from '../shared/contracts'
 
@@ -38,19 +37,14 @@ function sampleQuestion(overrides: Partial<Question> = {}): Question {
 }
 
 describe('projectQuestionToAssignment', () => {
-  it('copies visualization onto the Assignment shell', () => {
+  it('projects the assignment shell without the legacy visualization field', () => {
     const assignment = projectQuestionToAssignment(sampleQuestion())
     expect(assignment.id).toBe('q-private-1')
-    expect(assignment.visualization?.kind).toBe('curve')
+    // Phase C (ticket #30): the legacy visualization column is deleted, so the
+    // Assignment shell no longer carries visualization.
+    expect(assignment.visualization).toBeUndefined()
     expect(assignment.questionType).toBe('fill_blank')
     expect(assignment.language).toBe('physics')
-  })
-
-  it('omits visualization when the question has none', () => {
-    const assignment = projectQuestionToAssignment(
-      sampleQuestion({ visualization: undefined })
-    )
-    expect(assignment.visualization).toBeUndefined()
   })
 
   it('truncates long stems into the title', () => {
@@ -121,48 +115,5 @@ describe('createQuestionBackedRegistry', () => {
       () => undefined
     )
     expect(registry.get('python-average')?.id).toBe('python-average')
-  })
-})
-
-describe('resolveVisualizationForAssignmentId', () => {
-  it('prefers seed:<id> over bare id', () => {
-    const seedViz: Visualization = {
-      kind: 'curve',
-      points: [
-        [0, 0, 0],
-        [1, 1, 1]
-      ],
-      label: 'seed'
-    }
-    const bareViz: Visualization = {
-      kind: 'ball_stick',
-      atoms: [{ id: 'A1', element: 'C', position: [0, 0, 0] }],
-      bonds: []
-    }
-    const peek = (id: string): Question | undefined => {
-      if (id === 'seed:demo-1') {
-        return sampleQuestion({ id, visualization: seedViz })
-      }
-      if (id === 'demo-1') {
-        return sampleQuestion({ id, visualization: bareViz })
-      }
-      return undefined
-    }
-    const resolved = resolveVisualizationForAssignmentId(peek, 'demo-1')
-    expect(resolved?.kind).toBe('curve')
-    if (resolved?.kind === 'curve') {
-      expect(resolved.label).toBe('seed')
-    }
-  })
-
-  it('falls back to bare question id', () => {
-    const peek = (id: string): Question | undefined => {
-      if (id === 'q-private-1') {
-        return sampleQuestion()
-      }
-      return undefined
-    }
-    const resolved = resolveVisualizationForAssignmentId(peek, 'q-private-1')
-    expect(resolved?.kind).toBe('curve')
   })
 })

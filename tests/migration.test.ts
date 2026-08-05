@@ -49,28 +49,6 @@ function makeEnv(): { db: Database.Database; store: QuestionStore } {
   return { db, store }
 }
 
-function seedQuestionWithViz(
-  env: { db: Database.Database; store: QuestionStore },
-  id: string,
-  viz: Visualization,
-  author = SEED_AUTHOR_ID
-): void {
-  env.store.save({
-    id,
-    questionBankId: 'qb-1',
-    authorId: author,
-    subject: 'physics',
-    questionType: 'choice',
-    stem: '演示题',
-    payload: { kind: 'choice', options: ['a', 'b'], answer: 'a' },
-    kpIds: ['kp.phy.demo'],
-    difficulty: 3,
-    source: 'authored_key',
-    createdAt: new Date().toISOString(),
-    visualization: viz
-  } as never)
-}
-
 describe('T-K lossless mapping (3 kinds → valid SceneDocument)', () => {
   it('curve maps to projected 2D polylines that pass the T-C schema', () => {
     const doc = curveToSceneDocument(HELIX)
@@ -103,76 +81,39 @@ describe('T-K lossless mapping (3 kinds → valid SceneDocument)', () => {
   })
 })
 
-describe('T-K migration runner (idempotent, zero overwrite)', () => {
-  it('migrates questions with visualizations; guard table prevents duplicates', () => {
+describe('T-K migration runner (legacy source removed, ticket #30)', () => {
+  // The legacy `questions.visualization_json` column is deleted (Phase C, #30),
+  // so QuestionStore can no longer hold a legacy visualization. The migration
+  // runner is therefore a permanent no-op over the store: it never finds a
+  // question with a visualization to migrate. The guard table retains the
+  // historical question→demo mapping written before deletion, and
+  // ReferenceService reads it as the new-path resolution (no legacy fallback).
+
+  it('runs as a no-op when no question carries a visualization', () => {
     const env = makeEnv()
-    seedQuestionWithViz(env, 'q-helix', HELIX)
-    seedQuestionWithViz(env, 'q-methane', METHANE)
-
-    const first = ensureDemonstrationMigration(env.db, env.store)
-    expect(first.migrated).toBe(2)
-    expect(env.db.prepare(`SELECT COUNT(*) AS c FROM visualization_migration_map`).get()).toEqual({ c: 2 })
-
-    const second = ensureDemonstrationMigration(env.db, env.store)
-    expect(second.migrated).toBe(0)
-    expect(second.skippedExisting).toBe(2)
-  })
-
-  it('questions without visualization are never touched', () => {
-    const env = makeEnv()
-    seedQuestionWithViz(env, 'q-plain', HELIX)
     env.store.save({
-      id: 'q-noviz', questionBankId: 'qb-1', authorId: SEED_AUTHOR_ID, subject: 'math', stem: '无 viz',
-      payload: { kind: 'choice', options: ['a'], answer: 'a' }, kpIds: [], questionType: 'choice', difficulty: 3,
-      source: 'authored_key', createdAt: new Date().toISOString()
-    } as never)
+      id: 'q-plain',
+      questionBankId: 'qb-1',
+      authorId: SEED_AUTHOR_ID,
+      subject: 'math',
+      questionType: 'choice',
+      stem: '无 viz',
+      payload: { kind: 'choice', options: ['a'], answer: 'a' },
+      kpIds: [],
+      difficulty: 3,
+      source: 'authored_key',
+      createdAt: new Date().toISOString()
+    })
     const counts = ensureDemonstrationMigration(env.db, env.store)
-    expect(counts.migrated).toBe(1)
+    expect(counts.migrated).toBe(0)
     expect(counts.skippedNoVisualization).toBe(1)
-    // The no-viz question produced no demo row.
-    expect(env.db.prepare(`SELECT COUNT(*) AS c FROM teaching_demonstrations`).get()).toEqual({ c: 1 })
-  })
-
-  it('teacher-authored visualizations are migrated but teacher data preserved', () => {
-    const env = makeEnv()
-    seedQuestionWithViz(env, 'q-teacher', HELIX, 'teacher-9')
-    const before = env.store.get('q-teacher')
-    const counts = ensureDemonstrationMigration(env.db, env.store)
-    expect(counts.migrated).toBe(1)
-    const after = env.store.get('q-teacher')
-    // The question row is untouched (only new demo created).
-    expect(after?.visualization).toEqual(before?.visualization)
-  })
-
-  it('rolls back created demos when guard insertion fails', () => {
-    const env = makeEnv()
-    seedQuestionWithViz(env, 'q-atomic', HELIX)
-    env.db.exec(`
-      CREATE TABLE IF NOT EXISTS visualization_migration_map (
-        question_id TEXT PRIMARY KEY,
-        demo_id TEXT NOT NULL,
-        version_id TEXT NOT NULL,
-        migrated_at TEXT NOT NULL
-      );
-      CREATE TRIGGER force_guard_failure
-      BEFORE INSERT ON visualization_migration_map
-      BEGIN
-        SELECT RAISE(ABORT, 'forced guard failure');
-      END;
-    `)
-    expect(() => ensureDemonstrationMigration(env.db, env.store)).toThrow(/forced guard failure/)
+    // No demo rows are created from a question without a visualization.
     expect(env.db.prepare(`SELECT COUNT(*) AS c FROM teaching_demonstrations`).get()).toEqual({ c: 0 })
-    expect(env.db.prepare(`SELECT COUNT(*) AS c FROM demonstration_versions`).get()).toEqual({ c: 0 })
   })
 
-  it('resolveMigratedDemonstration returns the new-path mapping (dual-read new path)', () => {
+  it('resolveMigratedDemonstration returns null for an unmigrated question', () => {
     const env = makeEnv()
-    seedQuestionWithViz(env, 'q-helix', HELIX)
-    ensureDemonstrationMigration(env.db, env.store)
-    const mapped = resolveMigratedDemonstration(env.db, 'q-helix')
-    expect(mapped).not.toBeNull()
-    expect(mapped?.versionId).toBeTruthy()
-    // Unmigrated → null → caller falls back to legacy field.
+    // No legacy visualization persisted → no migration mapping is ever written.
     expect(resolveMigratedDemonstration(env.db, 'q-none')).toBeNull()
   })
 })
@@ -187,23 +128,12 @@ describe('T-K CI dual-read consistency', () => {
     expect(JSON.stringify(again)).toBe(JSON.stringify(doc))
   })
 
-  it('adapter dual-read: legacy fallback and new reference path render the same content', () => {
-    // New path: the migrated preset demonstration (approved version) plays the
-    // SceneDocument derived from the legacy visualization.
-    const env = makeEnv()
-    seedQuestionWithViz(env, 'q-helix', HELIX)
-    ensureDemonstrationMigration(env.db, env.store)
-    const mapped = resolveMigratedDemonstration(env.db, 'q-helix')!
-    const version = env.db
-      .prepare(`SELECT status, snapshot_document_json FROM demonstration_versions WHERE id = ?`)
-      .get(mapped.versionId) as { status: string; snapshot_document_json: string }
-    expect(version.status).toBe('approved')
-    const newPathDoc = JSON.parse(version.snapshot_document_json) as {
-      editorMetadata?: { migratedFrom?: string }
-    }
-    // Legacy path: direct mapping of the same visualization.
-    const legacyDoc = visualizationToSceneDocument(HELIX)
-    // Both derive from the same source — identity matches (same migratedFrom).
-    expect(newPathDoc.editorMetadata?.migratedFrom).toBe(legacyDoc.editorMetadata?.migratedFrom)
+  it('the conversion function is the single source for preset SceneDocuments', () => {
+    // Phase C (#30): the legacy column is deleted, so the conversion function
+    // is no longer driven by stored question data — it is the pure mapping
+    // used by the (now historical) migration and by scene import/export.
+    const doc = visualizationToSceneDocument(HELIX)
+    expect(() => parseSceneDocument(doc)).not.toThrow()
+    expect(doc.editorMetadata?.migratedFrom).toBe('curve')
   })
 })
