@@ -45,6 +45,35 @@ export async function handleMediaApi(
   const { pathname } = requestUrl
   const user = ctx.user
 
+  // GET /api/media/assets — owner-scoped ready asset picker for authoring.
+  if (request.method === 'GET' && pathname === '/api/media/assets') {
+    if (user.role !== 'teacher' && user.role !== 'admin') {
+      respondJson(response, 403, { error: 'media asset listing requires teacher role' })
+      return true
+    }
+    const kind = requestUrl.searchParams.get('kind')
+    const allowedKinds = ['image', 'audio', 'model3d', 'video', 'subtitle']
+    if (kind !== null && !allowedKinds.includes(kind)) {
+      respondJson(response, 400, { error: `unsupported media asset kind: ${kind}` })
+      return true
+    }
+    const rows = ctx.db
+      .prepare(
+        `SELECT a.id, a.kind, a.original_blob_hash AS blobHash,
+                a.status, a.display_name AS displayName, a.created_at AS createdAt,
+                b.byte_size AS byteSize, b.media_type AS mediaType
+         FROM media_assets a
+         JOIN media_blobs b ON b.hash = a.original_blob_hash
+         WHERE a.owner_id = ? AND a.status = 'ready'
+           AND (? IS NULL OR a.kind = ?)
+         ORDER BY a.created_at DESC
+         LIMIT 100`
+      )
+      .all(user.userId, kind, kind)
+    respondJson(response, 200, { assets: rows })
+    return true
+  }
+
   // POST /api/media/upload-sessions — teacher-only session creation.
   if (request.method === 'POST' && pathname === '/api/media/upload-sessions') {
     if (user.role !== 'teacher' && user.role !== 'admin') {

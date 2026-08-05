@@ -6,7 +6,7 @@
  */
 import { test, expect, type Page } from '@playwright/test'
 
-const BASE = process.env.BASE_URL ?? 'http://localhost:4173'
+const BASE = process.env.BASE_URL ?? 'http://localhost:4180'
 
 async function gotoApp(page: Page): Promise<void> {
   await page.goto(BASE, { waitUntil: 'networkidle' })
@@ -36,6 +36,61 @@ test.describe('T-M browser matrix', () => {
     await expect(studioTab).toBeVisible()
     await studioTab.click()
     await expect(page.getByText('教学演示创作台', { exact: true })).toBeVisible()
+  })
+
+  test('PlayCanvas studio viewport builds the 3D scene and runs the render loop', async ({ page }) => {
+    await gotoApp(page)
+    await page.getByLabel('演示角色切换').selectOption('teacher')
+    await page.getByRole('button', { name: '教师工作台' }).click()
+    await page.getByRole('tab', { name: /教学演示创作台/i }).click()
+    await page.getByRole('button', { name: '空白 3D 场景' }).click()
+
+    const canvas = page.getByLabel('PlayCanvas 场景画布')
+    await expect(canvas).toBeVisible()
+    await expect(page.getByText(/WebGL2.*停用/)).toHaveCount(0)
+
+    // Scene graph must be built from the SceneDocument (box + camera + lights).
+    await expect
+      .poll(() =>
+        page.evaluate(() => {
+          const w = window as unknown as Record<string, unknown>
+          const debug = w.__pcDebug as { built?: number } | undefined
+          return debug?.built ?? 0
+        })
+      )
+      .toBeGreaterThan(0)
+
+    // Render loop must advance (frame counter increases).
+    const frame = (): Promise<number> =>
+      page.evaluate(() => {
+        const w = window as unknown as { __pcApp?: { frame?: number } }
+        return w.__pcApp?.frame ?? -1
+      })
+    const frameA = await frame()
+    await page.waitForTimeout(600)
+    const frameB = await frame()
+    expect(frameB).toBeGreaterThan(frameA)
+
+    // Orbit input must change the camera (view matrix row changes).
+    const viewA = await page.evaluate(() => {
+      const w = window as unknown as { __pcApp?: { root: { findByName: (n: string) => { getWorldTransform: () => { data: ArrayLike<number> } } | null } } }
+      const cam = w.__pcApp?.root.findByName('studio-camera')
+      return cam ? Array.from(cam.getWorldTransform().data).slice(0, 12) : null
+    })
+    const box = await canvas.boundingBox()
+    expect(box).not.toBeNull()
+    await page.mouse.move(box!.x + box!.width / 2, box!.y + box!.height / 2)
+    await page.mouse.down()
+    await page.mouse.move(box!.x + box!.width * 0.7, box!.y + box!.height * 0.35, { steps: 8 })
+    await page.mouse.up()
+    await page.waitForTimeout(300)
+    const viewB = await page.evaluate(() => {
+      const w = window as unknown as { __pcApp?: { root: { findByName: (n: string) => { getWorldTransform: () => { data: ArrayLike<number> } } | null } } }
+      const cam = w.__pcApp?.root.findByName('studio-camera')
+      return cam ? Array.from(cam.getWorldTransform().data).slice(0, 12) : null
+    })
+    expect(viewB).not.toBeNull()
+    expect(viewB!.some((value, index) => Math.abs(value - (viewA![index] as number)) > 0.001)).toBe(true)
   })
 
   test('mobile viewport renders without horizontal overflow (flow layout)', async ({ page }) => {

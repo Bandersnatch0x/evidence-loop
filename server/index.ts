@@ -135,7 +135,7 @@ import type { EvaluationStore } from './store/EvaluationStore'
 
 const projectRoot = resolve(fileURLToPath(new URL('..', import.meta.url)))
 const isProduction = process.argv.includes('--production')
-const port = Number(process.env.PORT ?? 4173)
+const port = Number(process.env.PORT ?? 4180)
 const maxRequestBodyBytes = 256 * 1024
 
 const evaluateRequestSchema = z.object({

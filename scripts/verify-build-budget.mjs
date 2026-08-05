@@ -23,7 +23,9 @@ const BUDGETS = [
   // Teacher studio loads only when the teacher opens the tab.
   { match: /^TeacherStudio-.*\.js$/, maxBytes: 200 * 1024 },
   // Student player loads only when a demonstration is present.
-  { match: /^StudentPlayer-.*\.js$/, maxBytes: 100 * 1024 }
+  { match: /^StudentPlayer-.*\.js$/, maxBytes: 100 * 1024 },
+  // Full PlayCanvas engine is large but must remain a named, teacher-only lazy chunk.
+  { match: /^playcanvas-engine-.*\.js$/, maxBytes: 2_600 * 1024 }
 ]
 
 if (!existsSync(dist)) {
@@ -61,7 +63,8 @@ if (mainIndex) {
   const main = readFileSync(join(dist, mainIndex), 'utf8')
   for (const [marker, label] of [
     ['studio-object-tree', 'TeacherStudio'],
-    ['student-player-svg', 'StudentPlayer']
+    ['student-player-svg', 'StudentPlayer'],
+    ['studio-scene-content', 'PlayCanvasStudioViewport']
   ]) {
     const inlined = main.includes(marker)
     console.log(`${inlined ? 'FAIL' : 'ok '} ${label} code not inlined into ${mainIndex}`)

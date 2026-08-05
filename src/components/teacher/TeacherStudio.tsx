@@ -13,7 +13,7 @@
  * as its own async chunk; it never imports the student player path.
  */
 import { useCallback, useMemo, useState, lazy, Suspense } from 'react'
-import type { SceneDocument } from '../../../server/demonstration/sceneDocumentSchema'
+import type { Keyframe, SceneDocument } from '../../../server/demonstration/sceneDocumentSchema'
 import { parseSceneDocument } from '../../../server/demonstration/sceneDocumentSchema'
 import { seedScene, TEMPLATES } from './templates'
 
@@ -24,7 +24,19 @@ const StudentPlayer = lazy(() =>
   import('../player/StudentPlayer').then((m) => ({ default: m.StudentPlayer }))
 )
 
+const PlayCanvasStudioViewport = lazy(() =>
+  import('./PlayCanvasStudioViewport').then((m) => ({ default: m.PlayCanvasStudioViewport }))
+)
+
 export type StudioStep = 'create' | 'objects' | 'animate' | 'preview' | 'submit'
+type AnimationProperty = 'transform.position' | 'transform.rotation' | 'transform.scale' | 'visible'
+
+const ANIMATION_PROPERTIES: Array<{ value: AnimationProperty; label: string }> = [
+  { value: 'transform.position', label: '位置' },
+  { value: 'transform.rotation', label: '旋转' },
+  { value: 'transform.scale', label: '缩放' },
+  { value: 'visible', label: '可见性' }
+]
 
 const STEPS: Array<{ id: StudioStep; label: string }> = [
   { id: 'create', label: '建场景' },
@@ -34,6 +46,32 @@ const STEPS: Array<{ id: StudioStep; label: string }> = [
   { id: 'submit', label: '提交' }
 ]
 
+type StudioNode = NonNullable<SceneDocument['objectTree']>[number]
+
+function animationValue(node: StudioNode, property: AnimationProperty): Keyframe['value'] {
+  if (property === 'transform.position') return [...node.transform.position] as [number, number, number]
+  if (property === 'transform.rotation') return [...node.transform.rotation] as [number, number, number]
+  if (property === 'transform.scale') return [...node.transform.scale] as [number, number, number]
+  return node.visible
+}
+
+function defaultEndValue(value: Keyframe['value'], property: AnimationProperty): Keyframe['value'] {
+  if (property === 'visible') return typeof value === 'boolean' ? !value : false
+  if (!Array.isArray(value)) return value
+  if (property === 'transform.rotation') return [value[0], value[1], value[2] + 45]
+  if (property === 'transform.scale') return [value[0] * 1.2, value[1] * 1.2, value[2] * 1.2]
+  return [value[0] + 1, value[1], value[2]]
+}
+
+export interface StudioMediaAsset {
+  id: string
+  kind: 'model3d'
+  blobHash: string
+  status: 'ready'
+  displayName: string
+  byteSize: number
+}
+
 export interface TeacherStudioProps {
   /** Demonstration id to persist the draft against (empty = new). */
   demonstrationId?: string
@@ -41,15 +79,19 @@ export interface TeacherStudioProps {
   onSave?: (doc: SceneDocument) => Promise<boolean>
   /** Injected submit function (tests); defaults to the author API. */
   onSubmit?: (doc: SceneDocument) => Promise<{ versionId: string } | null>
+  /** Owner-scoped ready model asset loader (tests); defaults to media API. */
+  loadModelAssets?: () => Promise<StudioMediaAsset[]>
 }
 
-export function TeacherStudio({ demonstrationId, onSave, onSubmit }: TeacherStudioProps) {
+export function TeacherStudio({ demonstrationId, onSave, onSubmit, loadModelAssets }: TeacherStudioProps) {
   const [step, setStep] = useState<StudioStep>('create')
+  const [viewportMode, setViewportMode] = useState<'2d' | '3d'>('2d')
   const [document, setDocument] = useState<SceneDocument>(seedScene())
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
   const [submitState, setSubmitState] = useState<'idle' | 'submitting' | 'submitted' | 'error'>('idle')
   const [professionalOpen, setProfessionalOpen] = useState(false)
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
+  const [animationProperty, setAnimationProperty] = useState<AnimationProperty>('transform.position')
   const [aiDrawerOpen, setAiDrawerOpen] = useState(false)
   const [aiDescription, setAiDescription] = useState('')
   const [aiCandidate, setAiCandidate] = useState<SceneDocument | null>(null)
@@ -57,6 +99,10 @@ export function TeacherStudio({ demonstrationId, onSave, onSubmit }: TeacherStud
   const [aiMessage, setAiMessage] = useState('')
   const [checkpoints, setCheckpoints] = useState<Array<{ id: string; savedAt: string }>>([])
   const [lastVersionId, setLastVersionId] = useState<string | null>(null)
+  const [modelAssets, setModelAssets] = useState<StudioMediaAsset[]>([])
+  const [selectedAssetId, setSelectedAssetId] = useState('')
+  const [modelAssetState, setModelAssetState] = useState<'idle' | 'loading' | 'error'>('idle')
+  const [modelAssetMessage, setModelAssetMessage] = useState('')
 
   const saveDraft = useCallback(async () => {
     setSaveState('saving')
@@ -197,12 +243,82 @@ export function TeacherStudio({ demonstrationId, onSave, onSubmit }: TeacherStud
     }
   }, [document, demonstrationId, onSubmit])
 
+  const loadReadyModelAssets = useCallback(async () => {
+    setModelAssetState('loading')
+    setModelAssetMessage('')
+    try {
+      const assets = loadModelAssets
+        ? await loadModelAssets()
+        : await fetch('/api/media/assets?kind=model3d').then(async (response) => {
+            if (!response.ok) throw new Error('3D 资产列表加载失败')
+            const data = (await response.json()) as { assets?: StudioMediaAsset[] }
+            return data.assets ?? []
+          })
+      const safeAssets = assets.filter(
+        (asset) => asset.kind === 'model3d' && asset.status === 'ready' && /^[0-9a-f]{64}$/.test(asset.blobHash)
+      )
+      setModelAssets(safeAssets)
+      setSelectedAssetId(safeAssets[0]?.id ?? '')
+      setModelAssetMessage(safeAssets.length === 0 ? '暂无可导入的 ready GLB 资产' : '')
+      setModelAssetState('idle')
+    } catch (error) {
+      setModelAssetState('error')
+      setModelAssetMessage(error instanceof Error ? error.message : '3D 资产列表加载失败')
+    }
+  }, [loadModelAssets])
+
+  const importSelectedModel = (): void => {
+    const asset = modelAssets.find((candidate) => candidate.id === selectedAssetId)
+    if (!asset || asset.kind !== 'model3d' || asset.status !== 'ready' || !/^[0-9a-f]{64}$/.test(asset.blobHash)) {
+      setModelAssetMessage('请选择可信的 ready GLB 资产')
+      return
+    }
+    const safeId = asset.id.slice(0, 90)
+    const geometryId = `gltf-${safeId}`
+    const nodeId = `model-${safeId}`
+    const mediaRefId = `media-${safeId}`
+    setDocument((doc) => {
+      if ((doc.geometry3D ?? []).some((geometry) => geometry.kind === 'gltf' && geometry.assetHash === asset.blobHash)) {
+        return doc
+      }
+      return parseSceneDocument({
+        ...doc,
+        runtimeVersion: {
+          ...(doc.runtimeVersion ?? { sceneFormatVersion: '1.0', capabilities: [] }),
+          capabilities: Array.from(new Set([...(doc.runtimeVersion?.capabilities ?? []), 'webgl2']))
+        },
+        objectTree: [
+          ...(doc.objectTree ?? []),
+          {
+            id: nodeId,
+            name: asset.displayName,
+            transform: { position: [0, 0, 0], rotation: [0, 0, 0], scale: [1, 1, 1] },
+            visible: true,
+            meshRef: geometryId,
+            children: []
+          }
+        ],
+        geometry3D: [...(doc.geometry3D ?? []), { id: geometryId, kind: 'gltf', assetHash: asset.blobHash }],
+        mediaRefs: [
+          ...(doc.mediaRefs ?? []),
+          { id: mediaRefId, assetId: asset.id, blobHash: asset.blobHash, purpose: 'glb', label: asset.displayName }
+        ]
+      })
+    })
+    setSelectedNodeId(nodeId)
+    setViewportMode('3d')
+    setModelAssetMessage(`已导入 ${asset.displayName}`)
+    setStep('objects')
+  }
+
   const stepIndex = STEPS.findIndex((s) => s.id === step)
 
   const applyTemplate = (templateId: string): void => {
     const tpl = TEMPLATES.find((t) => t.id === templateId)
     if (tpl) {
-      setDocument(tpl.make())
+      const nextDocument = tpl.make()
+      setDocument(nextDocument)
+      setViewportMode(has2D3D(nextDocument))
       setStep('objects')
     }
   }
@@ -234,6 +350,7 @@ export function TeacherStudio({ demonstrationId, onSave, onSubmit }: TeacherStud
       })
     })
     setSelectedNodeId(null)
+    setViewportMode(shape === 'rect' || shape === 'circle' ? '2d' : '3d')
   }
 
   const updateNode = (nodeId: string, patch: Partial<NonNullable<SceneDocument['objectTree']>[number]>): void => {
@@ -249,6 +366,95 @@ export function TeacherStudio({ demonstrationId, onSave, onSubmit }: TeacherStud
     () => (document.objectTree ?? []).find((n) => n.id === selectedNodeId),
     [document, selectedNodeId]
   )
+
+  const addAnimationTrack = (): void => {
+    if (!selectedNode) return
+    setDocument((doc) => {
+      const timeline = doc.timeline ?? { tracks: [], chapters: [], duration: 10 }
+      const exists = timeline.tracks.some(
+        (track) => track.nodeId === selectedNode.id && track.keyframes[0]?.property === animationProperty
+      )
+      if (exists) return doc
+      const duration = Math.max(timeline.duration ?? 10, 1)
+      const startValue = animationValue(selectedNode, animationProperty)
+      const track = {
+        nodeId: selectedNode.id,
+        keyframes: [
+          { time: 0, property: animationProperty, value: startValue, easing: 'linear' as const },
+          {
+            time: duration,
+            property: animationProperty,
+            value: defaultEndValue(startValue, animationProperty),
+            easing: 'linear' as const
+          }
+        ]
+      }
+      return parseSceneDocument({
+        ...doc,
+        timeline: { ...timeline, duration, tracks: [...timeline.tracks, track] }
+      })
+    })
+  }
+
+  const updateKeyframe = (trackIndex: number, keyframeIndex: number, patch: Partial<Keyframe>): void => {
+    setDocument((doc) => {
+      const timeline = doc.timeline ?? { tracks: [], chapters: [], duration: 10 }
+      const tracks = timeline.tracks.map((track, index) => {
+        if (index !== trackIndex) return track
+        const keyframes = track.keyframes
+          .map((keyframe, frameIndex) => frameIndex === keyframeIndex ? { ...keyframe, ...patch } : keyframe)
+          .sort((a, b) => a.time - b.time)
+        return { ...track, keyframes }
+      })
+      const maxTime = Math.max(0, ...tracks.flatMap((track) => track.keyframes.map((keyframe) => keyframe.time)))
+      return parseSceneDocument({
+        ...doc,
+        timeline: { ...timeline, duration: Math.max(timeline.duration ?? 0, maxTime), tracks }
+      })
+    })
+  }
+
+  const addKeyframe = (trackIndex: number): void => {
+    setDocument((doc) => {
+      const timeline = doc.timeline ?? { tracks: [], chapters: [], duration: 10 }
+      const tracks = timeline.tracks.map((track, index) => {
+        if (index !== trackIndex || track.keyframes.length >= 500) return track
+        const last = track.keyframes[track.keyframes.length - 1]
+        if (!last) return track
+        const nextTime = last.time + 1
+        return {
+          ...track,
+          keyframes: [...track.keyframes, { ...last, time: nextTime, value: Array.isArray(last.value) ? [...last.value] : last.value }]
+        }
+      })
+      const maxTime = Math.max(0, ...tracks.flatMap((track) => track.keyframes.map((keyframe) => keyframe.time)))
+      return parseSceneDocument({
+        ...doc,
+        timeline: { ...timeline, duration: Math.max(timeline.duration ?? 0, maxTime), tracks }
+      })
+    })
+  }
+
+  const removeKeyframe = (trackIndex: number, keyframeIndex: number): void => {
+    setDocument((doc) => {
+      const timeline = doc.timeline ?? { tracks: [], chapters: [], duration: 10 }
+      const tracks = timeline.tracks.map((track, index) => {
+        if (index !== trackIndex || track.keyframes.length <= 1) return track
+        return { ...track, keyframes: track.keyframes.filter((_, frameIndex) => frameIndex !== keyframeIndex) }
+      })
+      return parseSceneDocument({ ...doc, timeline: { ...timeline, tracks } })
+    })
+  }
+
+  const removeTrack = (trackIndex: number): void => {
+    setDocument((doc) => {
+      const timeline = doc.timeline ?? { tracks: [], chapters: [], duration: 10 }
+      return parseSceneDocument({
+        ...doc,
+        timeline: { ...timeline, tracks: timeline.tracks.filter((_, index) => index !== trackIndex) }
+      })
+    })
+  }
 
   const nodeCount = document.objectTree?.length ?? 0
 
@@ -320,13 +526,64 @@ export function TeacherStudio({ demonstrationId, onSave, onSubmit }: TeacherStud
           </ul>
           <div className="studio-pane-title">资源</div>
           <div className="studio-resources">
-            <span>媒体资产库（T-B 上传接入）</span>
-            <span>glTF 导入件（T-C 白名单）</span>
+            <span>媒体资产库（T-B owner-scoped ready 资产）</span>
+            <button
+              type="button"
+              className="studio-btn"
+              onClick={() => void loadReadyModelAssets()}
+              disabled={modelAssetState === 'loading'}
+            >
+              {modelAssetState === 'loading' ? '加载中…' : '刷新 3D 资产'}
+            </button>
+            {modelAssets.length > 0 ? (
+              <>
+                <label>
+                  glTF 资产
+                  <select
+                    aria-label="glTF 资产"
+                    value={selectedAssetId}
+                    onChange={(event) => setSelectedAssetId(event.target.value)}
+                  >
+                    {modelAssets.map((asset) => (
+                      <option key={asset.id} value={asset.id}>
+                        {asset.displayName} · {(asset.byteSize / 1024).toFixed(1)} KiB
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <button type="button" className="studio-btn" onClick={importSelectedModel}>
+                  导入 glTF
+                </button>
+              </>
+            ) : null}
+            {modelAssetMessage ? (
+              <span role={modelAssetState === 'error' ? 'alert' : 'status'}>{modelAssetMessage}</span>
+            ) : null}
           </div>
         </aside>
 
         <main className="studio-center">
-          <div className="studio-viewport" data-2d3d={has2D3D(document)}>
+          {step !== 'preview' ? (
+            <div role="group" aria-label="视口模式" className="studio-toolbar">
+              <button
+                type="button"
+                className="studio-btn"
+                aria-pressed={viewportMode === '2d'}
+                onClick={() => setViewportMode('2d')}
+              >
+                2D
+              </button>
+              <button
+                type="button"
+                className="studio-btn"
+                aria-pressed={viewportMode === '3d'}
+                onClick={() => setViewportMode('3d')}
+              >
+                3D
+              </button>
+            </div>
+          ) : null}
+          <div className="studio-viewport" data-2d3d={viewportMode}>
             {step === 'create' ? (
               <div className="studio-template-picker">
                 <h3>选择模板</h3>
@@ -356,8 +613,12 @@ export function TeacherStudio({ demonstrationId, onSave, onSubmit }: TeacherStud
                   }}
                 />
               </Suspense>
+            ) : viewportMode === '3d' ? (
+              <Suspense fallback={<div className="studio-viewport-note">正在加载 PlayCanvas 视口…</div>}>
+                <PlayCanvasStudioViewport document={document} selectedNodeId={selectedNodeId} />
+              </Suspense>
             ) : (
-              <div className="studio-canvas-placeholder" data-2d3d={has2D3D(document)}>
+              <div className="studio-canvas-placeholder" data-2d3d="2d">
                 <StudioViewport document={document} />
               </div>
             )}
@@ -418,6 +679,130 @@ export function TeacherStudio({ demonstrationId, onSave, onSubmit }: TeacherStud
             </div>
           ) : (
             <div className="studio-properties-empty">选择对象查看属性</div>
+          )}
+
+          {step === 'animate' && (
+            <div className="studio-animation-editor" role="region" aria-label="关键帧编辑器">
+              <div className="studio-pane-title">关键帧</div>
+              {!selectedNode ? (
+                <div className="studio-empty">先从对象树选择要动画的对象</div>
+              ) : (
+                <>
+                  <label>
+                    动画属性
+                    <select
+                      aria-label="动画属性"
+                      value={animationProperty}
+                      onChange={(event) => setAnimationProperty(event.target.value as AnimationProperty)}
+                    >
+                      {ANIMATION_PROPERTIES.map((property) => (
+                        <option key={property.value} value={property.value}>{property.label}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <button type="button" className="studio-btn" onClick={addAnimationTrack}>
+                    添加动画轨道
+                  </button>
+                  {(document.timeline?.tracks ?? []).map((track, trackIndex) => {
+                    if (track.nodeId !== selectedNode.id) return null
+                    const property = track.keyframes[0]?.property ?? 'unknown'
+                    return (
+                      <div
+                        key={`${track.nodeId}-${property}`}
+                        className="studio-animation-track"
+                        role="group"
+                        aria-label={`${selectedNode.name ?? selectedNode.id} ${property} 动画轨道`}
+                      >
+                        <div className="studio-track">
+                          <strong>{property}</strong>
+                          <span>{track.keyframes.length} 关键帧</span>
+                          <button type="button" onClick={() => removeTrack(trackIndex)}>删除轨道</button>
+                        </div>
+                        {track.keyframes.map((keyframe, keyframeIndex) => (
+                          <fieldset key={`${keyframe.time}-${keyframeIndex}`} className="studio-keyframe">
+                            <legend>关键帧 {keyframeIndex + 1}</legend>
+                            <label>
+                              时间
+                              <input
+                                aria-label={`关键帧 ${keyframeIndex + 1} 时间`}
+                                type="number"
+                                min={0}
+                                step={0.1}
+                                value={keyframe.time}
+                                onChange={(event) => updateKeyframe(trackIndex, keyframeIndex, {
+                                  time: Math.max(0, Number(event.target.value))
+                                })}
+                              />
+                            </label>
+                            <label>
+                              缓动
+                              <select
+                                aria-label={`关键帧 ${keyframeIndex + 1} 缓动`}
+                                value={keyframe.easing}
+                                onChange={(event) => updateKeyframe(trackIndex, keyframeIndex, {
+                                  easing: event.target.value as Keyframe['easing']
+                                })}
+                              >
+                                {['linear', 'ease-in', 'ease-out', 'ease-in-out', 'step'].map((easing) => (
+                                  <option key={easing} value={easing}>{easing}</option>
+                                ))}
+                              </select>
+                            </label>
+                            {Array.isArray(keyframe.value) ? (
+                              <VectorKeyframeInputs
+                                value={keyframe.value}
+                                keyframeNumber={keyframeIndex + 1}
+                                onChange={(value) => updateKeyframe(trackIndex, keyframeIndex, { value })}
+                              />
+                            ) : typeof keyframe.value === 'boolean' ? (
+                              <label>
+                                可见
+                                <input
+                                  aria-label={`关键帧 ${keyframeIndex + 1} 可见`}
+                                  type="checkbox"
+                                  checked={keyframe.value}
+                                  onChange={(event) => updateKeyframe(trackIndex, keyframeIndex, {
+                                    value: event.target.checked
+                                  })}
+                                />
+                              </label>
+                            ) : (
+                              <label>
+                                值
+                                <input
+                                  aria-label={`关键帧 ${keyframeIndex + 1} 值`}
+                                  type="number"
+                                  step={0.1}
+                                  value={keyframe.value}
+                                  onChange={(event) => updateKeyframe(trackIndex, keyframeIndex, {
+                                    value: Number(event.target.value)
+                                  })}
+                                />
+                              </label>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => removeKeyframe(trackIndex, keyframeIndex)}
+                              disabled={track.keyframes.length <= 1}
+                            >
+                              删除关键帧
+                            </button>
+                          </fieldset>
+                        ))}
+                        <button
+                          type="button"
+                          className="studio-btn"
+                          onClick={() => addKeyframe(trackIndex)}
+                          disabled={track.keyframes.length >= 500}
+                        >
+                          新增关键帧
+                        </button>
+                      </div>
+                    )
+                  })}
+                </>
+              )}
+            </div>
           )}
 
           <div className="studio-pane-title">
@@ -515,25 +900,43 @@ export function TeacherStudio({ demonstrationId, onSave, onSubmit }: TeacherStud
   )
 }
 
+function VectorKeyframeInputs({
+  value,
+  keyframeNumber,
+  onChange
+}: {
+  value: [number, number, number]
+  keyframeNumber: number
+  onChange: (value: [number, number, number]) => void
+}) {
+  return (
+    <div className="studio-keyframe-vector">
+      {(['X', 'Y', 'Z'] as const).map((axis, componentIndex) => (
+        <label key={axis}>
+          {axis}
+          <input
+            aria-label={`关键帧 ${keyframeNumber} ${axis}`}
+            type="number"
+            step={0.1}
+            value={value[componentIndex]}
+            onChange={(event) => {
+              const next: [number, number, number] = [...value]
+              next[componentIndex] = Number(event.target.value)
+              onChange(next)
+            }}
+          />
+        </label>
+      ))}
+    </div>
+  )
+}
+
 function has2D3D(doc: SceneDocument): '2d' | '3d' {
   return (doc.geometry3D ?? []).length > 0 ? '3d' : '2d'
 }
 
-/** Center viewport — renders the scene graph deterministically (spec §8). */
+/** Center 2D viewport — renders SVG subset deterministically (spec §8). */
 function StudioViewport({ document }: { document: SceneDocument }) {
-  const geoms3D = document.geometry3D ?? []
-  if (geoms3D.length > 0) {
-    return (
-      <div className="studio-viewport-3d">
-        {geoms3D.map((g, i) => (
-          <div key={i} className="studio-3d-node">
-            {g.kind} 图元
-          </div>
-        ))}
-        <p className="studio-viewport-note">PlayCanvas 3D 视口（T-H chunk 接入点）</p>
-      </div>
-    )
-  }
   const geoms2D = document.geometry2D ?? []
   return (
     <svg className="studio-viewport-svg" viewBox="-5 -5 10 10" role="img" aria-label="2D 画布">

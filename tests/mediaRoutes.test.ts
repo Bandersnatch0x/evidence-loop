@@ -34,6 +34,18 @@ const REAL_PNG: Buffer = (() => {
   return Buffer.concat([ihdr, Buffer.alloc(8)]) // 8 bytes of payload after IHDR
 })()
 
+/** Minimal structurally valid GLB v2 with one embedded JSON chunk. */
+const REAL_GLB: Buffer = (() => {
+  const json = Buffer.from(JSON.stringify({ asset: { version: '2.0' }, scene: 0, scenes: [{}] }), 'utf8')
+  const header = Buffer.alloc(20)
+  header.writeUInt32LE(0x46546c67, 0) // glTF
+  header.writeUInt32LE(2, 4)
+  header.writeUInt32LE(header.length + json.length, 8)
+  header.writeUInt32LE(json.length, 12)
+  header.writeUInt32LE(0x4e4f534a, 16) // JSON
+  return Buffer.concat([header, json])
+})()
+
 describe('media routes', () => {
   let server: Awaited<ReturnType<typeof createEvidenceRingServer>>
   let baseUrl: string
@@ -116,6 +128,40 @@ describe('media routes', () => {
     const body = Buffer.from(await range.arrayBuffer())
     expect(body.equals(PNG_HEAD)).toBe(true)
     void id
+  })
+
+  it('lists only the current teacher ready model assets', async () => {
+    const { uploadUrl } = await createSession('glb', REAL_GLB.length)
+    const upload = await fetch(`${baseUrl}${uploadUrl}`, {
+      method: 'PATCH',
+      headers: {
+        'x-demo-role': 'teacher',
+        'upload-offset': '0',
+        'content-type': 'application/offset+octet-stream'
+      },
+      body: REAL_GLB
+    })
+    expect(upload.status).toBe(204)
+
+    const listed = await fetch(`${baseUrl}/api/media/assets?kind=model3d`, {
+      headers: { 'x-demo-role': 'teacher' }
+    })
+    expect(listed.status).toBe(200)
+    const body = (await listed.json()) as {
+      assets: Array<{ id: string; kind: string; blobHash: string; displayName: string; status: string }>
+    }
+    expect(body.assets).toHaveLength(1)
+    expect(body.assets[0]).toMatchObject({
+      kind: 'model3d',
+      blobHash: hashMediaBytes(REAL_GLB),
+      displayName: 'glb asset',
+      status: 'ready'
+    })
+
+    const denied = await fetch(`${baseUrl}/api/media/assets?kind=model3d`, {
+      headers: { 'x-demo-role': 'student' }
+    })
+    expect(denied.status).toBe(403)
   })
 
   it('supports resume: HEAD returns Upload-Offset after a partial PATCH', async () => {

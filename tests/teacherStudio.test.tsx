@@ -9,6 +9,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { TeacherStudio } from '../src/components/teacher/TeacherStudio'
 import { TEMPLATES } from '../src/components/teacher/templates'
 import { TeacherWorkbench } from '../src/components/teacher/TeacherWorkbench'
+import { getRenderable3DNodes } from '../src/components/teacher/viewportModel'
 import type { SceneDocument } from '../server/demonstration/sceneDocumentSchema'
 
 describe('T-H TeacherStudio', () => {
@@ -27,6 +28,46 @@ describe('T-H TeacherStudio', () => {
     }
     expect(screen.getByLabelText('对象树')).not.toBeNull()
     expect(document.querySelector('.studio-layout')).not.toBeNull()
+  })
+
+  it('maps nested SceneDocument objects to trusted 3D viewport nodes', () => {
+    const hash = 'b'.repeat(64)
+    const doc = TEMPLATES.find((template) => template.id === 'demo-dna')!.make()
+    const withModel = {
+      ...doc,
+      geometry3D: [{ id: 'model-geometry', kind: 'gltf' as const, assetHash: hash }],
+      objectTree: [
+        {
+          id: 'root',
+          name: '根节点',
+          transform: { position: [0, 0, 0] as [number, number, number], rotation: [0, 0, 0] as [number, number, number], scale: [1, 1, 1] as [number, number, number] },
+          visible: true,
+          children: [
+            {
+              id: 'nested-model',
+              name: '嵌套模型',
+              transform: { position: [1, 2, 3] as [number, number, number], rotation: [0, 0, 0] as [number, number, number], scale: [1, 1, 1] as [number, number, number] },
+              visible: true,
+              meshRef: 'model-geometry',
+              children: []
+            }
+          ]
+        }
+      ]
+    } as SceneDocument
+
+    const nodes = getRenderable3DNodes(withModel)
+    expect(nodes).toHaveLength(1)
+    expect(nodes[0]?.id).toBe('nested-model')
+    expect(nodes[0]?.geometry).toMatchObject({ kind: 'gltf', assetHash: hash })
+    expect(nodes[0]?.assetUrl).toBe(`/api/media/blobs/${hash}`)
+  })
+
+  it('mounts the lazy PlayCanvas viewport in 3D mode', async () => {
+    render(<TeacherStudio />)
+    fireEvent.click(screen.getByRole('button', { name: 'DNA 双螺旋模板' }))
+    fireEvent.click(screen.getByRole('button', { name: '3D' }))
+    expect(await screen.findByLabelText('PlayCanvas 3D 创作视口')).not.toBeNull()
   })
 
   it('step 1 shows templates; applying one advances to objects', () => {
@@ -55,6 +96,63 @@ describe('T-H TeacherStudio', () => {
     expect(nameInput.value).toBe('主链')
     // Object tree reflects the rename.
     expect(screen.getByText('主链')).not.toBeNull()
+  })
+
+  it('imports a ready owner-scoped GLB asset into the SceneDocument', async () => {
+    const hash = 'a'.repeat(64)
+    const onSave = vi.fn<(doc: SceneDocument) => Promise<boolean>>(() => Promise.resolve(true))
+    const loadModelAssets = vi.fn(() => Promise.resolve([
+      {
+        id: 'asset-1',
+        kind: 'model3d' as const,
+        blobHash: hash,
+        status: 'ready' as const,
+        displayName: '细胞模型.glb',
+        byteSize: 1024
+      }
+    ]))
+    render(<TeacherStudio onSave={onSave} loadModelAssets={loadModelAssets} />)
+
+    fireEvent.click(screen.getByRole('button', { name: '刷新 3D 资产' }))
+    await waitFor(() => expect(screen.getByLabelText('glTF 资产')).not.toBeNull())
+    fireEvent.click(screen.getByRole('button', { name: '导入 glTF' }))
+    expect(screen.getByText('细胞模型.glb')).not.toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: '保存草稿' }))
+
+    await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1))
+    const doc = onSave.mock.calls[0]![0]
+    expect(doc.geometry3D?.[0]).toMatchObject({ kind: 'gltf', assetHash: hash })
+    expect(doc.mediaRefs?.[0]).toMatchObject({ assetId: 'asset-1', blobHash: hash, purpose: 'glb' })
+    expect(doc.objectTree?.[0]?.meshRef).toBe(doc.geometry3D?.[0]?.id)
+  })
+
+  it('creates and edits a deterministic keyframe track in the animate step', async () => {
+    const onSave = vi.fn<(doc: SceneDocument) => Promise<boolean>>(() => Promise.resolve(true))
+    render(<TeacherStudio onSave={onSave} />)
+    fireEvent.click(screen.getByRole('button', { name: 'DNA 双螺旋模板' }))
+    fireEvent.click(screen.getByText('DNA 链'))
+    fireEvent.click(screen.getByText(/3\. 调动画/))
+
+    expect(screen.getByLabelText('动画属性')).not.toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: '添加动画轨道' }))
+    expect(screen.getByText('2 关键帧')).not.toBeNull()
+
+    fireEvent.change(screen.getByLabelText('关键帧 2 时间'), { target: { value: '4' } })
+    fireEvent.change(screen.getByLabelText('关键帧 2 X'), { target: { value: '2' } })
+    fireEvent.change(screen.getByLabelText('关键帧 2 缓动'), { target: { value: 'ease-in-out' } })
+    fireEvent.click(screen.getByRole('button', { name: '保存草稿' }))
+
+    await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1))
+    const doc = onSave.mock.calls[0]![0]
+    const track = doc.timeline?.tracks[0]
+    expect(track?.nodeId).toBe('strand')
+    expect(track?.keyframes).toHaveLength(2)
+    expect(track?.keyframes[1]).toMatchObject({
+      time: 4,
+      property: 'transform.position',
+      value: [2, 0, 0],
+      easing: 'ease-in-out'
+    })
   })
 
   it('save draft calls the injected handler with the current document', async () => {

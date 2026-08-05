@@ -18,7 +18,7 @@ import { chromium } from 'playwright'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const outDir = join(root, 'docs', 'screenshots', 'demo-videos')
-const baseUrl = process.argv[2] ?? 'http://127.0.0.1:4173'
+const baseUrl = process.argv[2] ?? 'http://127.0.0.1:4180'
 
 async function sleep(ms) {
   await new Promise((resolve) => setTimeout(resolve, ms))
