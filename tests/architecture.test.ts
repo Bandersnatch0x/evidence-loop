@@ -464,3 +464,74 @@ describe('architecture guard: T-G student player scoring-chain isolation (spec �
     expect(source).toMatch(/api\/demonstrations\//)
   })
 })
+
+describe('architecture guard: #29 reference resolution stays in the display layer', () => {
+  // New-reference-first dual-read (spec §9 / pre-workflow decision): the
+  // assignment HTTP display layer resolves demonstration references BEFORE the
+  // legacy visualization fallback. Scoring paths must never touch
+  // demonstration references or the migration guard table.
+  const SCORING_DIRS = ['server/mastery', 'server/review', 'server/runner', 'server/adaptive']
+  const REFERENCE_PATTERNS = [
+    /listStudentReferencesForAssignment/,
+    /listStudentReferencesForKp/,
+    /demonstration_references/,
+    /visualization_migration_map/
+  ]
+
+  it('scoring paths never resolve demonstration references or read the migration guard', () => {
+    const violations: string[] = []
+    for (const dir of SCORING_DIRS) {
+      if (!existsSync(resolve(projectRoot, dir))) continue
+      for (const filePath of collectSourceFiles(dir)) {
+        const source = readFileSync(filePath, 'utf8')
+        for (const pattern of REFERENCE_PATTERNS) {
+          if (pattern.test(source)) {
+            violations.push(
+              `${filePath.slice(projectRoot.length + 1).replace(/\\/g, '/')} matches ${pattern}`
+            )
+          }
+        }
+      }
+    }
+    expect(
+      violations,
+      violations.length === 0
+        ? ''
+        : [
+            '#29 违规：评分路径（mastery/review/runner/adaptive）不得解析演示引用',
+            '或读 visualization_migration_map 守卫表。新引用解析只在 assignment HTTP 展示层，',
+            'AssignmentRegistry/runner/rubric/evidence 路径不读演示表（评分隔离铁律）。违规：',
+            violations.join('\n')
+          ].join('\n')
+    ).toEqual([])
+  })
+
+  it('assignment display layer resolves new references before legacy visualization fallback', () => {
+    const source = readFileSync(resolve(projectRoot, 'server/index.ts'), 'utf8')
+    // New-reference-first: listStudentReferencesForAssignment must appear before
+    // the legacy `visualization` fallback in the assignment GET projection.
+    const refIdx = source.indexOf('listStudentReferencesForAssignment')
+    const legacyIdx = source.indexOf('assignment.visualization')
+    expect(refIdx).toBeGreaterThanOrEqual(0)
+    expect(legacyIdx).toBeGreaterThan(refIdx)
+    // Legacy fallback is gated on the absence of a primary demonstration.
+    expect(source).toMatch(/!hasPrimaryDemonstration && assignment.visualization/)
+  })
+
+  it('student-facing demonstration read endpoints never write demonstration tables', () => {
+    const readFiles = [
+      'server/demonstration/playerRoutes.ts',
+      'server/demonstration/referenceRoutes.ts'
+    ]
+    for (const rel of readFiles) {
+      const source = readFileSync(resolve(projectRoot, rel), 'utf8')
+      // No direct table mutation in these read/route files; writes go through
+      // author-side service methods (ReferenceService.setReferences etc).
+      const directWrite = /INSERT\s+INTO\s+(teaching_demonstrations|demonstration_versions|demonstration_references)/i
+      expect(
+        source.match(directWrite),
+        `${rel} must not write demonstration tables directly`
+      ).toBeNull()
+    }
+  })
+})
