@@ -1,5 +1,10 @@
 import { defineConfig } from '@playwright/test'
 
+// Corporate/system proxies must never intercept the local E2E server probe.
+const noProxy = [process.env.NO_PROXY, 'localhost', '127.0.0.1'].filter(Boolean).join(',')
+process.env.NO_PROXY = noProxy
+process.env.no_proxy = noProxy
+
 export default defineConfig({
   testDir: './e2e',
   timeout: 30_000,
@@ -26,12 +31,9 @@ export default defineConfig({
   ],
   webServer: {
     command: 'npm run dev',
-    // Probe an EvidenceRing-specific endpoint so Playwright never reuses an
-    // unrelated Vite app that happens to occupy port 4173 (a rogue process
-    // answers 400/404 to the probe and would otherwise be mistaken for ours).
+    // Probe an EvidenceRing-specific endpoint on its dedicated port. Reuse is
+    // safe only when this exact health route is available.
     url: 'http://localhost:4180/api/health',
-    // Always launch our own server — never reuse a possibly-foreign process
-    // that merely answers the probe.
     reuseExistingServer: true,
     timeout: 120_000
   }

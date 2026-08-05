@@ -12,6 +12,7 @@ import { parseSceneDocument, type SceneDocument } from '../server/demonstration/
 import { applyProductMigrations } from '../server/db/migrate'
 import { createDemoAuditSink } from '../server/demonstration/demoAuditSink'
 import { DemonstrationService } from '../server/demonstration/DemonstrationService'
+import { ReferenceService } from '../server/demonstration/ReferenceService'
 import { ReviewService } from '../server/demonstration/ReviewService'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import type { Socket } from 'node:net'
@@ -59,6 +60,7 @@ interface Env {
   db: Database.Database
   demo: DemonstrationService
   review: ReviewService
+  refs: ReferenceService
   audit: ReturnType<typeof createDemoAuditSink>
 }
 
@@ -75,7 +77,8 @@ function makeEnv(): Env {
   } as never)
   const demo = new DemonstrationService({ db, audit })
   const review = new ReviewService({ db, audit })
-  return { db, demo, review, audit }
+  const refs = new ReferenceService({ db })
+  return { db, demo, review, refs, audit }
 }
 
 function publish(env: Env, owner = 'teacher-1'): { demoId: string; versionId: string } {
@@ -342,5 +345,53 @@ describe('T-G player payload endpoint', () => {
       { db: env.db }
     )
     expect(handled).toBe(false)
+  })
+
+  it('lists KP-bound student demonstrations (知识点页)', () => {
+    const env = makeEnv()
+    const { versionId } = publish(env)
+    env.refs.setReferences('reviewer-1', 'teacher', {
+      kpId: 'kp.bio.photo',
+      entries: [{ demoVersionId: versionId, role: 'primary' }]
+    })
+    const c = capture()
+    handlePlayerApi(
+      makeRequest('/api/demonstrations/by-kp/kp.bio.photo').request,
+      c.res,
+      '/api/demonstrations/by-kp/kp.bio.photo',
+      { db: env.db, references: env.refs, getRole: () => 'student' }
+    )
+    expect(c.status()).toBe(200)
+    const body = c.json() as { demonstrations: Array<{ role: string; versionId: string; health: string }> }
+    expect(body.demonstrations).toHaveLength(1)
+    expect(body.demonstrations[0]?.role).toBe('primary')
+    expect(body.demonstrations[0]?.versionId).toBe(versionId)
+    expect(body.demonstrations[0]?.health).toBe('healthy')
+  })
+
+  it('returns an empty demonstration list for an unknown KP', () => {
+    const env = makeEnv()
+    const c = capture()
+    handlePlayerApi(
+      makeRequest('/api/demonstrations/by-kp/kp.unknown').request,
+      c.res,
+      '/api/demonstrations/by-kp/kp.unknown',
+      { db: env.db, references: env.refs, getRole: () => 'student' }
+    )
+    expect(c.status()).toBe(200)
+    const body = c.json() as { demonstrations: unknown[] }
+    expect(body.demonstrations).toEqual([])
+  })
+
+  it('denies KP demonstration listing to non-student roles', () => {
+    const env = makeEnv()
+    const c = capture()
+    handlePlayerApi(
+      makeRequest('/api/demonstrations/by-kp/kp.bio.photo').request,
+      c.res,
+      '/api/demonstrations/by-kp/kp.bio.photo',
+      { db: env.db, references: env.refs, getRole: () => 'teacher' }
+    )
+    expect(c.status()).toBe(403)
   })
 })

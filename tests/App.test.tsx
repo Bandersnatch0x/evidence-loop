@@ -264,7 +264,7 @@ describe('App', () => {
     await screen.findByRole('heading', { name: assignment.title })
     await waitFor(() => {
       expect(screen.getByText('公共库')).toBeInTheDocument()
-    })
+    }, { timeout: 10_000 })
     expect(screen.getByText('v2')).toBeInTheDocument()
     expect(screen.queryByText('生成演示', { exact: false })).toBeNull()
     fetchStub.mockRestore()

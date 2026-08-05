@@ -1,7 +1,13 @@
-import { useState } from 'react'
-import { CalendarClock, CheckCircle2, Layers } from 'lucide-react'
-import type { ReviewCard } from '../../shared/contracts'
+import { useState, lazy, Suspense } from 'react'
+import { CalendarClock, CheckCircle2, Layers, PlayCircle } from 'lucide-react'
+import type { DemonstrationReferenceView, ReviewCard } from '../../shared/contracts'
 import { kpName } from '../lib/masteryView'
+
+// StudentDemonstration pulls StudentPlayer; lazy-load so the player chunk
+// stays off the review queue's first paint (spec §8 chunk isolation).
+const StudentDemonstration = lazy(() =>
+  import('./demonstration/StudentDemonstration').then((m) => ({ default: m.StudentDemonstration }))
+)
 
 interface TodayReviewListProps {
   cards: ReviewCard[]
@@ -23,6 +29,14 @@ const ratingOptions: Array<{ rating: 1 | 2 | 3 | 4; label: string }> = [
   { rating: 3, label: '一般' },
   { rating: 4, label: '轻松' }
 ]
+
+/** Fetch KP-bound demonstrations (知识点页 解析模式). */
+async function fetchKpDemonstrations(kpId: string): Promise<DemonstrationReferenceView[]> {
+  const response = await fetch(`/api/demonstrations/by-kp/${encodeURIComponent(kpId)}`)
+  if (!response.ok) return []
+  const data = (await response.json()) as { demonstrations?: DemonstrationReferenceView[] }
+  return data.demonstrations ?? []
+}
 
 function formatDue(value: string): string {
   return new Intl.DateTimeFormat('zh-CN', {
@@ -73,49 +87,109 @@ export function TodayReviewList({
         const isPending = pendingId === card.id
         return (
           <li key={card.id} className="review-card">
-            <div className="review-card-head">
-              <div>
-                <span className="section-label">
-                  <Layers size={13} /> {stateLabels[card.scheduling.state]}
-                </span>
-                <h3>{kpName(kpNames, card.kpId)}</h3>
-              </div>
-              <span className="review-card-due">
-                <CalendarClock size={13} /> 到期 {formatDue(card.scheduling.dueAt)}
-              </span>
-            </div>
-
-            <dl className="review-card-stats">
-              <div>
-                <dt>复习次数</dt>
-                <dd>{card.scheduling.reps}</dd>
-              </div>
-              <div>
-                <dt>遗忘次数</dt>
-                <dd>{card.scheduling.lapses}</dd>
-              </div>
-              <div>
-                <dt>稳定度</dt>
-                <dd>{card.scheduling.stability.toFixed(1)}</dd>
-              </div>
-            </dl>
-
-            <div className="review-card-actions" role="group" aria-label="复习评分">
-              {ratingOptions.map((option) => (
-                <button
-                  key={option.rating}
-                  type="button"
-                  className={`review-rating rating-${option.rating}`}
-                  disabled={isPending}
-                  onClick={() => void handleComplete(card.id, option.rating)}
-                >
-                  {option.label}
-                </button>
-              ))}
-            </div>
+            <ReviewCardBody
+              card={card}
+              kpNames={kpNames}
+              isPending={isPending}
+              onComplete={handleComplete}
+            />
           </li>
         )
       })}
     </ul>
+  )
+}
+
+/** Card body + on-demand KP demonstration (解析页 expanded mode). */
+function ReviewCardBody({
+  card,
+  kpNames,
+  isPending,
+  onComplete
+}: {
+  card: ReviewCard
+  kpNames: Map<string, string>
+  isPending: boolean
+  onComplete: (cardId: string, rating: 1 | 2 | 3 | 4) => Promise<void>
+}) {
+  const [demoOpen, setDemoOpen] = useState(false)
+  const [demos, setDemos] = useState<DemonstrationReferenceView[] | null>(null)
+
+  const toggleDemo = async (): Promise<void> => {
+    if (demoOpen) {
+      setDemoOpen(false)
+      return
+    }
+    setDemoOpen(true)
+    if (demos === null) {
+      try {
+        setDemos(await fetchKpDemonstrations(card.kpId))
+      } catch {
+        setDemos([])
+      }
+    }
+  }
+
+  return (
+    <>
+      <div className="review-card-head">
+        <div>
+          <span className="section-label">
+            <Layers size={13} /> {stateLabels[card.scheduling.state]}
+          </span>
+          <h3>{kpName(kpNames, card.kpId)}</h3>
+        </div>
+        <span className="review-card-due">
+          <CalendarClock size={13} /> 到期 {formatDue(card.scheduling.dueAt)}
+        </span>
+      </div>
+
+      <dl className="review-card-stats">
+        <div>
+          <dt>复习次数</dt>
+          <dd>{card.scheduling.reps}</dd>
+        </div>
+        <div>
+          <dt>遗忘次数</dt>
+          <dd>{card.scheduling.lapses}</dd>
+        </div>
+        <div>
+          <dt>稳定度</dt>
+          <dd>{card.scheduling.stability.toFixed(1)}</dd>
+        </div>
+      </dl>
+
+      <button
+        type="button"
+        className="review-demo-toggle"
+        aria-expanded={demoOpen}
+        onClick={() => void toggleDemo()}
+      >
+        <PlayCircle size={15} /> {demoOpen ? '收起教学演示' : '查看教学演示'}
+      </button>
+      {demoOpen && demos !== null && demos.length > 0 ? (
+        <div className="review-demo-slot" role="region" aria-label="知识点教学演示">
+          <Suspense fallback={<div className="loading-bar" />}>
+            <StudentDemonstration refs={demos} expanded />
+          </Suspense>
+        </div>
+      ) : demoOpen && demos !== null ? (
+        <p className="review-demo-empty">该知识点暂无教学演示</p>
+      ) : null}
+
+      <div className="review-card-actions" role="group" aria-label="复习评分">
+        {ratingOptions.map((option) => (
+          <button
+            key={option.rating}
+            type="button"
+            className={`review-rating rating-${option.rating}`}
+            disabled={isPending}
+            onClick={() => void onComplete(card.id, option.rating)}
+          >
+            {option.label}
+          </button>
+        ))}
+      </div>
+    </>
   )
 }

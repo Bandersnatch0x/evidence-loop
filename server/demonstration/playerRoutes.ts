@@ -20,6 +20,7 @@
  */
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import type { Database } from 'better-sqlite3'
+import type { DemonstrationReferenceView } from '../../shared/contracts'
 import { safeParseSceneDocument } from './sceneDocumentSchema'
 import { negotiateCapabilities, type DeviceCapability } from './capabilities'
 import { runSecurityGuards, checkResourceBudget } from './sceneSecurity'
@@ -71,6 +72,9 @@ export interface PlayerRouteContext {
   db: Database
   /** Device capability probe supplied by the player (or default for SSR). */
   device?: DeviceCapability
+  /** Reference service for student KP-bound demonstration listing (知识点页). */
+  references?: { listStudentReferencesForKp: (kpId: string) => DemonstrationReferenceView[] }
+  getRole?: () => string
 }
 
 const JSON_HEADERS = {
@@ -117,6 +121,24 @@ export function handlePlayerApi(
   ctx: PlayerRouteContext
 ): boolean {
   if (request.method !== 'GET') return false
+
+  // GET /api/demonstrations/by-kp/:kpId — student KP-bound references (知识点页).
+  // No auth gate beyond the session (student-facing read-only display).
+  const kpMatch = pathname.match(/^\/api\/demonstrations\/by-kp\/([^/]+)$/)
+  if (kpMatch) {
+    if (ctx.getRole?.() !== 'student') {
+      respondJson(response, 403, { error: 'KP demonstrations require student role' })
+      return true
+    }
+    const kpId = decodeURIComponent(kpMatch[1] ?? '')
+    if (!ctx.references) {
+      respondJson(response, 503, { error: 'reference service unavailable' })
+      return true
+    }
+    const demonstrations = ctx.references.listStudentReferencesForKp(kpId)
+    respondJson(response, 200, { demonstrations })
+    return true
+  }
 
   const match = pathname.match(
     /^\/api\/demonstrations\/([^/]+)\/versions\/([^/]+)\/player$/

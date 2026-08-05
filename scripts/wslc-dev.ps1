@@ -75,7 +75,7 @@ if ($Action -eq "shell" -or $Action -eq "dev") {
 }
 
 if ($Action -eq "dev") {
-    $arguments += @("-p", "4173:4173")
+    $arguments += @("-p", "4180:4180")
 }
 
 $arguments += $image

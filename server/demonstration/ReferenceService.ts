@@ -292,6 +292,32 @@ export class ReferenceService {
     return []
   }
 
+  /**
+   * Student presentation references bound to a knowledge point (spec §8 学生侧
+   * 触点 知识点页). Mirrors listStudentReferencesForAssignment but queries
+   * kp_id; no migration-map fallback (Phase E migration targets question_id).
+   * Returns DemonstrationReferenceView[] ordered by ord.
+   */
+  public listStudentReferencesForKp(kpId: string): DemonstrationReferenceView[] {
+    if (!kpId || kpId.trim() === '') return []
+    const rows = this.db.prepare(
+      `SELECT r.id, r.role,
+              d.id AS demoId, v.id AS versionId, v.license,
+              (SELECT COUNT(*) FROM demonstration_versions v2
+               WHERE v2.demonstration_id = d.id AND v2.frozen_at <= v.frozen_at) AS versionSeq,
+              d.owner_id AS ownerId, COALESCE(u.display_name, '平台') AS authorName,
+              d.meta_json AS metaJson,
+              CASE WHEN d.deleted_at IS NULL THEN 'healthy' ELSE 'unavailable' END AS health
+       FROM demonstration_references r
+       JOIN demonstration_versions v ON v.id = r.demo_version_id
+       JOIN teaching_demonstrations d ON d.id = v.demonstration_id
+       LEFT JOIN users u ON u.id = d.owner_id
+       WHERE r.kp_id = ?
+       ORDER BY r.ord ASC`
+    ).all(kpId) as StudentReferenceRow[]
+    return rows.map(toStudentReference)
+  }
+
   /** Remove a single reference (DELETE semantics, §5.6). */
   public removeReference(actorId: string, actorRole: string, referenceId: string): void {
     this.assertTeacher(actorId, actorRole)

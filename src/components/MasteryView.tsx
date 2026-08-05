@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from 'react'
-import { AlertTriangle, ShieldCheck } from 'lucide-react'
+import { useEffect, useMemo, useState, lazy, Suspense } from 'react'
+import { AlertTriangle, PlayCircle, ShieldCheck } from 'lucide-react'
 import type {
+  DemonstrationReferenceView,
   KnowledgePoint,
   MasteryProfileMap,
   MasteryTimelineEntry
@@ -9,6 +10,20 @@ import { getMasteryProfile, getMasteryTimeline } from '../lib/api'
 import { buildKpNameMap, kpName } from '../lib/masteryView'
 import { MasteryHeatmap } from './MasteryHeatmap'
 import { MasteryTimeline } from './MasteryTimeline'
+
+// StudentDemonstration pulls StudentPlayer; lazy-load so the player chunk
+// stays off the mastery page's first paint (spec §8 chunk isolation).
+const StudentDemonstration = lazy(() =>
+  import('./demonstration/StudentDemonstration').then((m) => ({ default: m.StudentDemonstration }))
+)
+
+/** Fetch KP-bound demonstrations (知识点页 expanded mode). */
+async function fetchKpDemonstrations(kpId: string): Promise<DemonstrationReferenceView[]> {
+  const response = await fetch(`/api/demonstrations/by-kp/${encodeURIComponent(kpId)}`)
+  if (!response.ok) return []
+  const data = (await response.json()) as { demonstrations?: DemonstrationReferenceView[] }
+  return data.demonstrations ?? []
+}
 
 interface MasteryViewProps {
   studentId: string
@@ -25,6 +40,8 @@ export function MasteryView({ studentId, points }: MasteryViewProps) {
   const [profile, setProfile] = useState<MasteryProfileMap>({})
   const [selectedKpId, setSelectedKpId] = useState<string>()
   const [timeline, setTimeline] = useState<MasteryTimelineEntry[]>([])
+  const [demos, setDemos] = useState<DemonstrationReferenceView[] | null>(null)
+  const [demosLoading, setDemosLoading] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string>()
 
@@ -71,6 +88,28 @@ export function MasteryView({ studentId, points }: MasteryViewProps) {
     }
   }, [studentId, selectedKpId])
 
+  useEffect(() => {
+    if (!selectedKpId) {
+      setDemos(null)
+      return
+    }
+    let cancelled = false
+    setDemosLoading(true)
+    fetchKpDemonstrations(selectedKpId)
+      .then((loaded) => {
+        if (!cancelled) setDemos(loaded)
+      })
+      .catch(() => {
+        if (!cancelled) setDemos([])
+      })
+      .finally(() => {
+        if (!cancelled) setDemosLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [selectedKpId])
+
   if (isLoading) {
     return (
       <div className="view-loading"><span className="loading-bar" />正在读取掌握度证据...</div>
@@ -108,6 +147,22 @@ export function MasteryView({ studentId, points }: MasteryViewProps) {
           entries={timeline}
         />
       </section>
+
+      {selectedKpId && demos !== null && demos.length > 0 ? (
+        <section className="mastery-section" aria-label="知识点教学演示">
+          <div className="section-heading">
+            <PlayCircle size={16} />
+            <h2>{kpName(kpNames, selectedKpId)} · 教学演示</h2>
+          </div>
+          <Suspense fallback={<div className="loading-bar" />}>
+            <StudentDemonstration refs={demos} expanded />
+          </Suspense>
+        </section>
+      ) : selectedKpId && !demosLoading && demos !== null ? (
+        <section className="mastery-section" aria-label="知识点教学演示">
+          <p className="muted">该知识点暂无教学演示</p>
+        </section>
+      ) : null}
     </div>
   )
 }

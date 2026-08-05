@@ -1552,7 +1552,9 @@ async function handleApi(
   }
   if (
     handlePlayerApi(request, response, requestUrl.pathname, {
-      db: context.demonstration.db
+      db: context.demonstration.db,
+      references: context.demonstration.references,
+      getRole: () => user.role
     })
   ) {
     return

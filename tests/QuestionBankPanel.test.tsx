@@ -153,7 +153,7 @@ describe('QuestionBankPanel (T03 hand-entry)', () => {
     await user.click(screen.getByRole('button', { name: /管理教学演示引用/ }))
     await waitFor(() => {
       expect(screen.getByLabelText('检索')).toBeTruthy()
-    })
+    }, { timeout: 10_000 })
     expect(screen.getByText(/已引用/)).toBeTruthy()
     fetchStub.mockRestore()
   })

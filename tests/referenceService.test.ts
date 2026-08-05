@@ -334,3 +334,48 @@ describe('ReferenceService — student assignment resolution (reference-first)',
     expect(refs[0]?.versionId).toBeTruthy()
   })
 })
+
+describe('ReferenceService — student KP resolution (知识点页)', () => {
+  it('returns references bound to a knowledge point', () => {
+    const env = makeEnv()
+    const v = published(env, 'kp demo')
+    env.refs.setReferences('teacher-1', 'teacher', {
+      kpId: 'kp.physics.mechanics',
+      entries: [{ demoVersionId: v, role: 'primary' }]
+    })
+    const refs = env.refs.listStudentReferencesForKp('kp.physics.mechanics')
+    expect(refs).toHaveLength(1)
+    expect(refs[0]?.role).toBe('primary')
+    expect(refs[0]?.versionId).toBe(v)
+    expect(refs[0]?.title).toBe('kp demo')
+    expect(refs[0]?.source).toBe('mine')
+    expect(refs[0]?.health).toBe('healthy')
+  })
+
+  it('returns an empty list for an unknown KP', () => {
+    const env = makeEnv()
+    expect(env.refs.listStudentReferencesForKp('kp.unknown')).toEqual([])
+  })
+
+  it('returns an empty list for an empty KP id', () => {
+    const env = makeEnv()
+    expect(env.refs.listStudentReferencesForKp('')).toEqual([])
+    expect(env.refs.listStudentReferencesForKp('   ')).toEqual([])
+  })
+
+  it('orders primary before supplementary', () => {
+    const env = makeEnv()
+    const primary = published(env, 'primary')
+    const supp = published(env, 'supp')
+    env.refs.setReferences('teacher-1', 'teacher', {
+      kpId: 'kp.1',
+      entries: [
+        { demoVersionId: primary, role: 'primary' },
+        { demoVersionId: supp, role: 'supplementary' }
+      ]
+    })
+    const refs = env.refs.listStudentReferencesForKp('kp.1')
+    expect(refs[0]?.role).toBe('primary')
+    expect(refs[1]?.role).toBe('supplementary')
+  })
+})
