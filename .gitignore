@@ -6,6 +6,7 @@ coverage/
 *.log
 .DS_Store
 .playwright-cli/
+test-results/
 .scratch/
 .dev-server.log
 .dev-server.err.log
