@@ -4,6 +4,7 @@ import {
   SECURITY_WARNING_VALUE
 } from '../auth/MockSessionProvider'
 import type { SessionUser } from '../auth/SessionProvider'
+import { canAccessStudent } from '../auth/authorization'
 import {
   AssignByWeaknessError,
   type AssignByWeaknessService
@@ -143,14 +144,6 @@ async function handleAssignWeakness(
     mode
   })
   respondJson(response, 201, result)
-}
-
-function canAccessStudent(user: SessionUser, studentId: string): boolean {
-  if (user.role === 'teacher' || user.role === 'admin') return true
-  if (user.role === 'student') {
-    return (user.studentId ?? user.userId) === studentId
-  }
-  return false
 }
 
 function asStringArray(value: unknown): string[] | undefined {

@@ -21,7 +21,8 @@ import {
   AuditStore,
   resolveAuditHmacSecret
 } from './audit/AuditStore'
-import type { SessionProvider, SessionUser } from './auth/SessionProvider'
+import type { SessionProvider } from './auth/SessionProvider'
+import { canAccessStudent } from './auth/authorization'
 import { AuthService } from './auth/AuthService'
 import { AuthStore } from './auth/AuthStore'
 import { tryHandleAuthRoute } from './auth/authRoutes'
@@ -1380,12 +1381,6 @@ async function handleApi(
   }
 
   respondJson(response, 404, { error: 'API route not found' })
-}
-
-function canAccessStudent(user: SessionUser, studentId: string): boolean {
-  if (user.role === 'teacher' || user.role === 'admin') return true
-  const owner = user.studentId ?? user.userId
-  return owner === studentId
 }
 
 /**
