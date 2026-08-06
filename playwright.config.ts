@@ -30,7 +30,11 @@ export default defineConfig({
     }
   ],
   webServer: {
-    command: 'npm run dev',
+    // Non-watch mode: `tsx watch` spawns a child watcher that may not bind the
+    // port when spawned by Playwright on Windows, so the probe times out even
+    // though `npm run dev` works interactively. E2E does not need reloads — use
+    // a plain `tsx server/index.ts` for a reliable, single-process server.
+    command: 'npm run dev:no-watch',
     // Probe an EvidenceRing-specific endpoint on its dedicated port. Reuse is
     // safe only when this exact health route is available.
     url: 'http://localhost:4180/api/health',
