@@ -112,21 +112,41 @@ export async function createServerContext(
       evaluationStore: store
     })
 
+  const ownsProductDb = options.productDb === undefined
+  let productDb: Database.Database | undefined
+  let mediaWorker: MediaWorkerLoop | undefined
+  let disposed = false
+  const dispose = async (): Promise<void> => {
+    if (disposed) return
+    disposed = true
+    mediaWorker?.stop()
+    await runners.dispose().catch((error: unknown) => {
+      console.error('Failed to dispose runner registry:', error)
+    })
+    await audit.close().catch((error: unknown) => {
+      console.error('Failed to close audit store:', error)
+    })
+    try {
+      memory.close()
+    } catch (error: unknown) {
+      console.error('Failed to close memory layer:', error)
+    }
+    if (ownsProductDb && productDb !== undefined) {
+      try {
+        productDb.close()
+      } catch (error: unknown) {
+        console.error('Failed to close product database:', error)
+      }
+    }
+  }
+
   try {
     await runners.warm()
     await knowledge.getGraph()
-  } catch (error) {
-    await runners.dispose()
-    await audit.close().catch(() => undefined)
-    memory.close()
-    throw error
-  }
 
-  const ownsProductDb = options.productDb === undefined
-  let productDb: Database.Database
-  if (options.productDb !== undefined) {
-    productDb = options.productDb
-  } else {
+    if (options.productDb !== undefined) {
+      productDb = options.productDb
+    } else {
     const defaultProductDbPath = join(projectRoot, '.data', 'product.sqlite')
     const productDbPath =
       options.productDbPath ??
@@ -143,19 +163,19 @@ export async function createServerContext(
   const auth = new AuthService(new AuthStore(productDb))
   const org = new SqliteOrgReader(productDb)
 
-  const mediaDataRoot = options.mediaDataRoot ?? join(projectRoot, 'data')
-  const blobs: BlobStore = new FsBlobStore({ dataRoot: mediaDataRoot })
-  const quotas = new QuotaService(productDb)
-  const uploads = new UploadStore(productDb, quotas)
-  const scanner = createScanner(process.env)
-  const processor = new MediaProcessor({
-    db: productDb,
-    blobs,
-    uploads,
-    scanner
-  })
-  const mediaWorker = new MediaWorkerLoop(uploads, processor)
-  mediaWorker.start()
+    const mediaDataRoot = options.mediaDataRoot ?? join(projectRoot, 'data')
+    const blobs: BlobStore = new FsBlobStore({ dataRoot: mediaDataRoot })
+    const quotas = new QuotaService(productDb)
+    const uploads = new UploadStore(productDb, quotas)
+    const scanner = createScanner(process.env)
+    const processor = new MediaProcessor({
+      db: productDb,
+      blobs,
+      uploads,
+      scanner
+    })
+    mediaWorker = new MediaWorkerLoop(uploads, processor)
+    mediaWorker.start()
   const media: MediaRouteContext = {
     db: productDb,
     blobs,
@@ -297,31 +317,9 @@ export async function createServerContext(
     demonstration
   }
 
-  let disposed = false
-  return {
-    context,
-    async dispose() {
-      if (disposed) return
-      disposed = true
-      mediaWorker.stop()
-      await runners.dispose().catch((error: unknown) => {
-        console.error('Failed to dispose runner registry:', error)
-      })
-      await audit.close().catch((error: unknown) => {
-        console.error('Failed to close audit store:', error)
-      })
-      try {
-        memory.close()
-      } catch (error: unknown) {
-        console.error('Failed to close memory layer:', error)
-      }
-      if (ownsProductDb) {
-        try {
-          productDb.close()
-        } catch (error: unknown) {
-          console.error('Failed to close product database:', error)
-        }
-      }
-    }
+    return { context, dispose }
+  } catch (error) {
+    await dispose()
+    throw error
   }
 }

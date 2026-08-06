@@ -1,15 +1,19 @@
 // @vitest-environment node
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { AuditStore } from '../server/audit/AuditStore'
 import { openMemoryDatabase } from '../server/db/memorySchema'
+import { MediaWorkerLoop } from '../server/media/MediaWorkerLoop'
+import { MemoryLayer } from '../server/memory/MemoryLayer'
+import { RunnerRegistry } from '../server/runner/RunnerRegistry'
 import { createServerContext } from '../server/serverContext'
 
 const tempRoots: string[] = []
 
 afterEach(async () => {
+  vi.restoreAllMocks()
   await Promise.all(
     tempRoots.splice(0).map((path) => rm(path, { recursive: true, force: true }))
   )
@@ -44,6 +48,48 @@ describe('createServerContext', () => {
     await composed.dispose()
 
     // Injected product DB is caller-owned; composition teardown must not close it.
+    expect(productDb.prepare('SELECT 1 AS value').get()).toEqual({ value: 1 })
+    productDb.close()
+  })
+
+  it('cleans composed resources when a late seed step fails', async () => {
+    const productDb = openMemoryDatabase(':memory:')
+    productDb.exec(`
+      CREATE TRIGGER fail_seed_question
+      BEFORE INSERT ON questions
+      BEGIN
+        SELECT RAISE(ABORT, 'forced seed failure');
+      END;
+    `)
+    const mediaDataRoot = await mkdtemp(join(tmpdir(), 'server-context-fail-'))
+    tempRoots.push(mediaDataRoot)
+    const audit = new AuditStore({
+      dbPath: ':memory:',
+      hmacSecret: 'server-context-failure-hmac'
+    })
+    const runners = new RunnerRegistry()
+    const runnerDispose = vi.spyOn(runners, 'dispose')
+    const auditClose = vi.spyOn(audit, 'close')
+    const memoryClose = vi.spyOn(MemoryLayer.prototype, 'close')
+    const workerStop = vi.spyOn(MediaWorkerLoop.prototype, 'stop')
+
+    await expect(
+      createServerContext({
+        dataFile: ':memory:',
+        runners,
+        auditStore: audit,
+        auditHmacSecret: 'server-context-failure-hmac',
+        memoryDbPath: ':memory:',
+        productDb,
+        mediaDataRoot
+      })
+    ).rejects.toThrow('forced seed failure')
+
+    expect(workerStop).toHaveBeenCalledOnce()
+    expect(runnerDispose).toHaveBeenCalledOnce()
+    expect(auditClose).toHaveBeenCalledOnce()
+    expect(memoryClose).toHaveBeenCalledOnce()
+    // Injected DB remains caller-owned even on failed composition.
     expect(productDb.prepare('SELECT 1 AS value').get()).toEqual({ value: 1 })
     productDb.close()
   })
