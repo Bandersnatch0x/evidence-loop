@@ -1,9 +1,6 @@
 import type { IncomingMessage, ServerResponse } from 'node:http'
+import { respondJson } from '../http/httpUtils'
 import { z } from 'zod'
-import {
-  SECURITY_WARNING_HEADER,
-  SECURITY_WARNING_VALUE
-} from '../auth/MockSessionProvider'
 import type { SessionUser } from '../auth/SessionProvider'
 import type { StartPracticeRequest } from '../../shared/contracts'
 import type { TeacherTipService } from '../teacher/TeacherTipService'
@@ -30,12 +27,6 @@ import type { MistakeBookService } from './MistakeBookService'
  * Student visualization generate is preview-only (never adopt/save) so scoring
  * and teacher authority stay untouched (ADR-0015 / PRODUCT.md).
  */
-
-const JSON_HEADERS = {
-  'content-type': 'application/json; charset=utf-8',
-  'cache-control': 'no-store',
-  [SECURITY_WARNING_HEADER]: SECURITY_WARNING_VALUE
-} as const
 
 const MAX_BODY_BYTES = 256 * 1024
 
@@ -204,13 +195,4 @@ class HttpLikeError extends Error {
   ) {
     super(message)
   }
-}
-
-function respondJson(
-  response: ServerResponse,
-  statusCode: number,
-  payload: unknown
-): void {
-  response.writeHead(statusCode, JSON_HEADERS)
-  response.end(JSON.stringify(payload))
 }

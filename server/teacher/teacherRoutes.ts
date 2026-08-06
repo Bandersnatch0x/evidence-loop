@@ -1,9 +1,6 @@
 import type { IncomingMessage, ServerResponse } from 'node:http'
+import { respondJson } from '../http/httpUtils'
 import { z } from 'zod'
-import {
-  SECURITY_WARNING_HEADER,
-  SECURITY_WARNING_VALUE
-} from '../auth/MockSessionProvider'
 import type { SessionUser } from '../auth/SessionProvider'
 import type {
   CreateAssignmentInput,
@@ -41,12 +38,6 @@ import { TeacherTipError, type TeacherTipService } from './TeacherTipService'
  * the主观题 grading path takes exactly ONE attemptId per call (no batch —
  * 守铁律: 主观题不可批量给分). Tips are messages, not scores — batch OK.
  */
-
-const JSON_HEADERS = {
-  'content-type': 'application/json; charset=utf-8',
-  'cache-control': 'no-store',
-  [SECURITY_WARNING_HEADER]: SECURITY_WARNING_VALUE
-} as const
 
 const MAX_BODY_BYTES = 256 * 1024
 
@@ -360,13 +351,4 @@ function respondTipError(response: ServerResponse, error: unknown): void {
   }
   console.error('teacher tip error:', error)
   respondJson(response, 500, { error: 'Internal server error' })
-}
-
-function respondJson(
-  response: ServerResponse,
-  statusCode: number,
-  payload: unknown
-): void {
-  response.writeHead(statusCode, JSON_HEADERS)
-  response.end(JSON.stringify(payload))
 }

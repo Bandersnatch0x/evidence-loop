@@ -1,10 +1,7 @@
 import type Database from 'better-sqlite3'
+import { respondJson } from '../http/httpUtils'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { ZodError } from 'zod'
-import {
-  SECURITY_WARNING_HEADER,
-  SECURITY_WARNING_VALUE
-} from '../auth/MockSessionProvider'
 import type { SessionUser } from '../auth/SessionProvider'
 import type { QuestionQuery, QuestionStore } from './QuestionStore'
 import {
@@ -30,12 +27,6 @@ import {
  * so a non-teacher session is refused with 403 and reads/writes are always
  * scoped by the resolved teacher's id.
  */
-
-const JSON_HEADERS = {
-  'content-type': 'application/json; charset=utf-8',
-  'cache-control': 'no-store',
-  [SECURITY_WARNING_HEADER]: SECURITY_WARNING_VALUE
-} as const
 
 const MAX_BODY_BYTES = 256 * 1024
 
@@ -422,13 +413,4 @@ async function readJsonBody(request: IncomingMessage): Promise<unknown> {
   } catch {
     throw new MalformedJsonError('Malformed JSON request body')
   }
-}
-
-function respondJson(
-  response: ServerResponse,
-  statusCode: number,
-  payload: unknown
-): void {
-  response.writeHead(statusCode, JSON_HEADERS)
-  response.end(JSON.stringify(payload))
 }

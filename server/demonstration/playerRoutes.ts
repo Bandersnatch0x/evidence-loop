@@ -18,6 +18,7 @@
  *   - the player never receives student submissions (this endpoint is GET-only)
  *   - no content mutation, no audit write (view-only)
  */
+import { respondJson } from '../http/httpUtils'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import type { Database } from 'better-sqlite3'
 import type { DemonstrationReferenceView } from '../../shared/contracts'
@@ -77,15 +78,7 @@ export interface PlayerRouteContext {
   getRole?: () => string
 }
 
-const JSON_HEADERS = {
-  'content-type': 'application/json; charset=utf-8',
-  'cache-control': 'public, max-age=60'
-} as const
 
-function respondJson(response: ServerResponse, status: number, body: unknown): void {
-  response.writeHead(status, JSON_HEADERS)
-  response.end(JSON.stringify(body))
-}
 
 interface VersionRow {
   status: string

@@ -11,6 +11,7 @@
  *   POST /api/auth/password          change password (authenticated)
  *   POST /api/auth/students/import   teacher roster import → activation codes
  */
+import { respondJson } from '../http/httpUtils'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { z } from 'zod'
 import type { AuthService, PublicAuthUser } from './AuthService'
@@ -281,18 +282,3 @@ async function readJsonBody(request: IncomingMessage): Promise<unknown> {
   }
 }
 
-function respondJson(
-  response: ServerResponse,
-  statusCode: number,
-  payload: unknown
-): void {
-  if (response.headersSent) {
-    response.end()
-    return
-  }
-  response.writeHead(statusCode, {
-    'content-type': 'application/json; charset=utf-8',
-    'cache-control': 'no-store'
-  })
-  response.end(JSON.stringify(payload))
-}

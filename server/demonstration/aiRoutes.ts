@@ -9,6 +9,7 @@
  * Ownership-gated. Generated candidates are never persisted until the teacher
  * confirms (checkpoint/save). Quota reserve happens before generation.
  */
+import { respondJson } from '../http/httpUtils'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import type { Database } from 'better-sqlite3'
 import type { DemonstrationService } from './DemonstrationService'
@@ -22,17 +23,9 @@ export interface AiRouteContext {
   getUserId: () => string | null
 }
 
-const JSON_HEADERS = {
-  'content-type': 'application/json; charset=utf-8',
-  'cache-control': 'no-store'
-} as const
 
 const MAX_BODY_BYTES = 128 * 1024
 
-function respondJson(response: ServerResponse, status: number, body: unknown): void {
-  response.writeHead(status, JSON_HEADERS)
-  response.end(JSON.stringify(body))
-}
 
 async function readJsonBody(request: IncomingMessage): Promise<unknown> {
   const chunks: Buffer[] = []

@@ -7,23 +7,18 @@
  * 401/403 scoped by SessionUser, respondJson helper shape. The `x-demo-role`
  * header role flows in via the demo session provider (as in the other routers).
  */
+import { respondJson, JSON_HEADERS } from '../http/httpUtils'
+import { SECURITY_WARNING_HEADER, SECURITY_WARNING_VALUE } from '../auth/MockSessionProvider'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import type { URL } from 'node:url'
 import { randomUUID } from 'node:crypto'
 import type Database from 'better-sqlite3'
-import { SECURITY_WARNING_HEADER, SECURITY_WARNING_VALUE } from '../auth/MockSessionProvider'
 import type { SessionUser } from '../auth/SessionProvider'
 import type { BlobStore } from './BlobStore'
 import type { UploadStore } from './UploadStore'
 import type { MediaProcessor } from './MediaProcessor'
 import type { Scanner } from './Scanner'
 import { kindLimits } from './mediaGate'
-
-const JSON_HEADERS = {
-  'content-type': 'application/json; charset=utf-8',
-  'cache-control': 'no-store',
-  [SECURITY_WARNING_HEADER]: SECURITY_WARNING_VALUE
-} as const
 
 const MAX_JSON_BODY = 16 * 1024
 
@@ -384,16 +379,6 @@ function mediaTypeForExt(storageKey: string): string {
 function respondNotFoundBlob(response: ServerResponse, hash: string): void {
   response.writeHead(404, JSON_HEADERS)
   response.end(JSON.stringify({ error: `blob not found: ${hash}` }))
-}
-
-function respondJson(
-  response: ServerResponse,
-  status: number,
-  body: Record<string, unknown>,
-  extraHeaders: Record<string, string> = {}
-): void {
-  response.writeHead(status, { ...JSON_HEADERS, ...extraHeaders })
-  response.end(JSON.stringify(body))
 }
 
 function readJsonBody(request: IncomingMessage): Promise<string | null> {

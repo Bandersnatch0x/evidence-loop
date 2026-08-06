@@ -1,9 +1,6 @@
 import type { IncomingMessage, ServerResponse } from 'node:http'
+import { respondJson } from '../http/httpUtils'
 import type { Database } from 'better-sqlite3'
-import {
-  SECURITY_WARNING_HEADER,
-  SECURITY_WARNING_VALUE
-} from '../auth/MockSessionProvider'
 import type { SessionUser } from '../auth/SessionProvider'
 import { authorizeAccess } from '../auth/authorization'
 import {
@@ -20,12 +17,6 @@ import { TeachingUnitNotFoundError } from './OrgReader'
  * - GET  /api/adaptive/next?studentId=&unitId=
  * - POST /api/adaptive/assign-weakness
  */
-
-const JSON_HEADERS = {
-  'content-type': 'application/json; charset=utf-8',
-  'cache-control': 'no-store',
-  [SECURITY_WARNING_HEADER]: SECURITY_WARNING_VALUE
-} as const
 
 const MAX_BODY_BYTES = 256 * 1024
 
@@ -208,13 +199,4 @@ async function readJsonBody(request: IncomingMessage): Promise<unknown> {
   } catch {
     throw new MalformedJsonError('Malformed JSON request body')
   }
-}
-
-function respondJson(
-  response: ServerResponse,
-  statusCode: number,
-  payload: unknown
-): void {
-  response.writeHead(statusCode, JSON_HEADERS)
-  response.end(JSON.stringify(payload))
 }

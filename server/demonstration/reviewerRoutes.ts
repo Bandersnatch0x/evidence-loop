@@ -19,13 +19,10 @@
  *
  * Router conventions match handleQuestionBankApi / handleMediaApi.
  */
+import { respondJson } from '../http/httpUtils'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import type { URL } from 'node:url'
 import type { Database } from 'better-sqlite3'
-import {
-  SECURITY_WARNING_HEADER,
-  SECURITY_WARNING_VALUE
-} from '../auth/MockSessionProvider'
 import type { SessionUser } from '../auth/SessionProvider'
 import type { DemonstrationService } from './DemonstrationService'
 import type { AiQuotaStore } from './aiAssistant'
@@ -58,12 +55,6 @@ import type { EvidencePanelService } from './EvidencePanelService'
 import type { NotificationService } from './NotificationService'
 import { isPublicLibraryReviewer } from './reviewerAuth'
 import { PIIError } from '../pii/PIIDetector'
-
-const JSON_HEADERS = {
-  'content-type': 'application/json; charset=utf-8',
-  'cache-control': 'no-store',
-  [SECURITY_WARNING_HEADER]: SECURITY_WARNING_VALUE
-} as const
 
 const MAX_BODY_BYTES = 64 * 1024
 
@@ -411,13 +402,4 @@ async function readJsonBody(
 
 function asString(value: unknown): string {
   return typeof value === 'string' ? value : ''
-}
-
-function respondJson(
-  response: ServerResponse,
-  statusCode: number,
-  payload: unknown
-): void {
-  response.writeHead(statusCode, JSON_HEADERS)
-  response.end(JSON.stringify(payload))
 }

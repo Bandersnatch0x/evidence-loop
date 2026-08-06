@@ -12,6 +12,7 @@
  * the SceneDocument zod trust gate (parseSceneDocument) so hard failures are
  * refused at the boundary. Author routes never touch scoring/evidence.
  */
+import { respondJson } from '../http/httpUtils'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import type { Database } from 'better-sqlite3'
 import { parseSceneDocument } from './sceneDocumentSchema'
@@ -24,17 +25,9 @@ export interface AuthorRouteContext {
   getUserId: () => string | null
 }
 
-const JSON_HEADERS = {
-  'content-type': 'application/json; charset=utf-8',
-  'cache-control': 'no-store'
-} as const
 
 const MAX_BODY_BYTES = 2 * 1024 * 1024
 
-function respondJson(response: ServerResponse, status: number, body: unknown): void {
-  response.writeHead(status, JSON_HEADERS)
-  response.end(JSON.stringify(body))
-}
 
 class BodyTooLargeError extends Error {
   public constructor(message: string) {

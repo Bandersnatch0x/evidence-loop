@@ -68,12 +68,13 @@ function fakeEvaluation(overrides: Partial<EvaluationResult> = {}): EvaluationRe
     status: 'completed',
     score: 80,
     summary: 'ok',
-    evidence: [{ id: 'e1', kind: 'test', description: 'pass' }],
+    evidence: [{ id: 'e1', kind: 'test', label: 'pass', dimensionId: 'd1', visibility: 'public', state: 'passed', weight: 1, message: 'ok', source: 'test_case' }],
     dimensions: [],
     diagnoses: [],
     trace: [],
     mastery: [],
     feedbackSource: 'local-policy',
+    provenance: { kind: 'evidence', evidenceIds: ['e1'], algorithm: 'simple.v1' },
     ...overrides
   }
 }

@@ -6,6 +6,7 @@
  * Returns library cards (only latest approved versions) + facets. Read-only,
  * no scoring/evidence coupling. Logged-in users; public content readable.
  */
+import { respondJson } from '../http/httpUtils'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import type { Database } from 'better-sqlite3'
 import { LibrarySearchService, type LibraryQuery } from './LibrarySearchService'
@@ -15,15 +16,7 @@ export interface LibraryRouteContext {
   getUserId: () => string | null
 }
 
-const JSON_HEADERS = {
-  'content-type': 'application/json; charset=utf-8',
-  'cache-control': 'public, max-age=30'
-} as const
 
-function respondJson(response: ServerResponse, status: number, body: unknown): void {
-  response.writeHead(status, JSON_HEADERS)
-  response.end(JSON.stringify(body))
-}
 
 export function handleLibraryApi(
   request: IncomingMessage,

@@ -11,6 +11,7 @@
  * Teacher-gated. Fixed-version semantics enforced by ReferenceService
  * (never automatic drift; upgrade requires explicit action).
  */
+import { respondJson } from '../http/httpUtils'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import type { Database } from 'better-sqlite3'
 import type { ReferenceService } from './ReferenceService'
@@ -24,17 +25,9 @@ export interface ReferenceRouteContext {
   getRole: () => string
 }
 
-const JSON_HEADERS = {
-  'content-type': 'application/json; charset=utf-8',
-  'cache-control': 'no-store'
-} as const
 
 const MAX_BODY_BYTES = 256 * 1024
 
-function respondJson(response: ServerResponse, status: number, body: unknown): void {
-  response.writeHead(status, JSON_HEADERS)
-  response.end(JSON.stringify(body))
-}
 
 async function readJsonBody(request: IncomingMessage): Promise<unknown> {
   const chunks: Buffer[] = []

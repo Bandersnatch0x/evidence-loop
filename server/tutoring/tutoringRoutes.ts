@@ -1,9 +1,6 @@
 import type { IncomingMessage, ServerResponse } from 'node:http'
+import { respondJson } from '../http/httpUtils'
 import { z } from 'zod'
-import {
-  SECURITY_WARNING_HEADER,
-  SECURITY_WARNING_VALUE
-} from '../auth/MockSessionProvider'
 import type { SessionUser } from '../auth/SessionProvider'
 import type { StandardSolution, TutoringLayer } from '../../shared/contracts'
 import {
@@ -22,12 +19,6 @@ import {
  * Mounted independently (same pattern as adaptive/auth) so assembly can wire
  * AttemptStore + session without bloating server/index.ts.
  */
-
-const JSON_HEADERS = {
-  'content-type': 'application/json; charset=utf-8',
-  'cache-control': 'no-store',
-  [SECURITY_WARNING_HEADER]: SECURITY_WARNING_VALUE
-} as const
 
 const MAX_BODY_BYTES = 256 * 1024
 
@@ -206,13 +197,4 @@ async function readJsonBody(request: IncomingMessage): Promise<unknown> {
   } catch {
     throw new MalformedJsonError('Malformed JSON request body')
   }
-}
-
-function respondJson(
-  response: ServerResponse,
-  statusCode: number,
-  payload: unknown
-): void {
-  response.writeHead(statusCode, JSON_HEADERS)
-  response.end(JSON.stringify(payload))
 }
