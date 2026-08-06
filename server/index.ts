@@ -19,6 +19,7 @@ import type {
 } from '../shared/contracts'
 import {
   AuditStore,
+  actorFields,
   resolveAuditHmacSecret
 } from './audit/AuditStore'
 import type { SessionProvider } from './auth/SessionProvider'
@@ -756,8 +757,7 @@ async function handleApi(
   if (request.method === 'GET' && requestUrl.pathname === '/api/cohort') {
     if (user.role !== 'teacher' && user.role !== 'admin') {
       audit.enqueue({
-        actorRole: user.role,
-        actorId: user.userId,
+        ...actorFields(user),
         action: 'view',
         resourceType: 'cohort',
         result: 'denied'
@@ -772,8 +772,7 @@ async function handleApi(
     // teacher|admin (the reviewer flag is additive, not a role expansion).
     if (isPublicLibraryReviewer(context.productDb, user.userId)) {
       audit.enqueue({
-        actorRole: user.role,
-        actorId: user.userId,
+        ...actorFields(user),
         action: 'view',
         resourceType: 'cohort',
         result: 'denied',
@@ -786,8 +785,7 @@ async function handleApi(
     }
 
     audit.enqueue({
-      actorRole: user.role,
-      actorId: user.userId,
+      ...actorFields(user),
       action: 'view',
       resourceType: 'cohort',
       result: 'success'
@@ -807,8 +805,7 @@ async function handleApi(
   ) {
     if (user.role !== 'teacher' && user.role !== 'admin') {
       audit.enqueue({
-        actorRole: user.role,
-        actorId: user.userId,
+        ...actorFields(user),
         action: 'view',
         resourceType: 'cohort',
         result: 'denied',
@@ -832,8 +829,7 @@ async function handleApi(
     // aggregate counts only (no transcript content).
     const usage = await audit.getMultimodalUsage()
     audit.enqueue({
-      actorRole: user.role,
-      actorId: user.userId,
+      ...actorFields(user),
       action: 'view',
       resourceType: 'cohort',
       result: 'success',
@@ -855,8 +851,7 @@ async function handleApi(
   if (request.method === 'GET' && requestUrl.pathname === '/api/audit') {
     if (user.role !== 'teacher' && user.role !== 'admin') {
       audit.enqueue({
-        actorRole: user.role,
-        actorId: user.userId,
+        ...actorFields(user),
         action: 'view',
         resourceType: 'audit',
         result: 'denied'
@@ -869,8 +864,7 @@ async function handleApi(
     // Spec §2.8: reviewers never get audit view authority (see /api/cohort).
     if (isPublicLibraryReviewer(context.productDb, user.userId)) {
       audit.enqueue({
-        actorRole: user.role,
-        actorId: user.userId,
+        ...actorFields(user),
         action: 'view',
         resourceType: 'audit',
         result: 'denied',
@@ -900,8 +894,7 @@ async function handleApi(
     })
 
     audit.enqueue({
-      actorRole: user.role,
-      actorId: user.userId,
+      ...actorFields(user),
       action: 'view',
       resourceType: 'audit',
       studentId,
@@ -951,8 +944,7 @@ async function handleApi(
     // Never persist the transcript body or raw audio bytes.
     if (featureEnabled) {
       audit.enqueue({
-        actorRole: user.role,
-        actorId: user.userId,
+        ...actorFields(user),
         action: 'view',
         resourceType: 'system',
         resourceId: 'multimodal-ask',
@@ -1022,8 +1014,7 @@ async function handleApi(
 
     if (!canAccessStudent(user, studentId)) {
       audit.enqueue({
-        actorRole: user.role,
-        actorId: user.userId,
+        ...actorFields(user),
         action: 'view',
         resourceType: 'knowledge',
         studentId,
@@ -1039,8 +1030,7 @@ async function handleApi(
     if (kpId !== undefined) {
       const timeline = memory.mastery.getTimeline(studentId, kpId)
       audit.enqueue({
-        actorRole: user.role,
-        actorId: user.userId,
+        ...actorFields(user),
         action: 'view',
         resourceType: 'knowledge',
         studentId,
@@ -1053,8 +1043,7 @@ async function handleApi(
 
     const profile = memory.mastery.getProfile(studentId)
     audit.enqueue({
-      actorRole: user.role,
-      actorId: user.userId,
+      ...actorFields(user),
       action: 'view',
       resourceType: 'knowledge',
       studentId,
@@ -1086,8 +1075,7 @@ async function handleApi(
 
     if (!canAccessStudent(user, studentId)) {
       audit.enqueue({
-        actorRole: user.role,
-        actorId: user.userId,
+        ...actorFields(user),
         action: 'view',
         resourceType: 'knowledge',
         studentId,
@@ -1108,8 +1096,7 @@ async function handleApi(
       )
     } catch (error) {
       audit.enqueue({
-        actorRole: user.role,
-        actorId: user.userId,
+        ...actorFields(user),
         action: 'view',
         resourceType: 'knowledge',
         studentId,
@@ -1124,8 +1111,7 @@ async function handleApi(
     }
 
     audit.enqueue({
-      actorRole: user.role,
-      actorId: user.userId,
+      ...actorFields(user),
       action: 'view',
       resourceType: 'knowledge',
       studentId,
@@ -1151,8 +1137,7 @@ async function handleApi(
 
     if (!canAccessStudent(user, studentId)) {
       audit.enqueue({
-        actorRole: user.role,
-        actorId: user.userId,
+        ...actorFields(user),
         action: 'view',
         resourceType: 'knowledge',
         studentId,
@@ -1167,8 +1152,7 @@ async function handleApi(
 
     const cards = memory.review.listDue(studentId)
     audit.enqueue({
-      actorRole: user.role,
-      actorId: user.userId,
+      ...actorFields(user),
       action: 'view',
       resourceType: 'knowledge',
       studentId,
@@ -1201,8 +1185,7 @@ async function handleApi(
 
     if (!canAccessStudent(user, existing.studentId)) {
       audit.enqueue({
-        actorRole: user.role,
-        actorId: user.userId,
+        ...actorFields(user),
         action: 'evaluate',
         resourceType: 'knowledge',
         studentId: existing.studentId,
@@ -1224,8 +1207,7 @@ async function handleApi(
     }
 
     audit.enqueue({
-      actorRole: user.role,
-      actorId: user.userId,
+      ...actorFields(user),
       action: 'evaluate',
       resourceType: 'knowledge',
       studentId: updated.studentId,

@@ -640,3 +640,23 @@ export function resolveAuditHmacSecret(
   // Demo/dev fallback only.
   return 'evidence-ring-demo-audit-hmac-secret'
 }
+
+/**
+ * Stamp the actor fields for an audit event from a session principal. Most
+ * route audit calls repeat actorRole/actorId/studentId verbatim; this helper
+ * is the single place that maps a SessionUser to those fields (C3 #37).
+ *
+ * The caller spreads the result into AuditEventInput and adds the action-
+ * specific fields (action / resourceType / resourceId / result / metadata).
+ */
+export function actorFields(user: {
+  role: string
+  userId: string
+  studentId?: string
+}): Pick<AuditEventInput, 'actorRole' | 'actorId' | 'studentId'> {
+  return {
+    actorRole: user.role,
+    actorId: user.userId,
+    studentId: user.studentId
+  }
+}
