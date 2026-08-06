@@ -19,7 +19,6 @@ import {
   generateVisualization,
   parseVisualization
 } from './visualizationSchema'
-import { ensureDemonstrationMigration } from '../demonstration/migrationRunner'
 
 /**
  * Independent HTTP routes for the T03 question bank. Kept out of the main
@@ -224,18 +223,6 @@ export async function handleQuestionBankApi(
         visualization = parseVisualization(record.visualization)
       }
       const updated = context.questionBank.adoptVisualization(id, authorId, visualization)
-      // Phase C write-path switch (ticket T-L): adopting a visualization now
-      // ALSO migrates it into the new demonstration model (write new reference
-      // + demo). The legacy Question.visualization field is retained as a
-      // dual-read fallback until the deletion window closes (spec §7.4).
-      if (visualization !== null) {
-        try {
-          ensureDemonstrationMigration(context.db, context.questionStore)
-        } catch {
-          // New-model failure must NOT block scoring/answering (spec §7.5
-          // rollback: 新表故障 → 旧路径照常).
-        }
-      }
       respondJson(response, 200, { question: updated })
       return true
     }

@@ -1,15 +1,12 @@
 /**
- * T-K Phase E migration tests — lossless mapping, idempotent runner, zero
- * teacher-data overwrite, dual-read (new reference path + legacy fallback),
- * and CI dual-read consistency (legacy JSON and SceneDocument agree).
+ * T-K Phase E migration tests — lossless Visualization → SceneDocument mapping
+ * (pure functions). The legacy question-facing migration runner was removed in
+ * #31: the visualization_json column is gone, so there is no legacy source to
+ * migrate. These pure conversions remain as documented historical mappings and
+ * are validated against the T-C schema.
  */
 import { describe, it, expect } from 'vitest'
-import Database from 'better-sqlite3'
-import { applyProductMigrations } from '../server/db/migrate'
-import { QuestionStore } from '../server/questionbank/QuestionStore'
-import { SEED_AUTHOR_ID } from '../server/questionbank/seedFromAssignments'
 import { visualizationToSceneDocument, curveToSceneDocument, ballStickToSceneDocument, primitivesToSceneDocument } from '../server/demonstration/migration'
-import { ensureDemonstrationMigration, resolveMigratedDemonstration } from '../server/demonstration/migrationRunner'
 import { parseSceneDocument } from '../server/demonstration/sceneDocumentSchema'
 import type { Visualization } from '../shared/contracts'
 
@@ -41,14 +38,6 @@ const CIRCUIT: Visualization = {
   label: '串联电路'
 }
 
-function makeEnv(): { db: Database.Database; store: QuestionStore } {
-  const db = new Database(':memory:')
-  db.pragma('journal_mode = WAL')
-  applyProductMigrations(db)
-  const store = new QuestionStore({ database: db })
-  return { db, store }
-}
-
 describe('T-K lossless mapping (3 kinds → valid SceneDocument)', () => {
   it('curve maps to projected 2D polylines that pass the T-C schema', () => {
     const doc = curveToSceneDocument(HELIX)
@@ -78,43 +67,6 @@ describe('T-K lossless mapping (3 kinds → valid SceneDocument)', () => {
     expect(visualizationToSceneDocument(HELIX).geometry2D?.length).toBeGreaterThan(0)
     expect(visualizationToSceneDocument(METHANE).geometry3D?.length).toBeGreaterThan(0)
     expect(visualizationToSceneDocument(CIRCUIT).geometry2D?.length).toBeGreaterThan(0)
-  })
-})
-
-describe('T-K migration runner (legacy source removed, ticket #30)', () => {
-  // The legacy `questions.visualization_json` column is deleted (Phase C, #30),
-  // so QuestionStore can no longer hold a legacy visualization. The migration
-  // runner is therefore a permanent no-op over the store: it never finds a
-  // question with a visualization to migrate. The guard table retains the
-  // historical question→demo mapping written before deletion, and
-  // ReferenceService reads it as the new-path resolution (no legacy fallback).
-
-  it('runs as a no-op when no question carries a visualization', () => {
-    const env = makeEnv()
-    env.store.save({
-      id: 'q-plain',
-      questionBankId: 'qb-1',
-      authorId: SEED_AUTHOR_ID,
-      subject: 'math',
-      questionType: 'choice',
-      stem: '无 viz',
-      payload: { kind: 'choice', options: ['a'], answer: 'a' },
-      kpIds: [],
-      difficulty: 3,
-      source: 'authored_key',
-      createdAt: new Date().toISOString()
-    })
-    const counts = ensureDemonstrationMigration(env.db, env.store)
-    expect(counts.migrated).toBe(0)
-    expect(counts.skippedNoVisualization).toBe(1)
-    // No demo rows are created from a question without a visualization.
-    expect(env.db.prepare(`SELECT COUNT(*) AS c FROM teaching_demonstrations`).get()).toEqual({ c: 0 })
-  })
-
-  it('resolveMigratedDemonstration returns null for an unmigrated question', () => {
-    const env = makeEnv()
-    // No legacy visualization persisted → no migration mapping is ever written.
-    expect(resolveMigratedDemonstration(env.db, 'q-none')).toBeNull()
   })
 })
 

@@ -11,7 +11,6 @@ import Database from 'better-sqlite3'
 import { applyProductMigrations } from '../server/db/migrate'
 import { QuestionStore } from '../server/questionbank/QuestionStore'
 import { QuestionBankService } from '../server/questionbank/QuestionBankService'
-import { ensureDemonstrationMigration } from '../server/demonstration/migrationRunner'
 import { SEED_AUTHOR_ID } from '../server/questionbank/seedFromAssignments'
 import type { Visualization } from '../shared/contracts'
 
@@ -67,21 +66,6 @@ describe('T-L write-path switch (Phase C)', () => {
     // (a no-op write) and the store never returns it.
     const question = env.store.get('q1')
     expect(question?.visualization).toBeUndefined()
-  })
-
-  it('new-model failure does not block scoring/answering (rollback path, spec §7.5)', () => {
-    const env = makeEnv()
-    seedQuestion(env, 'q1')
-    // Simulate new-model failure: corrupt the migration guard table schema by
-    // dropping the demo tables — migration runner must fail WITHOUT touching
-    // the question (old path keeps working).
-    env.db.exec(`DROP TABLE demonstration_versions`)
-    env.db.exec(`DROP TABLE demonstration_drafts`)
-    env.db.exec(`DROP TABLE teaching_demonstrations`)
-    expect(() => ensureDemonstrationMigration(env.db, env.store)).toThrow()
-    // Question untouched — scoring/answering unaffected.
-    const question = env.store.get('q1')
-    expect(question?.stem).toBe('演示题')
   })
 })
 
