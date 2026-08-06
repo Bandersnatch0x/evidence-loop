@@ -10,7 +10,7 @@ import { createServerContext } from './serverContext'
 import type { ApiContext, EvidenceRingServerOptions } from './serverTypes'
 import { HttpError, readJsonBody, respondJson } from './http/httpUtils'
 import type { ApiError, InterventionSuggestion } from '../shared/contracts'
-import { actorFields } from './audit/AuditStore'
+import { createRouteAuditor } from './audit/routeAudit'
 import { canAccessStudent } from './auth/authorization'
 import { tryHandleAuthRoute } from './auth/authRoutes'
 import { AuthError, authStatusCode } from './auth/errors'
@@ -283,10 +283,10 @@ async function handleApi(
 
   if (request.method === 'GET' && requestUrl.pathname === '/api/cohort') {
     if (user.role !== 'teacher' && user.role !== 'admin') {
-      audit.enqueue({
-        ...actorFields(user),
+      createRouteAuditor(audit, user, {
         action: 'view',
-        resourceType: 'cohort',
+        resourceType: 'cohort'
+      }).record({
         result: 'denied'
       })
       respondJson(response, 403, {
@@ -298,10 +298,10 @@ async function handleApi(
     // teaching / grade / audit view authority, even when their role is
     // teacher|admin (the reviewer flag is additive, not a role expansion).
     if (isPublicLibraryReviewer(context.productDb, user.userId)) {
-      audit.enqueue({
-        ...actorFields(user),
+      createRouteAuditor(audit, user, {
         action: 'view',
-        resourceType: 'cohort',
+        resourceType: 'cohort'
+      }).record({
         result: 'denied',
         metadata: { reason: 'reviewer-isolated' }
       })
@@ -311,10 +311,10 @@ async function handleApi(
       return
     }
 
-    audit.enqueue({
-      ...actorFields(user),
+    createRouteAuditor(audit, user, {
       action: 'view',
-      resourceType: 'cohort',
+      resourceType: 'cohort'
+    }).record({
       result: 'success'
     })
     // Pass full results so T11 P4 can gate formal metrics on teacherAnnotation.
@@ -331,10 +331,10 @@ async function handleApi(
     && requestUrl.pathname === '/api/cohort/multimodal-usage'
   ) {
     if (user.role !== 'teacher' && user.role !== 'admin') {
-      audit.enqueue({
-        ...actorFields(user),
+      createRouteAuditor(audit, user, {
         action: 'view',
-        resourceType: 'cohort',
+        resourceType: 'cohort'
+      }).record({
         result: 'denied',
         metadata: { resource: 'multimodal-usage' }
       })
@@ -355,10 +355,10 @@ async function handleApi(
     // Demo is a single cohort; accept any non-empty classId and return
     // aggregate counts only (no transcript content).
     const usage = await audit.getMultimodalUsage()
-    audit.enqueue({
-      ...actorFields(user),
+    createRouteAuditor(audit, user, {
       action: 'view',
-      resourceType: 'cohort',
+      resourceType: 'cohort'
+    }).record({
       result: 'success',
       metadata: {
         resource: 'multimodal-usage',
@@ -377,10 +377,10 @@ async function handleApi(
 
   if (request.method === 'GET' && requestUrl.pathname === '/api/audit') {
     if (user.role !== 'teacher' && user.role !== 'admin') {
-      audit.enqueue({
-        ...actorFields(user),
+      createRouteAuditor(audit, user, {
         action: 'view',
-        resourceType: 'audit',
+        resourceType: 'audit'
+      }).record({
         result: 'denied'
       })
       respondJson(response, 403, {
@@ -390,10 +390,10 @@ async function handleApi(
     }
     // Spec §2.8: reviewers never get audit view authority (see /api/cohort).
     if (isPublicLibraryReviewer(context.productDb, user.userId)) {
-      audit.enqueue({
-        ...actorFields(user),
+      createRouteAuditor(audit, user, {
         action: 'view',
-        resourceType: 'audit',
+        resourceType: 'audit'
+      }).record({
         result: 'denied',
         metadata: { reason: 'reviewer-isolated' }
       })
@@ -420,10 +420,10 @@ async function handleApi(
         limit !== undefined && Number.isFinite(limit) ? Math.trunc(limit) : undefined
     })
 
-    audit.enqueue({
-      ...actorFields(user),
+    createRouteAuditor(audit, user, {
       action: 'view',
-      resourceType: 'audit',
+      resourceType: 'audit'
+    }).record({
       studentId,
       result: 'success',
       metadata: { count: records.length }
@@ -470,10 +470,10 @@ async function handleApi(
     // ADR-0005 §7: audit metadata only — duration, char count, PII hit count.
     // Never persist the transcript body or raw audio bytes.
     if (featureEnabled) {
-      audit.enqueue({
-        ...actorFields(user),
+      createRouteAuditor(audit, user, {
         action: 'view',
-        resourceType: 'system',
+        resourceType: 'system'
+      }).record({
         resourceId: 'multimodal-ask',
         studentId,
         result: 'success',
@@ -540,10 +540,10 @@ async function handleApi(
       : undefined
 
     if (!canAccessStudent(user, studentId)) {
-      audit.enqueue({
-        ...actorFields(user),
+      createRouteAuditor(audit, user, {
         action: 'view',
-        resourceType: 'knowledge',
+        resourceType: 'knowledge'
+      }).record({
         studentId,
         result: 'denied',
         metadata: { resource: 'mastery' }
@@ -556,10 +556,10 @@ async function handleApi(
 
     if (kpId !== undefined) {
       const timeline = memory.mastery.getTimeline(studentId, kpId)
-      audit.enqueue({
-        ...actorFields(user),
+      createRouteAuditor(audit, user, {
         action: 'view',
-        resourceType: 'knowledge',
+        resourceType: 'knowledge'
+      }).record({
         studentId,
         result: 'success',
         metadata: { resource: 'mastery-timeline', kpId, count: timeline.length }
@@ -569,10 +569,10 @@ async function handleApi(
     }
 
     const profile = memory.mastery.getProfile(studentId)
-    audit.enqueue({
-      ...actorFields(user),
+    createRouteAuditor(audit, user, {
       action: 'view',
-      resourceType: 'knowledge',
+      resourceType: 'knowledge'
+    }).record({
       studentId,
       result: 'success',
       metadata: {
@@ -601,10 +601,10 @@ async function handleApi(
     const studentId = studentIdParam
 
     if (!canAccessStudent(user, studentId)) {
-      audit.enqueue({
-        ...actorFields(user),
+      createRouteAuditor(audit, user, {
         action: 'view',
-        resourceType: 'knowledge',
+        resourceType: 'knowledge'
+      }).record({
         studentId,
         result: 'denied',
         metadata: { resource: 'intervention-next' }
@@ -622,10 +622,10 @@ async function handleApi(
         kpIdParam
       )
     } catch (error) {
-      audit.enqueue({
-        ...actorFields(user),
+      createRouteAuditor(audit, user, {
         action: 'view',
-        resourceType: 'knowledge',
+        resourceType: 'knowledge'
+      }).record({
         studentId,
         result: 'error',
         metadata: { resource: 'intervention-next', kpId: kpIdParam }
@@ -637,10 +637,10 @@ async function handleApi(
       return
     }
 
-    audit.enqueue({
-      ...actorFields(user),
+    createRouteAuditor(audit, user, {
       action: 'view',
-      resourceType: 'knowledge',
+      resourceType: 'knowledge'
+    }).record({
       studentId,
       result: 'success',
       metadata: {
@@ -663,10 +663,10 @@ async function handleApi(
     const studentId = studentIdParam
 
     if (!canAccessStudent(user, studentId)) {
-      audit.enqueue({
-        ...actorFields(user),
+      createRouteAuditor(audit, user, {
         action: 'view',
-        resourceType: 'knowledge',
+        resourceType: 'knowledge'
+      }).record({
         studentId,
         result: 'denied',
         metadata: { resource: 'review-next' }
@@ -678,10 +678,10 @@ async function handleApi(
     }
 
     const cards = memory.review.listDue(studentId)
-    audit.enqueue({
-      ...actorFields(user),
+    createRouteAuditor(audit, user, {
       action: 'view',
-      resourceType: 'knowledge',
+      resourceType: 'knowledge'
+    }).record({
       studentId,
       result: 'success',
       metadata: { resource: 'review-next', count: cards.length }
@@ -711,10 +711,10 @@ async function handleApi(
     }
 
     if (!canAccessStudent(user, existing.studentId)) {
-      audit.enqueue({
-        ...actorFields(user),
+      createRouteAuditor(audit, user, {
         action: 'evaluate',
-        resourceType: 'knowledge',
+        resourceType: 'knowledge'
+      }).record({
         studentId: existing.studentId,
         resourceId: cardId,
         result: 'denied',
@@ -733,10 +733,10 @@ async function handleApi(
       return
     }
 
-    audit.enqueue({
-      ...actorFields(user),
+    createRouteAuditor(audit, user, {
       action: 'evaluate',
-      resourceType: 'knowledge',
+      resourceType: 'knowledge'
+    }).record({
       studentId: updated.studentId,
       resourceId: updated.id,
       result: 'success',

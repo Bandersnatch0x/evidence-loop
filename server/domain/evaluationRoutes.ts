@@ -23,6 +23,7 @@ import type {
   TraceStep
 } from '../../shared/contracts'
 import type { AuditStore } from '../audit/AuditStore'
+import { createRouteAuditor } from '../audit/routeAudit'
 import type { SessionUser } from '../auth/SessionProvider'
 import type { EvaluationAgent } from './EvaluationAgent'
 import type { EvidenceProjector } from '../adaptive/EvidenceProjector'
@@ -134,11 +135,10 @@ export async function handleEvaluationApi(
     const assignmentId =
       requestUrl.searchParams.get('assignmentId') ?? undefined
     const history = await listEvaluationsForUser(store, context.user, assignmentId)
-    audit.enqueue({
-      actorRole: context.user.role,
-      actorId: context.user.userId,
+    createRouteAuditor(audit, context.user, {
       action: 'view',
-      resourceType: 'evaluation',
+      resourceType: 'evaluation'
+    }).record({
       studentId: context.user.studentId,
       result: 'success',
       metadata: {
@@ -182,11 +182,10 @@ export async function handleEvaluationApi(
       detectEvaluationPII(owned)
     } catch (error) {
       if (error instanceof PIIError) {
-        audit.enqueue({
-          actorRole: context.user.role,
-          actorId: context.user.userId,
+        createRouteAuditor(audit, context.user, {
           action: 'evaluate',
-          resourceType: 'evaluation',
+          resourceType: 'evaluation'
+        }).record({
           resourceId: owned.id,
           studentId: owned.studentId,
           containerId: runnerName,
@@ -245,11 +244,10 @@ export async function handleEvaluationApi(
         await evidenceProjector.projectAttempt(updatedAttempt)
       }
       const containerId = resolveContainerId(resultForAttempt, runnerName)
-      audit.enqueue({
-        actorRole: context.user.role,
-        actorId: context.user.userId,
+      createRouteAuditor(audit, context.user, {
         action: 'evaluate',
-        resourceType: 'evaluation',
+        resourceType: 'evaluation'
+      }).record({
         resourceId: existing.id,
         studentId: existing.studentId,
         containerId,
@@ -278,11 +276,10 @@ export async function handleEvaluationApi(
     }
 
     const containerId = resolveContainerId(owned, runnerName)
-    audit.enqueue({
-      actorRole: context.user.role,
-      actorId: context.user.userId,
+    createRouteAuditor(audit, context.user, {
       action: 'evaluate',
-      resourceType: 'evaluation',
+      resourceType: 'evaluation'
+    }).record({
       resourceId: owned.id,
       studentId: owned.studentId,
       containerId,
@@ -315,11 +312,10 @@ export async function handleEvaluationApi(
     const isPrivileged =
       context.user.role === 'teacher' || context.user.role === 'admin'
     if (!isOwner && !isPrivileged) {
-      audit.enqueue({
-        actorRole: context.user.role,
-        actorId: context.user.userId,
+      createRouteAuditor(audit, context.user, {
         action: 'delete',
-        resourceType: 'evaluation',
+        resourceType: 'evaluation'
+      }).record({
         resourceId: evaluationId,
         studentId: existing.studentId,
         result: 'denied'
@@ -331,11 +327,10 @@ export async function handleEvaluationApi(
     }
 
     const deleted = await store.delete(evaluationId)
-    audit.enqueue({
-      actorRole: context.user.role,
-      actorId: context.user.userId,
+    createRouteAuditor(audit, context.user, {
       action: 'delete',
-      resourceType: 'evaluation',
+      resourceType: 'evaluation'
+    }).record({
       resourceId: evaluationId,
       studentId: existing.studentId,
       result: deleted ? 'success' : 'not_found'
