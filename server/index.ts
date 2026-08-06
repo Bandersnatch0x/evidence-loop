@@ -8,6 +8,12 @@ import { fileURLToPath } from 'node:url'
 import Database from 'better-sqlite3'
 import { z } from 'zod'
 import type { ViteDevServer } from 'vite'
+import {
+  HttpError,
+  maxRequestBodyBytes,
+  readJsonBody,
+  respondJson
+} from './http/httpUtils'
 import type {
   ApiError,
   EvaluationHistoryItem,
@@ -18,10 +24,6 @@ import {
   AuditStore,
   resolveAuditHmacSecret
 } from './audit/AuditStore'
-import {
-  SECURITY_WARNING_HEADER,
-  SECURITY_WARNING_VALUE
-} from './auth/MockSessionProvider'
 import type { SessionProvider, SessionUser } from './auth/SessionProvider'
 import { AuthService } from './auth/AuthService'
 import { AuthStore } from './auth/AuthStore'
@@ -136,7 +138,6 @@ import type { EvaluationStore } from './store/EvaluationStore'
 const projectRoot = resolve(fileURLToPath(new URL('..', import.meta.url)))
 const isProduction = process.argv.includes('--production')
 const port = Number(process.env.PORT ?? 4180)
-const maxRequestBodyBytes = 256 * 1024
 
 const evaluateRequestSchema = z.object({
   assignmentId: z.string().min(1),
@@ -243,15 +244,6 @@ interface EvidenceRingServerOptions {
    * connection from productDbPath and owns its lifecycle.
    */
   productDb?: Database.Database
-}
-
-class HttpError extends Error {
-  public constructor(
-    public readonly statusCode: number,
-    message: string
-  ) {
-    super(message)
-  }
 }
 
 export async function createEvidenceRingServer(
@@ -1684,47 +1676,6 @@ function resolveContainerId(
     if (match?.[1]) return match[1]
   }
   return runnerName
-}
-
-async function readJsonBody(request: IncomingMessage): Promise<unknown> {
-  const chunks: Uint8Array[] = []
-  let size = 0
-  const declaredSize = Number(request.headers['content-length'] ?? 0)
-
-  if (Number.isFinite(declaredSize) && declaredSize > maxRequestBodyBytes) {
-    throw new HttpError(413, 'Request body is too large')
-  }
-
-  for await (const chunk of request) {
-    const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)
-    size += buffer.length
-    if (size > maxRequestBodyBytes) {
-      throw new HttpError(413, 'Request body is too large')
-    }
-    chunks.push(buffer)
-  }
-
-  const body = Buffer.concat(chunks).toString('utf8')
-  if (body.length === 0) return {}
-
-  try {
-    return JSON.parse(body) as unknown
-  } catch {
-    throw new HttpError(400, 'Malformed JSON request body')
-  }
-}
-
-function respondJson(
-  response: ServerResponse,
-  statusCode: number,
-  payload: unknown
-): void {
-  response.writeHead(statusCode, {
-    'content-type': 'application/json; charset=utf-8',
-    'cache-control': 'no-store',
-    [SECURITY_WARNING_HEADER]: SECURITY_WARNING_VALUE
-  })
-  response.end(JSON.stringify(payload))
 }
 
 async function serveProductionAsset(

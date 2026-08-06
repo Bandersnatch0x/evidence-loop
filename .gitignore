@@ -11,3 +11,6 @@ test-results/
 .dev-server.log
 .dev-server.err.log
 output/
+
+# pi subagent run artifacts (tooling output, not source)
+.pi-subagents/
