@@ -1,138 +1,41 @@
-﻿import { createReadStream } from 'node:fs'
-import { mkdirSync } from 'node:fs'
+import { createReadStream } from 'node:fs'
 import { readFile, stat } from 'node:fs/promises'
 import { createServer } from 'node:http'
 import type { IncomingMessage, ServerResponse } from 'node:http'
-import { dirname, extname, isAbsolute, join, normalize, relative, resolve, sep } from 'node:path'
+import { extname, isAbsolute, join, normalize, relative, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import Database from 'better-sqlite3'
 import { z } from 'zod'
 import type { ViteDevServer } from 'vite'
-import {
-  HttpError,
-  readJsonBody,
-  respondJson
-} from './http/httpUtils'
-import type {
-  ApiError,
-  InterventionSuggestion
-} from '../shared/contracts'
-import {
-  AuditStore,
-  actorFields,
-  resolveAuditHmacSecret
-} from './audit/AuditStore'
-import type { SessionProvider } from './auth/SessionProvider'
+import { createServerContext } from './serverContext'
+import type { ApiContext, EvidenceRingServerOptions } from './serverTypes'
+import { HttpError, readJsonBody, respondJson } from './http/httpUtils'
+import type { ApiError, InterventionSuggestion } from '../shared/contracts'
+import { actorFields } from './audit/AuditStore'
 import { canAccessStudent } from './auth/authorization'
-import { AuthService } from './auth/AuthService'
-import { AuthStore } from './auth/AuthStore'
 import { tryHandleAuthRoute } from './auth/authRoutes'
-import { createSessionProvider } from './auth/createSessionProvider'
 import { AuthError, authStatusCode } from './auth/errors'
 import { isMultimodalEnabled } from './config/features'
-import { AdvisoryService } from './advisory/AdvisoryService'
-import {
-  AssignByWeaknessService,
-  EvidenceProjector,
-  NextPracticeService,
-  SqliteOrgReader,
-  handleAdaptiveApi
-} from './adaptive'
-import {
-  createAssignmentRegistry,
-  type AssignmentRegistry
-} from './data/assignments'
+import { handleAdaptiveApi } from './adaptive'
 import { createCohortSnapshot } from './data/cohort'
-import { createKnowledgeBase } from './data/knowledge'
-import { EvaluationAgent } from './domain/EvaluationAgent'
 import { handleEvaluationApi } from './domain/evaluationRoutes'
-import { createFeedbackGenerator } from './domain/feedback'
-import {
-  ImportDraftStore,
-  ImportService,
-  createOcrProvider,
-  createQuestionSplitter,
-  tryHandleImportRoute
-} from './import'
-import { QuestionBankService } from './questionbank/QuestionBankService'
-import { QuestionStore } from './questionbank/QuestionStore'
-import {
-  createQuestionBackedRegistry,
-  projectQuestionToAssignment
-} from './questionbank/projectQuestionAssignment'
-import { seedDemoProduct } from './questionbank/seedDemoProduct'
-import {
-  AssignmentService,
-  SubjectiveGradingService,
-  StudentImportService,
-  TeacherTipService,
-  TeacherTipStore,
-  TeachingUnitService,
-  handleTeacherApi
-} from './teacher'
-import {
-  MistakeBookService,
-  PracticeSessionService,
-  handleStudentApi
-} from './student'
-import { createTutoringService, handleTutoringApi } from './tutoring'
+import { tryHandleImportRoute } from './import'
+import { projectQuestionToAssignment } from './questionbank/projectQuestionAssignment'
+import { handleTeacherApi } from './teacher'
+import { handleStudentApi } from './student'
+import { handleTutoringApi } from './tutoring'
 import { handleQuestionBankApi } from './questionbank/questionRoutes'
-import {
-  FsBlobStore,
-  type BlobStore
-} from './media/BlobStore'
-import { QuotaService } from './media/QuotaService'
-import { UploadStore } from './media/UploadStore'
-import { MediaProcessor } from './media/MediaProcessor'
-import { createScanner } from './media/Scanner'
-import { MediaWorkerLoop } from './media/MediaWorkerLoop'
-import { handleMediaApi, type MediaRouteContext } from './media/mediaRoutes'
-import { ReviewService } from './demonstration/ReviewService'
-import { EvidencePanelService } from './demonstration/EvidencePanelService'
-import { NotificationService } from './demonstration/NotificationService'
-import { ReferenceService } from './demonstration/ReferenceService'
-import { ReportService } from './demonstration/ReportService'
-import { AppealService } from './demonstration/AppealService'
-import { DemonstrationService } from './demonstration/DemonstrationService'
-import { createDemoAuditSink } from './demonstration/demoAuditSink'
-import { seedPresetDemonstrations } from './demonstration/seedPresets'
+import { handleMediaApi } from './media/mediaRoutes'
 import { isPublicLibraryReviewer } from './demonstration/reviewerAuth'
-import {
-  handleReviewerApi,
-  type ReviewerRouteContext
-} from './demonstration/reviewerRoutes'
+import { handleReviewerApi } from './demonstration/reviewerRoutes'
 import { handlePlayerApi } from './demonstration/playerRoutes'
 import { handleAuthorApi } from './demonstration/authorRoutes'
 import { handleAiApi } from './demonstration/aiRoutes'
-import { AiQuotaStore } from './demonstration/aiAssistant'
 import { handleReferenceApi } from './demonstration/referenceRoutes'
 import { handleLibraryApi } from './demonstration/libraryRoutes'
-import { JsonAttemptStore } from './store/AttemptStore'
-import {
-  JsonKnowledgeStore,
-  type KnowledgeStore
-} from './knowledge/KnowledgeStore'
-import { InterventionService } from './mastery/InterventionService'
-import { MemoryLayer } from './memory/MemoryLayer'
 import { respondMultimodalAsk } from './multimodal/askRoute'
-import {
-  respondSTTFinalize,
-  respondSTTStart
-} from './multimodal/sttRoute'
+import { respondSTTFinalize, respondSTTStart } from './multimodal/sttRoute'
 import { PIIError, findPIIInText } from './pii/PIIDetector'
 import type { ReviewRating } from './review/ReviewScheduler'
-import { createSTTProvider } from './stt/createSTTProvider'
-import type { STTProvider } from './stt/STTProvider'
-import {
-  DockerPythonRunner,
-  type DockerPythonRunnerOptions
-} from './runner/DockerPythonRunner'
-import { PythonSubprocessRunner } from './runner/PythonSubprocessRunner'
-import {
-  createRunnerRegistry,
-  type RunnerRegistry
-} from './runner/RunnerRegistry'
-import type { CodeRunner } from './runner/types'
 
 const projectRoot = resolve(fileURLToPath(new URL('..', import.meta.url)))
 const isProduction = process.argv.includes('--production')
@@ -164,404 +67,28 @@ const reviewCompleteSchema = z.object({
   ])
 })
 
-interface ApiContext {
-  assignments: AssignmentRegistry
-  store: JsonAttemptStore
-  agent: EvaluationAgent
-  runnerName: string
-  knowledge: KnowledgeStore
-  audit: AuditStore
-  sessions: SessionProvider
-  memory: MemoryLayer
-  interventions: InterventionService
-  stt: STTProvider
-  /** Product database shared by question bank / auth / org (T02-T08). */
-  productDb: Database.Database
-  auth: AuthService
-  questionBank: QuestionBankService
-  /** T-K/T-L Phase E/C migration store (write-path switch). */
-  questionStore: QuestionStore
-  tutoring: ReturnType<typeof createTutoringService>
-  importService: ImportService
-  nextPractice: NextPracticeService
-  assignByWeakness: AssignByWeaknessService
-  org: SqliteOrgReader
-  practiceSessions: PracticeSessionService
-  mistakes: MistakeBookService
-  teachingUnits: TeachingUnitService
-  roster: StudentImportService
-  assignmentService: AssignmentService
-  grading: SubjectiveGradingService
-  tips: TeacherTipService
-  evidenceProjector: EvidenceProjector
-  /** T-B media pipeline services (blob store / upload sessions / worker). */
-  media: MediaRouteContext
-  /** T-F reviewer / publication governance services (per-request user below). */
-  demonstration: ReviewerRouteContext
-}
-
-interface EvidenceRingServerOptions {
-  dataFile?: string
-  vite?: boolean
-  /**
-   * Code-question runner. Wrapped into a RunnerRegistry when `runners` is omitted.
-   * Tests may inject a stub CodeRunner; production uses createConfiguredRunner().
-   */
-  runner?: CodeRunner
-  /** Full multi-type registry. When set, takes precedence over `runner`. */
-  runners?: RunnerRegistry
-  knowledgeStore?: KnowledgeStore
-  knowledgeSeedPath?: string
-  auditStore?: AuditStore
-  auditDbPath?: string
-  auditHmacSecret?: string
-  sessionProvider?: SessionProvider
-  /** Shared memory-layer path; defaults to the audit DB path (ADR-0007). */
-  memoryDbPath?: string
-  memoryLayer?: MemoryLayer
-  sttProvider?: STTProvider
-  /**
-   * Product database path (questions / auth / teaching units / enrollments).
-   * Defaults to `.data/product.sqlite`; in-memory when an auditStore is injected
-   * (test mode) so unit suites never touch disk.
-   */
-  productDbPath?: string
-  /**
-   * Media data root for the T-B blob store (uploads + CAS media dir). Tests
-   * inject a temp dir; production defaults to the project data dir.
-   */
-  mediaDataRoot?: string
-  /**
-   * Product database handle to reuse (tests seed reviewer users / demo data
-   * on a shared in-memory DB). When omitted the server opens its own
-   * connection from productDbPath and owns its lifecycle.
-   */
-  productDb?: Database.Database
-}
-
 export async function createEvidenceRingServer(
   options: EvidenceRingServerOptions = {}
 ) {
-  const demoAssignments = createAssignmentRegistry()
-  // T01 expand-contract: the main store is now an Attempt-aware store so the
-  // product services (student / teacher / adaptive) and the legacy
-  // /api/evaluations demo path share one source of truth.
-  const store = new JsonAttemptStore(
-    options.dataFile ?? join(projectRoot, '.data', 'evaluations.json')
-  )
-  const runners =
-    options.runners ??
-    createRunnerRegistry(options.runner ?? createConfiguredRunner())
-  const knowledge =
-    options.knowledgeStore ??
-    new JsonKnowledgeStore({ seedPath: options.knowledgeSeedPath })
-  const defaultAuditDbPath = join(projectRoot, '.data', 'audit.sqlite')
-  const hmacSecret = options.auditHmacSecret ?? resolveAuditHmacSecret()
-  const auditDbPath = options.auditDbPath ?? defaultAuditDbPath
-  const audit =
-    options.auditStore ??
-    new AuditStore({
-      dbPath: auditDbPath,
-      hmacSecret
-    })
-  // Mastery + review share the audit SQLite file (same DB, different tables).
-  // When tests inject an in-memory AuditStore without a path, keep memory
-  // in-memory too so unit suites never touch disk.
-  const memoryDbPath =
-    options.memoryDbPath ??
-    options.auditDbPath ??
-    (options.auditStore ? ':memory:' : defaultAuditDbPath)
-  const memory =
-    options.memoryLayer ??
-    new MemoryLayer({
-      dbPath: memoryDbPath,
-      hmacSecret,
-      evaluationStore: store
-    })
-
+  const composed = await createServerContext(options)
   let vite: ViteDevServer | undefined
   try {
-    await runners.warm()
-    // Warm the knowledge cache so misconfigured seeds fail fast at startup
-    // rather than on the first API hit.
-    await knowledge.getGraph()
     vite = options.vite ? await createViteMiddleware() : undefined
   } catch (error) {
-    await runners.dispose()
-    await audit.close().catch(() => undefined)
-    memory.close()
+    await composed.dispose()
     throw error
   }
 
-  const stt = options.sttProvider ?? createSTTProvider()
-  const interventions = new InterventionService({
-    knowledge,
-    mastery: memory.mastery
-  })
-
-  // ---------------------------------------------------------------------------
-  // Product database (T02-T08): questions / auth / teaching units / enrollments.
-  // Separate connection from audit + memory so WAL locking stays isolated.
-  // In-memory when an auditStore is injected (test mode) - no disk touch.
-  // Tests may inject their own connection (productDb) to seed reviewer/demo data
-  // on a shared in-memory DB; the server then does not own its lifecycle.
-  // ---------------------------------------------------------------------------
-  const ownsProductDb = options.productDb === undefined
-  let productDb: Database.Database
-  if (options.productDb !== undefined) {
-    productDb = options.productDb
-  } else {
-    const defaultProductDbPath = join(projectRoot, '.data', 'product.sqlite')
-    const productDbPath =
-      options.productDbPath ??
-      (options.auditStore ? ':memory:' : defaultProductDbPath)
-    if (productDbPath !== ':memory:') {
-      mkdirSync(dirname(productDbPath), { recursive: true })
-    }
-    productDb = new Database(productDbPath)
-    productDb.pragma('journal_mode = WAL')
-  }
-
-  const questionStore = new QuestionStore({ database: productDb })
-  const questionBank = new QuestionBankService({ store: questionStore })
-  const authStore = new AuthStore(productDb)
-  const auth = new AuthService(authStore)
-  const org = new SqliteOrgReader(productDb)
-  // T-B media pipeline: blob store under the media data root, upload sessions
-  // on the product db (migration 0008), worker with the configured scanner
-  // (prod fail-closed without clamd; dev pass-through under MEDIA_DISABLE_SCAN).
-  const mediaDataRoot = options.mediaDataRoot ?? join(projectRoot, 'data')
-  const blobs: BlobStore = new FsBlobStore({ dataRoot: mediaDataRoot })
-  const quotas = new QuotaService(productDb)
-  const uploads = new UploadStore(productDb, quotas)
-  const scanner = createScanner(process.env)
-  const processor = new MediaProcessor({
-    db: productDb,
-    blobs,
-    uploads,
-    scanner
-  })
-  const mediaWorker = new MediaWorkerLoop(uploads, processor)
-  // Start the background worker (unref'd timer — won't keep the process alive).
-  mediaWorker.start()
-  const media: MediaRouteContext = {
-    db: productDb,
-    blobs,
-    uploads,
-    processor,
-    scanner,
-    user: {
-      userId: '',
-      displayName: 'media',
-      role: 'student' // placeholder; overwritten per-request by handleApi
-    }
-  }
-  // T-F reviewer / publication governance services (spec §5.2/§5.3). The audit
-  // hook bridges the demo.* domain events onto the existing audit HMAC chain
-  // (mandatory governance actions only, spec §5.7).
-  const demoAudit = createDemoAuditSink(audit)
-  const demonstrationService = new DemonstrationService({ db: productDb, audit: demoAudit })
-  const reviewService = new ReviewService({ db: productDb, audit: demoAudit })
-  const reportService = new ReportService({ db: productDb, audit: demoAudit })
-  const appealService = new AppealService({ db: productDb, audit: demoAudit })
-  const evidencePanel = new EvidencePanelService({ db: productDb })
-  const demoNotifications = new NotificationService({ db: productDb })
-  const referenceService = new ReferenceService({ db: productDb, audit: demoAudit })
-  const demonstration: ReviewerRouteContext = {
-    db: productDb,
-    demoService: demonstrationService,
-    aiQuota: new AiQuotaStore(),
-    references: referenceService,
-    review: reviewService,
-    evidence: evidencePanel,
-    notifications: demoNotifications,
-    reports: reportService,
-    appeals: appealService,
-    user: {
-      userId: '',
-      displayName: 'reviewer',
-      role: 'student' // placeholder; overwritten per-request by handleApi
-    }
-  }
-  // T03 tail + T07 demo: seed built-in bank + tu-demo unit so "今日该练"
-  // and mistake repractice have real question/KP rows on cold start.
-  seedDemoProduct({ questions: questionStore, org })
-  // #32: seed preset demonstrations for the built-in question bank (replaces
-  // the deleted legacy visualization migration). Idempotent — skips
-  // questions that already have a primary demonstration reference.
-  try {
-    seedPresetDemonstrations(productDb)
-  } catch (error) {
-    console.error('Seed preset demonstrations failed:', error)
-  }
-  // T-M Phase C (#30): legacy visualization column deleted — no migration runs.
-  // ADR-0015 Phase 6: EvaluationAgent resolves private/seed question ids via
-  // payload→ExecutableAssignment projection when the demo registry misses.
-  const assignments = createQuestionBackedRegistry(demoAssignments, (id) =>
-    questionBank.peek(id)
-  )
-  // Session provider: real (cookie→auth_sessions) in production, mock
-  // (X-Demo-Role header) in dev/test. AUTH_MODE / DEMO_AUTH override.
-  // ponytail: default shifts to real under NODE_ENV=production (authMode.ts),
-  // so the X-Demo-Role backdoor is closed on `--production` servers unless
-  // DEMO_AUTH is explicitly set.
-  const sessions =
-    options.sessionProvider ??
-    createSessionProvider({ db: productDb, env: process.env })
-
-  const tutoring = createTutoringService(store)
-  const importService = new ImportService({
-    store: new ImportDraftStore({ database: productDb }),
-    questionBank,
-    ocr: createOcrProvider(),
-    splitter: createQuestionSplitter()
-  })
-  const nextPractice = new NextPracticeService({
-    review: memory.review,
-    interventions,
-    org,
-    questions: questionStore,
-    mastery: memory.mastery
-  })
-  const assignByWeakness = new AssignByWeaknessService({
-    org,
-    mastery: memory.mastery,
-    questionBank,
-    attempts: store
-  })
-  const practiceSessions = new PracticeSessionService({ attempts: store })
-  const mistakes = new MistakeBookService({
-    attempts: store,
-    questions: questionStore
-  })
-  const teachingUnits = new TeachingUnitService({ org })
-  const roster = new StudentImportService({ auth, org })
-  const assignmentService = new AssignmentService({
-    questionBank,
-    weakness: assignByWeakness,
-    attempts: store,
-    org
-  })
-  const grading = new SubjectiveGradingService({
-    attempts: store,
-    questions: questionStore,
-    org,
-    hmacSecret
-  })
-  // T14: in-app teacher tips (站内消息). Shares productDb; never scores.
-  const tips = new TeacherTipService({
-    store: new TeacherTipStore({ database: productDb }),
-    org
-  })
-  // D1 dual-mode projector: practice feeds FSRS only; assessment also
-  // recomputes formal MasteryProfile. Used by the evaluate path when an
-  // attemptId is supplied (T07 product flow).
-  const evidenceProjector = new EvidenceProjector({
-    mastery: memory.mastery,
-    review: memory.review
-  })
-
-  const context: ApiContext = {
-    assignments,
-    store,
-    productDb,
-    auth,
-    questionBank,
-    questionStore,
-    tutoring,
-    importService,
-    nextPractice,
-    assignByWeakness,
-    org,
-    practiceSessions,
-    mistakes,
-    teachingUnits,
-    roster,
-    assignmentService,
-    grading,
-    tips,
-    evidenceProjector,
-    agent: new EvaluationAgent({
-      assignments,
-      knowledge: createKnowledgeBase(),
-      runners,
-      feedback: createFeedbackGenerator(),
-      // Essay subjective coaching only — never folds into score (ADR-0008).
-      advisory: new AdvisoryService()
-    }),
-    runnerName: runners.displayName(),
-    knowledge,
-    audit,
-    sessions,
-    memory,
-    interventions,
-    stt,
-    media,
-    demonstration
-  }
   const server = createServer((request, response) => {
-    void routeRequest(request, response, context, vite)
+    void routeRequest(request, response, composed.context, vite)
   })
   server.once('close', () => {
-    mediaWorker.stop()
-    void runners.dispose().catch((error: unknown) => {
-      console.error('Failed to dispose runner registry:', error)
-    })
-    void audit.close().catch((error: unknown) => {
-      console.error('Failed to close audit store:', error)
-    })
-    try {
-      memory.close()
-    } catch (error: unknown) {
-      console.error('Failed to close memory layer:', error)
-    }
-    if (ownsProductDb) {
-      try {
-        productDb.close()
-      } catch (error: unknown) {
-        console.error('Failed to close product database:', error)
-      }
-    }
+    void composed.dispose()
   })
-
   return server
 }
 
-export function createConfiguredRunner(
-  environment: NodeJS.ProcessEnv = process.env
-): CodeRunner {
-  const mode = (environment.PYTHON_RUNNER ?? 'subprocess').trim().toLowerCase()
-
-  if (mode === 'subprocess') {
-    return new PythonSubprocessRunner({
-      pythonBin: environment.PYTHON_BIN,
-      timeoutMs: optionalPositiveInteger(environment.PYTHON_RUNNER_TIMEOUT_MS)
-    })
-  }
-
-  if (mode === 'docker') {
-    const options: DockerPythonRunnerOptions = {
-      dockerBin: environment.DOCKER_BIN,
-      image: environment.DOCKER_RUNNER_IMAGE,
-      poolSize: optionalPositiveInteger(environment.DOCKER_RUNNER_POOL_SIZE),
-      timeoutMs: optionalPositiveInteger(environment.DOCKER_RUNNER_TIMEOUT_MS),
-      startupTimeoutMs: optionalPositiveInteger(
-        environment.DOCKER_RUNNER_STARTUP_TIMEOUT_MS
-      ),
-      memory: environment.DOCKER_RUNNER_MEMORY,
-      memorySwap: environment.DOCKER_RUNNER_MEMORY_SWAP,
-      cpus: environment.DOCKER_RUNNER_CPUS,
-      tmpfs: environment.DOCKER_RUNNER_TMPFS,
-      user: environment.DOCKER_RUNNER_USER,
-      pidsLimit: optionalPositiveInteger(environment.DOCKER_RUNNER_PIDS_LIMIT)
-    }
-    return new DockerPythonRunner(options)
-  }
-
-  throw new Error(
-    `Unsupported PYTHON_RUNNER value "${mode}". Use "subprocess" or "docker".`
-  )
-}
+export { createConfiguredRunner } from './runner/configuredRunner'
 
 async function start(): Promise<void> {
   const server = await createEvidenceRingServer({ vite: !isProduction })
@@ -1447,15 +974,6 @@ function isPathInside(root: string, candidate: string): boolean {
     && relativePath !== '..'
     && !relativePath.startsWith(`..${sep}`)
   )
-}
-
-function optionalPositiveInteger(value: string | undefined): number | undefined {
-  if (value === undefined || value.trim() === '') return undefined
-  const parsed = Number(value)
-  if (!Number.isInteger(parsed) || parsed <= 0) {
-    throw new Error(`Expected a positive integer, received "${value}".`)
-  }
-  return parsed
 }
 
 const entryPath = process.argv[1] ? normalize(resolve(process.argv[1])) : ''

@@ -1,0 +1,75 @@
+import type Database from 'better-sqlite3'
+import type { AuditStore } from './audit/AuditStore'
+import type { SessionProvider } from './auth/SessionProvider'
+import type { AuthService } from './auth/AuthService'
+import type { AssignByWeaknessService, EvidenceProjector, NextPracticeService, SqliteOrgReader } from './adaptive'
+import type { AssignmentRegistry } from './data/assignments'
+import type { EvaluationAgent } from './domain/EvaluationAgent'
+import type { ImportService } from './import'
+import type { QuestionBankService } from './questionbank/QuestionBankService'
+import type { QuestionStore } from './questionbank/QuestionStore'
+import type { AssignmentService, StudentImportService, SubjectiveGradingService, TeacherTipService, TeachingUnitService } from './teacher'
+import type { MistakeBookService, PracticeSessionService } from './student'
+import type { createTutoringService } from './tutoring'
+import type { MediaRouteContext } from './media/mediaRoutes'
+import type { ReviewerRouteContext } from './demonstration/reviewerRoutes'
+import type { JsonAttemptStore } from './store/AttemptStore'
+import type { KnowledgeStore } from './knowledge/KnowledgeStore'
+import type { InterventionService } from './mastery/InterventionService'
+import type { MemoryLayer } from './memory/MemoryLayer'
+import type { STTProvider } from './stt/STTProvider'
+import type { RunnerRegistry } from './runner/RunnerRegistry'
+import type { CodeRunner } from './runner/types'
+
+/** Runtime dependencies consumed by the HTTP router. */
+export interface ApiContext {
+  assignments: AssignmentRegistry
+  store: JsonAttemptStore
+  agent: EvaluationAgent
+  runnerName: string
+  knowledge: KnowledgeStore
+  audit: AuditStore
+  sessions: SessionProvider
+  memory: MemoryLayer
+  interventions: InterventionService
+  stt: STTProvider
+  productDb: Database.Database
+  auth: AuthService
+  questionBank: QuestionBankService
+  questionStore: QuestionStore
+  tutoring: ReturnType<typeof createTutoringService>
+  importService: ImportService
+  nextPractice: NextPracticeService
+  assignByWeakness: AssignByWeaknessService
+  org: SqliteOrgReader
+  practiceSessions: PracticeSessionService
+  mistakes: MistakeBookService
+  teachingUnits: TeachingUnitService
+  roster: StudentImportService
+  assignmentService: AssignmentService
+  grading: SubjectiveGradingService
+  tips: TeacherTipService
+  evidenceProjector: EvidenceProjector
+  media: MediaRouteContext
+  demonstration: ReviewerRouteContext
+}
+
+/** Dependency overrides and storage options for server composition. */
+export interface EvidenceRingServerOptions {
+  dataFile?: string
+  vite?: boolean
+  runner?: CodeRunner
+  runners?: RunnerRegistry
+  knowledgeStore?: KnowledgeStore
+  knowledgeSeedPath?: string
+  auditStore?: AuditStore
+  auditDbPath?: string
+  auditHmacSecret?: string
+  sessionProvider?: SessionProvider
+  memoryDbPath?: string
+  memoryLayer?: MemoryLayer
+  sttProvider?: STTProvider
+  productDbPath?: string
+  mediaDataRoot?: string
+  productDb?: Database.Database
+}
