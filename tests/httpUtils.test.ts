@@ -2,6 +2,7 @@
 /** httpUtils — shared transport helpers (C5 deepening, #35). */
 import { describe, it, expect } from 'vitest'
 import type { IncomingMessage } from 'node:http'
+import { Readable } from 'node:stream'
 import {
   HttpError,
   respondJson,
@@ -46,7 +47,7 @@ describe('respondJson', () => {
 describe('readJsonBody', () => {
   function makeRequest(body: string, contentLength?: number): IncomingMessage {
     // Build a minimal readable stream that yields the body.
-    const stream = new (require('node:stream').Readable)() as IncomingMessage
+    const stream = new Readable() as IncomingMessage
     stream.push(body)
     stream.push(null)
     ;(stream as { headers?: Record<string, string | undefined> }).headers = {
