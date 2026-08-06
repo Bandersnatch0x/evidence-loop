@@ -110,8 +110,8 @@ export interface CubeSectionSceneProps {
 
 export function CubeSectionScene({ submission }: CubeSectionSceneProps) {
   return (
-    <div className="cube-section-canvas" style={{ marginTop: 12 }}>
-      <div style={{ fontSize: 13, color: '#374151', marginBottom: 4 }}>
+    <div className="viz-scene cube-section-canvas">
+      <div className="viz-scene-caption">
         你的截面（蓝色高亮，3D 可拖动旋转，实时反映当前提交）
       </div>
       <Canvas

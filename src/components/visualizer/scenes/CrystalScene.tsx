@@ -46,8 +46,8 @@ export function CrystalScene({ assignmentId }: CrystalSceneProps) {
   const corners = CELL_CORNERS.map(toView)
 
   return (
-    <div className="crystal-canvas" style={{ marginTop: 12 }}>
-      <div style={{ fontSize: 13, color: '#374151', marginBottom: 4 }}>
+    <div className="viz-scene crystal-canvas">
+      <div className="viz-scene-caption">
         {LABELS[assignmentId] ?? '晶体结构（3D 球棍，可拖动旋转）'}
       </div>
       <Canvas

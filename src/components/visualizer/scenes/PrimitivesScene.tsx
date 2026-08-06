@@ -101,10 +101,10 @@ export function PrimitivesScene({ visualization }: PrimitivesSceneProps) {
   )
 
   return (
-    <div className="primitives-canvas" style={{ marginTop: 12 }}>
-      <div style={{ fontSize: 13, color: '#374151', marginBottom: 4 }}>
+    <div className="viz-scene primitives-canvas">
+      <div className="viz-scene-caption">
         {label ?? '3D 图元演示（可拖动旋转）'}
-        <span style={{ marginLeft: 8, color: '#9ca3af', fontSize: 12 }}>
+        <span className="viz-scene-hint">
           教师生成 · 已确认
         </span>
       </div>

@@ -58,10 +58,10 @@ export function CurveScene({ visualization }: CurveSceneProps) {
   )
 
   return (
-    <div className="curve-canvas" style={{ marginTop: 12 }}>
-      <div style={{ fontSize: 13, color: '#374151', marginBottom: 4 }}>
+    <div className="viz-scene curve-canvas">
+      <div className="viz-scene-caption">
         {label ?? '3D 曲线演示（可拖动旋转）'}
-        <span style={{ marginLeft: 8, color: '#9ca3af', fontSize: 12 }}>
+        <span className="viz-scene-hint">
           教师生成 · 已确认
         </span>
       </div>

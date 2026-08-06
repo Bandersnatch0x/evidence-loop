@@ -47,7 +47,7 @@ export interface VisualizerProps {
 }
 
 const SCENE_FALLBACK = (
-  <div style={{ marginTop: 12, fontSize: 13, color: '#6b7280' }}>
+  <div className="viz-scene viz-scene-caption">
     正在加载 3D 场景...
   </div>
 )

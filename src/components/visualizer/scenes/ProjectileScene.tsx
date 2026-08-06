@@ -47,8 +47,8 @@ export function ProjectileScene({ assignmentId, submission }: ProjectileScenePro
   }, [assignmentId, isXY, submission])
 
   return (
-    <div className={isXY ? 'projectile-xy-canvas' : 'trajectory-canvas'} style={{ marginTop: 12 }}>
-      <div style={{ fontSize: 13, color: '#374151', marginBottom: 4 }}>
+    <div className={`viz-scene ${isXY ? 'projectile-xy-canvas' : 'trajectory-canvas'}`}>
+      <div className="viz-scene-caption">
         {isXY
           ? '你的斜抛轨迹（物理 x-y 空间，实时反映当前提交）'
           : '你的 y(t) 轨迹（实时反映当前提交）'}

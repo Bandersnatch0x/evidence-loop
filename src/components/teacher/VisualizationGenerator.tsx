@@ -174,15 +174,15 @@ export function VisualizationGenerator({
         <Sparkles size={14} /> AI 生成预览
       </button>
 
-      <label style={{ display: 'block', marginTop: 12 }}>
+      <label>
         手动几何 JSON（无 LLM）
         <textarea
+          className="viz-json-input"
           rows={5}
           value={manualJson}
           onChange={(e) => setManualJson(e.target.value)}
           placeholder='{"kind":"curve","points":[[0,0,0],[1,0,1]],"label":"示例"}'
           disabled={busy}
-          style={{ fontFamily: 'ui-monospace, monospace', fontSize: 12 }}
         />
       </label>
       <button
@@ -201,7 +201,7 @@ export function VisualizationGenerator({
       ) : null}
 
       {warnings.length > 0 ? (
-        <div className="muted" style={{ marginTop: 8, fontSize: 13 }}>
+        <div className="viz-warnings">
           几何提示：{warnings.join('；')}
         </div>
       ) : null}
@@ -211,7 +211,7 @@ export function VisualizationGenerator({
           <Suspense fallback={<div className="muted">正在加载 3D 预览…</div>}>
             <VisualizationPreview visualization={preview} />
           </Suspense>
-          <div style={{ marginTop: 8, display: 'flex', gap: 8 }}>
+          <div className="viz-actions">
             <button
               type="button"
               className="primary-button"
@@ -236,8 +236,8 @@ export function VisualizationGenerator({
       ) : null}
 
       {confirmed ? (
-        <div className="viz-confirmed" style={{ marginTop: 12 }}>
-          <div style={{ fontSize: 13, color: '#374151', marginBottom: 4 }}>
+        <div className="viz-confirmed">
+          <div className="viz-scene-caption">
             当前演示（AI 生成 · 教师已确认）
           </div>
           <Suspense fallback={<div className="muted">正在加载 3D 预览…</div>}>
@@ -248,7 +248,6 @@ export function VisualizationGenerator({
             className="secondary-button"
             disabled={busy}
             onClick={() => void handleClear()}
-            style={{ marginTop: 8 }}
           >
             清除演示
           </button>

@@ -4551,3 +4551,105 @@ td > b {
 tbody tr {
   transition: background-color 0.2s ease;
 }
+
+/* ==========================================================================
+   Visualization suite — AI 3D 生成面板 + 场景画布（ADR-0013/0014/0015）
+   ========================================================================== */
+
+.visualization-panel {
+  margin: 16px 0;
+  padding: 12px 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface-sunken, var(--surface));
+}
+
+.visualization-panel legend {
+  padding: 0 6px;
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: var(--ink);
+}
+
+.visualization-panel label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 10px 0 8px;
+  font-size: 0.8125rem;
+  color: var(--ink-muted);
+}
+
+.visualization-panel textarea {
+  font: inherit;
+  width: 100%;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm, 8px);
+  padding: 8px 10px;
+}
+
+.visualization-panel textarea:focus-visible {
+  outline: 2px solid var(--indigo);
+  outline-offset: 1px;
+}
+
+.visualization-panel textarea.viz-json-input {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+}
+
+.viz-preview,
+.viz-confirmed {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+
+.viz-confirmed .viz-scene-caption {
+  color: var(--indigo-deep);
+}
+
+.viz-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.viz-scene-caption {
+  font-size: 0.8125rem;
+  color: var(--ink-muted);
+  margin-bottom: 4px;
+}
+
+.viz-scene-hint {
+  margin-left: 8px;
+  font-size: 0.75rem;
+  color: var(--ink-faint);
+}
+
+.viz-scene {
+  margin-top: 12px;
+}
+
+.viz-scene canvas {
+  display: block;
+  max-width: 100%;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+
+.viz-warnings {
+  margin-top: 8px;
+  color: var(--ink-muted);
+  font-size: 0.8125rem;
+}
+
+.viz-preview > .secondary-button,
+.viz-confirmed > .secondary-button {
+  margin-top: 8px;
+}

@@ -26,8 +26,8 @@ export function MoleculeScene({ assignmentId }: MoleculeSceneProps) {
   if (!molecule) return null
   const positionById = new Map(molecule.atoms.map((a) => [a.id, a.position]))
   return (
-    <div className="molecule-canvas" style={{ marginTop: 12 }}>
-      <div style={{ fontSize: 13, color: '#374151', marginBottom: 4 }}>
+    <div className="viz-scene molecule-canvas">
+      <div className="viz-scene-caption">
         分子空间构型（3D 球棍，可拖动旋转）
       </div>
       <Canvas

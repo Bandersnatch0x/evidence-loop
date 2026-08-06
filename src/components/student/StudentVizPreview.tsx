@@ -66,7 +66,7 @@ export function StudentVizPreview() {
   }
 
   return (
-    <fieldset className="visualization-panel student-viz-preview" style={{ marginTop: 16 }}>
+    <fieldset className="visualization-panel student-viz-preview">
       <legend>
         <Sparkles size={16} style={{ verticalAlign: 'middle' }} /> 试生成 3D 演示
       </legend>
@@ -98,12 +98,12 @@ export function StudentVizPreview() {
         </div>
       ) : null}
       {warnings.length > 0 ? (
-        <div className="muted" style={{ marginTop: 8, fontSize: 13 }}>
+        <div className="viz-warnings">
           几何提示：{warnings.join('；')}
         </div>
       ) : null}
       {preview ? (
-        <div className="viz-preview" style={{ marginTop: 8 }}>
+        <div className="viz-preview">
           <Suspense fallback={<div className="muted">正在加载 3D 预览…</div>}>
             <Preview visualization={preview} />
           </Suspense>
@@ -115,7 +115,6 @@ export function StudentVizPreview() {
               setPreview(undefined)
               setWarnings([])
             }}
-            style={{ marginTop: 8 }}
           >
             关闭预览
           </button>
