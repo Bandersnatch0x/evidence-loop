@@ -11,7 +11,7 @@ import type { ApiContext, EvidenceRingServerOptions } from './serverTypes'
 import { HttpError, readJsonBody, respondJson } from './http/httpUtils'
 import type { ApiError, InterventionSuggestion } from '../shared/contracts'
 import { createRouteAuditor } from './audit/routeAudit'
-import { canAccessStudent } from './auth/authorization'
+import { authorizeAccess } from './auth/authorization'
 import { tryHandleAuthRoute } from './auth/authRoutes'
 import { AuthError, authStatusCode } from './auth/errors'
 import { isMultimodalEnabled } from './config/features'
@@ -25,7 +25,6 @@ import { handleStudentApi } from './student'
 import { handleTutoringApi } from './tutoring'
 import { handleQuestionBankApi } from './questionbank/questionRoutes'
 import { handleMediaApi } from './media/mediaRoutes'
-import { isPublicLibraryReviewer } from './demonstration/reviewerAuth'
 import { handleReviewerApi } from './demonstration/reviewerRoutes'
 import { handlePlayerApi } from './demonstration/playerRoutes'
 import { handleAuthorApi } from './demonstration/authorRoutes'
@@ -282,31 +281,25 @@ async function handleApi(
 
 
   if (request.method === 'GET' && requestUrl.pathname === '/api/cohort') {
-    if (user.role !== 'teacher' && user.role !== 'admin') {
-      createRouteAuditor(audit, user, {
-        action: 'view',
-        resourceType: 'cohort'
-      }).record({
-        result: 'denied'
-      })
-      respondJson(response, 403, {
-        error: 'Forbidden: cohort view requires teacher or admin role'
-      })
-      return
-    }
-    // Spec §2.8: a public-library reviewer principal is never granted
-    // teaching / grade / audit view authority, even when their role is
-    // teacher|admin (the reviewer flag is additive, not a role expansion).
-    if (isPublicLibraryReviewer(context.productDb, user.userId)) {
+    const access = authorizeAccess(context.productDb, user, {
+      purpose: 'teaching'
+    })
+    if (!access.allowed) {
       createRouteAuditor(audit, user, {
         action: 'view',
         resourceType: 'cohort'
       }).record({
         result: 'denied',
-        metadata: { reason: 'reviewer-isolated' }
+        metadata:
+          access.reason === 'reviewer-isolated'
+            ? { reason: 'reviewer-isolated' }
+            : undefined
       })
       respondJson(response, 403, {
-        error: 'Forbidden: public-library reviewers may not view cohort data'
+        error:
+          access.reason === 'reviewer-isolated'
+            ? 'Forbidden: public-library reviewers may not view cohort data'
+            : 'Forbidden: cohort view requires teacher or admin role'
       })
       return
     }
@@ -330,16 +323,27 @@ async function handleApi(
     request.method === 'GET'
     && requestUrl.pathname === '/api/cohort/multimodal-usage'
   ) {
-    if (user.role !== 'teacher' && user.role !== 'admin') {
+    const access = authorizeAccess(context.productDb, user, {
+      purpose: 'teaching'
+    })
+    if (!access.allowed) {
       createRouteAuditor(audit, user, {
         action: 'view',
         resourceType: 'cohort'
       }).record({
         result: 'denied',
-        metadata: { resource: 'multimodal-usage' }
+        metadata: {
+          resource: 'multimodal-usage',
+          ...(access.reason === 'reviewer-isolated'
+            ? { reason: 'reviewer-isolated' }
+            : {})
+        }
       })
       respondJson(response, 403, {
-        error: 'Forbidden: multimodal usage requires teacher or admin role'
+        error:
+          access.reason === 'reviewer-isolated'
+            ? 'Forbidden: public-library reviewers may not view cohort data'
+            : 'Forbidden: multimodal usage requires teacher or admin role'
       })
       return
     }
@@ -376,29 +380,25 @@ async function handleApi(
   }
 
   if (request.method === 'GET' && requestUrl.pathname === '/api/audit') {
-    if (user.role !== 'teacher' && user.role !== 'admin') {
-      createRouteAuditor(audit, user, {
-        action: 'view',
-        resourceType: 'audit'
-      }).record({
-        result: 'denied'
-      })
-      respondJson(response, 403, {
-        error: 'Forbidden: audit log requires teacher or admin role'
-      })
-      return
-    }
-    // Spec §2.8: reviewers never get audit view authority (see /api/cohort).
-    if (isPublicLibraryReviewer(context.productDb, user.userId)) {
+    const access = authorizeAccess(context.productDb, user, {
+      purpose: 'teaching'
+    })
+    if (!access.allowed) {
       createRouteAuditor(audit, user, {
         action: 'view',
         resourceType: 'audit'
       }).record({
         result: 'denied',
-        metadata: { reason: 'reviewer-isolated' }
+        metadata:
+          access.reason === 'reviewer-isolated'
+            ? { reason: 'reviewer-isolated' }
+            : undefined
       })
       respondJson(response, 403, {
-        error: 'Forbidden: public-library reviewers may not view audit data'
+        error:
+          access.reason === 'reviewer-isolated'
+            ? 'Forbidden: public-library reviewers may not view audit data'
+            : 'Forbidden: audit log requires teacher or admin role'
       })
       return
     }
@@ -539,7 +539,7 @@ async function handleApi(
       ? decodeURIComponent(masteryMatch[2])
       : undefined
 
-    if (!canAccessStudent(user, studentId)) {
+    if (!authorizeAccess(context.productDb, user, { purpose: 'student-data', studentId: studentId }).allowed) {
       createRouteAuditor(audit, user, {
         action: 'view',
         resourceType: 'knowledge'
@@ -600,7 +600,7 @@ async function handleApi(
     }
     const studentId = studentIdParam
 
-    if (!canAccessStudent(user, studentId)) {
+    if (!authorizeAccess(context.productDb, user, { purpose: 'student-data', studentId: studentId }).allowed) {
       createRouteAuditor(audit, user, {
         action: 'view',
         resourceType: 'knowledge'
@@ -662,7 +662,7 @@ async function handleApi(
     }
     const studentId = studentIdParam
 
-    if (!canAccessStudent(user, studentId)) {
+    if (!authorizeAccess(context.productDb, user, { purpose: 'student-data', studentId: studentId }).allowed) {
       createRouteAuditor(audit, user, {
         action: 'view',
         resourceType: 'knowledge'
@@ -710,7 +710,7 @@ async function handleApi(
       return
     }
 
-    if (!canAccessStudent(user, existing.studentId)) {
+    if (!authorizeAccess(context.productDb, user, { purpose: 'student-data', studentId: existing.studentId }).allowed) {
       createRouteAuditor(audit, user, {
         action: 'evaluate',
         resourceType: 'knowledge'
@@ -784,6 +784,7 @@ async function handleApi(
   }
   if (
     await handleAdaptiveApi(request, response, requestUrl, {
+      db: context.productDb,
       nextPractice: context.nextPractice,
       assignByWeakness: context.assignByWeakness,
       user

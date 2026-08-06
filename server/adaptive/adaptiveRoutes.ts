@@ -1,10 +1,11 @@
 import type { IncomingMessage, ServerResponse } from 'node:http'
+import type { Database } from 'better-sqlite3'
 import {
   SECURITY_WARNING_HEADER,
   SECURITY_WARNING_VALUE
 } from '../auth/MockSessionProvider'
 import type { SessionUser } from '../auth/SessionProvider'
-import { canAccessStudent } from '../auth/authorization'
+import { authorizeAccess } from '../auth/authorization'
 import {
   AssignByWeaknessError,
   type AssignByWeaknessService
@@ -29,6 +30,7 @@ const JSON_HEADERS = {
 const MAX_BODY_BYTES = 256 * 1024
 
 export interface AdaptiveRouteContext {
+  db: Database
   nextPractice: NextPracticeService
   assignByWeakness: AssignByWeaknessService
   user: SessionUser
@@ -88,7 +90,11 @@ async function handleNext(
     return
   }
 
-  if (!canAccessStudent(context.user, studentId)) {
+  const access = authorizeAccess(context.db, context.user, {
+    purpose: 'student-data',
+    studentId
+  })
+  if (!access.allowed) {
     respondJson(response, 403, {
       error: 'Forbidden: cannot view practice plan for this student'
     })
@@ -104,7 +110,10 @@ async function handleAssignWeakness(
   response: ServerResponse,
   context: AdaptiveRouteContext
 ): Promise<void> {
-  if (context.user.role !== 'teacher' && context.user.role !== 'admin') {
+  const access = authorizeAccess(context.db, context.user, {
+    purpose: 'teaching'
+  })
+  if (!access.allowed) {
     respondJson(response, 403, {
       error: 'Forbidden: only teachers may assign by weakness'
     })

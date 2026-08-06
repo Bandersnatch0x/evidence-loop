@@ -1,25 +1,52 @@
-/**
- * authorization — shared route-authorization helpers.
- *
- * C4 deepening (#38): `canAccessStudent` was copy-pasted into index.ts and
- * adaptive/adaptiveRoutes.ts with identical logic. This module is the single
- * home for student-access checks so the teaching/grade/audit route surface
- * stays consistent with spec §2.8 (reviewer pseudo-role never expands access).
- */
+/** Shared authorization policy for teaching and student-data routes. */
+import type { Database } from 'better-sqlite3'
+import { isPublicLibraryReviewer } from '../demonstration/reviewerAuth'
 import type { SessionUser } from './SessionProvider'
 
+export type AuthorityPurpose = 'teaching' | 'student-data'
+export type AuthorityDenialReason =
+  | 'role'
+  | 'reviewer-isolated'
+  | 'student-isolated'
+
+export type AuthorityDecision =
+  | { allowed: true }
+  | { allowed: false; reason: AuthorityDenialReason }
+
+export type AuthorityRequest =
+  | { purpose: 'teaching' }
+  | { purpose: 'student-data'; studentId: string }
+
 /**
- * May this principal access a given student's data? Teachers/admins may access
- * any student; students may access only their own record (matched by studentId
- * or, for demo sessions, the userId fallback).
+ * Single policy gate for teaching authority and learner-data access.
+ *
+ * Reviewer is a restrictive flag, never a role expansion: a flagged principal
+ * cannot read teaching, grade, audit, adaptive, mastery, review, or
+ * intervention data even when its session role is teacher/admin (spec §2.8).
  */
-export function canAccessStudent(
+export function authorizeAccess(
+  db: Database,
   user: SessionUser,
-  studentId: string
-): boolean {
-  if (user.role === 'teacher' || user.role === 'admin') return true
-  if (user.role === 'student') {
-    return (user.studentId ?? user.userId) === studentId
+  request: AuthorityRequest
+): AuthorityDecision {
+  if (isPublicLibraryReviewer(db, user.userId)) {
+    return { allowed: false, reason: 'reviewer-isolated' }
   }
-  return false
+
+  if (request.purpose === 'teaching') {
+    return user.role === 'teacher' || user.role === 'admin'
+      ? { allowed: true }
+      : { allowed: false, reason: 'role' }
+  }
+
+  if (user.role === 'teacher' || user.role === 'admin') {
+    return { allowed: true }
+  }
+  if (user.role === 'student') {
+    const owner = user.studentId ?? user.userId
+    return owner === request.studentId
+      ? { allowed: true }
+      : { allowed: false, reason: 'student-isolated' }
+  }
+  return { allowed: false, reason: 'role' }
 }

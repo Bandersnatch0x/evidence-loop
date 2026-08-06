@@ -561,6 +561,7 @@ describe('adaptive HTTP routes', () => {
                 }
               : teacher
         const handled = await handleAdaptiveApi(request, response, url, {
+          db,
           nextPractice,
           assignByWeakness,
           user
