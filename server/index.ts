@@ -93,6 +93,7 @@ import { ReportService } from './demonstration/ReportService'
 import { AppealService } from './demonstration/AppealService'
 import { DemonstrationService } from './demonstration/DemonstrationService'
 import { createDemoAuditSink } from './demonstration/demoAuditSink'
+import { seedPresetDemonstrations } from './demonstration/seedPresets'
 import { isPublicLibraryReviewer } from './demonstration/reviewerAuth'
 import {
   handleReviewerApi,
@@ -400,6 +401,14 @@ export async function createEvidenceRingServer(
   // T03 tail + T07 demo: seed built-in bank + tu-demo unit so "今日该练"
   // and mistake repractice have real question/KP rows on cold start.
   seedDemoProduct({ questions: questionStore, org })
+  // #32: seed preset demonstrations for the built-in question bank (replaces
+  // the deleted legacy visualization migration). Idempotent — skips
+  // questions that already have a primary demonstration reference.
+  try {
+    seedPresetDemonstrations(productDb)
+  } catch (error) {
+    console.error('Seed preset demonstrations failed:', error)
+  }
   // T-M Phase C (#30): legacy visualization column deleted — no migration runs.
   // ADR-0015 Phase 6: EvaluationAgent resolves private/seed question ids via
   // payload→ExecutableAssignment projection when the demo registry misses.

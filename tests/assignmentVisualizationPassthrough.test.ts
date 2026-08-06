@@ -134,7 +134,7 @@ describe('assignment visualization passthrough (Phase 5)', () => {
     expect(assignment.visualization).toBeUndefined()
   })
 
-  it('serves pre-seeded magnetic helix curve on demo assignment (no legacy viz)', async () => {
+  it('serves pre-seeded magnetic helix curve on demo assignment (preset demo, #32)', async () => {
     const response = await fetch(
       `${baseUrl}/api/assignments/physics-magnetic-helix`,
       { headers: { 'x-demo-role': 'student' } }
@@ -142,13 +142,15 @@ describe('assignment visualization passthrough (Phase 5)', () => {
     expect(response.status).toBe(200)
     const assignment = (await response.json()) as Assignment
     expect(assignment.id).toBe('physics-magnetic-helix')
-    // Phase C (#30): the legacy seed visualization is deleted and no longer
-    // migrates into a demonstration — the assignment serves without one.
+    // #32: the preset demonstration is created directly by the seed path
+    // (not legacy migration) and resolved as the primary reference.
     expect(assignment.visualization).toBeUndefined()
-    expect(assignment.demonstrations).toBeUndefined()
+    const primary = assignment.demonstrations?.find((r) => r.role === 'primary')
+    expect(primary).toBeDefined()
+    expect(primary?.versionId).toBeTruthy()
   })
 
-  it('serves pre-seeded DNA double helix demo assignment (no legacy viz)', async () => {
+  it('serves pre-seeded DNA double helix demo assignment (preset demo, #32)', async () => {
     const response = await fetch(
       `${baseUrl}/api/assignments/bio-dna-double-helix`,
       { headers: { 'x-demo-role': 'student' } }
@@ -156,7 +158,9 @@ describe('assignment visualization passthrough (Phase 5)', () => {
     expect(response.status).toBe(200)
     const assignment = (await response.json()) as Assignment
     expect(assignment.id).toBe('bio-dna-double-helix')
-    expect(assignment.demonstrations).toBeUndefined()
+    const primary = assignment.demonstrations?.find((r) => r.role === 'primary')
+    expect(primary).toBeDefined()
+    expect(primary?.versionId).toBeTruthy()
   })
 
   it('allows student preview-visualization without persisting', async () => {
@@ -186,7 +190,7 @@ describe('assignment visualization passthrough (Phase 5)', () => {
     expect(noAuth.status).toBe(403)
   })
 
-  it('serves pre-seeded circuit demo assignment (no legacy viz)', async () => {
+  it('serves pre-seeded circuit demo assignment (preset demo, #32)', async () => {
     const response = await fetch(
       `${baseUrl}/api/assignments/numeric-ohm-law`,
       { headers: { 'x-demo-role': 'student' } }
@@ -194,7 +198,9 @@ describe('assignment visualization passthrough (Phase 5)', () => {
     expect(response.status).toBe(200)
     const assignment = (await response.json()) as Assignment
     expect(assignment.id).toBe('numeric-ohm-law')
-    expect(assignment.demonstrations).toBeUndefined()
+    const primary = assignment.demonstrations?.find((r) => r.role === 'primary')
+    expect(primary).toBeDefined()
+    expect(primary?.versionId).toBeTruthy()
   })
 
   it('scores a private fill_blank question via payload projection', async () => {
