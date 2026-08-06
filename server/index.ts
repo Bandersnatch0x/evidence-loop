@@ -10,14 +10,11 @@ import { z } from 'zod'
 import type { ViteDevServer } from 'vite'
 import {
   HttpError,
-  maxRequestBodyBytes,
   readJsonBody,
   respondJson
 } from './http/httpUtils'
 import type {
   ApiError,
-  EvaluationHistoryItem,
-  EvaluationResult,
   InterventionSuggestion
 } from '../shared/contracts'
 import {
@@ -46,6 +43,7 @@ import {
 import { createCohortSnapshot } from './data/cohort'
 import { createKnowledgeBase } from './data/knowledge'
 import { EvaluationAgent } from './domain/EvaluationAgent'
+import { handleEvaluationApi } from './domain/evaluationRoutes'
 import { createFeedbackGenerator } from './domain/feedback'
 import {
   ImportDraftStore,
@@ -119,7 +117,7 @@ import {
   respondSTTFinalize,
   respondSTTStart
 } from './multimodal/sttRoute'
-import { detectEvaluationPII, findPIIInText, PIIError } from './pii/PIIDetector'
+import { PIIError, findPIIInText } from './pii/PIIDetector'
 import type { ReviewRating } from './review/ReviewScheduler'
 import { createSTTProvider } from './stt/createSTTProvider'
 import type { STTProvider } from './stt/STTProvider'
@@ -133,18 +131,11 @@ import {
   type RunnerRegistry
 } from './runner/RunnerRegistry'
 import type { CodeRunner } from './runner/types'
-import type { EvaluationStore } from './store/EvaluationStore'
 
 const projectRoot = resolve(fileURLToPath(new URL('..', import.meta.url)))
 const isProduction = process.argv.includes('--production')
 const port = Number(process.env.PORT ?? 4180)
 
-const evaluateRequestSchema = z.object({
-  assignmentId: z.string().min(1),
-  code: z.string().min(1).max(20_000),
-  previousEvaluationId: z.string().min(1).optional(),
-  attemptId: z.string().min(1).optional()
-})
 
 const multimodalAskSchema = z.object({
   text: z.string().min(1).max(2000),
@@ -742,223 +733,24 @@ async function handleApi(
     return
   }
 
-  if (request.method === 'GET' && requestUrl.pathname === '/api/evaluations') {
-    const assignmentId =
-      requestUrl.searchParams.get('assignmentId') ?? undefined
-    const history = await listEvaluationsForUser(store, user, assignmentId)
-    audit.enqueue({
-      actorRole: user.role,
-      actorId: user.userId,
-      action: 'view',
-      resourceType: 'evaluation',
-      studentId: user.studentId,
-      result: 'success',
-      metadata: {
-        count: history.length,
-        assignmentId: assignmentId ?? null
-      }
-    })
-    respondJson(response, 200, history)
-    return
-  }
-
-  if (request.method === 'POST' && requestUrl.pathname === '/api/evaluations') {
-    const parsed = evaluateRequestSchema.safeParse(await readJsonBody(request))
-    if (!parsed.success) {
-      respondJson(response, 400, {
-        error: 'Invalid evaluation request',
-        details: parsed.error.issues.map((issue) => issue.message)
-      } satisfies ApiError)
-      return
-    }
-
-    const previous = await resolvePreviousEvaluation(
+  // Evaluation lifecycle (GET list / POST submit / DELETE erase) is delegated
+  // to the domain handler behind the same seam as the other module routers
+  // (C1 deepening #36).
+  if (
+    await handleEvaluationApi(request, response, requestUrl, {
       store,
-      user,
-      parsed.data.assignmentId,
-      parsed.data.previousEvaluationId
-    )
-    const evaluation = await agent.evaluate(parsed.data, previous)
-    const owned: EvaluationResult = {
-      ...evaluation,
-      studentId: user.studentId ?? user.userId,
-      provenance: evaluation.provenance ?? {
-        kind: 'evidence',
-        evidenceIds: evaluation.evidence.map((item) => item.id),
-        algorithm: 'simple.v1'
-      }
-    }
-
-    // ADR-0003 §3: scan free-form fields before persistence; reject on hit.
-    try {
-      detectEvaluationPII(owned)
-    } catch (error) {
-      if (error instanceof PIIError) {
-        audit.enqueue({
-          actorRole: user.role,
-          actorId: user.userId,
-          action: 'evaluate',
-          resourceType: 'evaluation',
-          resourceId: owned.id,
-          studentId: owned.studentId,
-          containerId: runnerName,
-          result: 'pii_rejected',
-          metadata: {
-            assignmentId: owned.assignmentId,
-            score: owned.score,
-            attempt: owned.attempt,
-            piiDetected: true,
-            piiField: error.matches[0]?.field ?? null,
-            piiKind: error.matches[0]?.kind ?? null
-          }
-        })
-        throw error
-      }
-      throw error
-    }
-
-    // Product Attempt path (T07): when the client supplies attemptId, update
-    // that Attempt in place and preserve mode/paperId/teachingUnitId/termId so
-    // D1 dual-mode mastery projection and T07 session grouping stay honest.
-    // Legacy demo callers omit attemptId and still get assessment-default
-    // Attempts via store.save → evaluationToLegacyAttempt.
-    const attemptId = parsed.data.attemptId
-    let projectedMode: 'practice' | 'assessment' = 'assessment'
-    if (attemptId !== undefined) {
-      const existing = await store.getAttempt(attemptId)
-      if (!existing) {
-        respondJson(response, 404, { error: 'Attempt not found' })
-        return
-      }
-      const owner = user.studentId ?? user.userId
-      if (
-        user.role === 'student' &&
-        existing.studentId !== owner
-      ) {
-        respondJson(response, 403, {
-          error: 'Forbidden: cannot evaluate an attempt you do not own'
-        })
-        return
-      }
-      // Keep the original evaluation id on the Attempt aggregate so tutoring
-      // and mistake-book references remain stable after submit.
-      const resultForAttempt = {
-        ...owned,
-        id: existing.id,
-        studentId: existing.studentId
-      }
-      const updatedAttempt = {
-        ...existing,
-        result: resultForAttempt
-      }
-      await store.saveAttempt(updatedAttempt)
-      projectedMode = existing.mode
-      if (resultForAttempt.status === 'completed') {
-        await context.evidenceProjector.projectAttempt(updatedAttempt)
-      }
-      const containerId = resolveContainerId(resultForAttempt, runnerName)
-      audit.enqueue({
-        actorRole: user.role,
-        actorId: user.userId,
-        action: 'evaluate',
-        resourceType: 'evaluation',
-        resourceId: existing.id,
-        studentId: existing.studentId,
-        containerId,
-        result:
-          resultForAttempt.status === 'completed'
-            ? 'success'
-            : resultForAttempt.status,
-        metadata: {
-          assignmentId: resultForAttempt.assignmentId,
-          score: resultForAttempt.score,
-          attempt: resultForAttempt.attempt,
-          piiDetected: false,
-          mode: projectedMode,
-          attemptId: existing.id
-        }
-      })
-      respondJson(response, 201, resultForAttempt)
-      return
-    }
-
-    await store.save(owned)
-    // Legacy demo path: assessment-default, both mastery + FSRS.
-    if (owned.status === 'completed') {
-      await memory.mastery.recomputeFromEvaluation(owned)
-      memory.review.applyFromEvaluation(owned)
-    }
-
-    const containerId = resolveContainerId(owned, runnerName)
-    audit.enqueue({
-      actorRole: user.role,
-      actorId: user.userId,
-      action: 'evaluate',
-      resourceType: 'evaluation',
-      resourceId: owned.id,
-      studentId: owned.studentId,
-      containerId,
-      result: owned.status === 'completed' ? 'success' : owned.status,
-      metadata: {
-        assignmentId: owned.assignmentId,
-        score: owned.score,
-        attempt: owned.attempt,
-        piiDetected: false,
-        mode: 'assessment',
-        attemptId: null
-      }
+      agent,
+      runnerName,
+      audit,
+      mastery: memory.mastery,
+      review: memory.review,
+      evidenceProjector: context.evidenceProjector,
+      user
     })
-
-    respondJson(response, 201, owned)
+  ) {
     return
   }
 
-  // Right to erasure (GDPR-style): delete a single evaluation record.
-  // Students may erase only their own; teachers/admins may erase any.
-  const evaluationDeleteMatch = requestUrl.pathname.match(
-    /^\/api\/evaluations\/([^/]+)$/
-  )
-  if (request.method === 'DELETE' && evaluationDeleteMatch?.[1]) {
-    const evaluationId = decodeURIComponent(evaluationDeleteMatch[1])
-    const existing = await store.get(evaluationId)
-
-    if (!existing) {
-      respondJson(response, 404, { error: 'Evaluation not found' })
-      return
-    }
-
-    const isOwner =
-      existing.studentId === (user.studentId ?? user.userId)
-    const isPrivileged = user.role === 'teacher' || user.role === 'admin'
-    if (!isOwner && !isPrivileged) {
-      audit.enqueue({
-        actorRole: user.role,
-        actorId: user.userId,
-        action: 'delete',
-        resourceType: 'evaluation',
-        resourceId: evaluationId,
-        studentId: existing.studentId,
-        result: 'denied'
-      })
-      respondJson(response, 403, {
-        error: 'Forbidden: cannot erase an evaluation you do not own'
-      })
-      return
-    }
-
-    const deleted = await store.delete(evaluationId)
-    audit.enqueue({
-      actorRole: user.role,
-      actorId: user.userId,
-      action: 'delete',
-      resourceType: 'evaluation',
-      resourceId: evaluationId,
-      studentId: existing.studentId,
-      result: deleted ? 'success' : 'not_found'
-    })
-    respondJson(response, deleted ? 200 : 404, { id: evaluationId, deleted })
-    return
-  }
 
   if (request.method === 'GET' && requestUrl.pathname === '/api/cohort') {
     if (user.role !== 'teacher' && user.role !== 'admin') {
@@ -1619,63 +1411,6 @@ function sanitizeAuditMetadata(
     sanitized[key] = value
   }
   return sanitized
-}
-
-async function listEvaluationsForUser(
-  store: EvaluationStore,
-  user: SessionUser,
-  assignmentId?: string
-): Promise<EvaluationHistoryItem[]> {
-  if (user.role === 'admin' || user.role === 'teacher') {
-    return store.list({ assignmentId })
-  }
-
-  const studentId = user.studentId ?? user.userId
-  return store.list({ assignmentId, studentId })
-}
-
-async function resolvePreviousEvaluation(
-  store: EvaluationStore,
-  user: SessionUser,
-  assignmentId: string,
-  previousEvaluationId?: string
-): Promise<EvaluationResult | undefined> {
-  if (previousEvaluationId) {
-    const previous = await store.get(previousEvaluationId)
-    if (!previous) return undefined
-    if (user.role === 'student') {
-      const owner = user.studentId ?? user.userId
-      if (previous.studentId !== undefined && previous.studentId !== owner) {
-        return undefined
-      }
-    }
-    return previous
-  }
-
-  if (user.role === 'student') {
-    const history = await store.list({
-      assignmentId,
-      studentId: user.studentId ?? user.userId
-    })
-    const latestId = history[0]?.id
-    return latestId ? store.get(latestId) : undefined
-  }
-
-  return store.latest(assignmentId)
-}
-
-function resolveContainerId(
-  evaluation: EvaluationResult,
-  runnerName: string
-): string {
-  // Prefer an explicit container id from the runner when present; fall back to
-  // the runner name so subprocess demos still produce a stable audit field.
-  const fromTrace = evaluation.trace.find((step) => step.tool === 'python.safe-runner')
-  if (fromTrace?.summary.includes('container:')) {
-    const match = /container:([^\s]+)/u.exec(fromTrace.summary)
-    if (match?.[1]) return match[1]
-  }
-  return runnerName
 }
 
 async function serveProductionAsset(
