@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { ChevronRight, Mic, MicOff, X } from 'lucide-react'
 import type { VoiceSessionState } from './useVoiceSession'
 import { useVoiceSession } from './useVoiceSession'
@@ -36,12 +37,24 @@ export function VoiceCompanion({ open, onOpenChange }: VoiceCompanionProps) {
   const isRecording = state === 'recording'
   const isBusy = state !== 'idle'
 
+  // P1-3 待机/唤醒：Alt+V 快捷键切换抽屉，不打断键盘做题流。
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent): void => {
+      if (e.altKey && (e.key === 'v' || e.key === 'V')) {
+        e.preventDefault()
+        onOpenChange(!open)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [open, onOpenChange])
+
   if (!open) {
     return (
       <button
         type="button"
-        className="voice-fab"
-        aria-label="打开语音辅导"
+        className={`voice-fab${isBusy ? '' : ' voice-fab-idle'}`}
+        aria-label="打开语音辅导（Alt+V）"
         onClick={() => onOpenChange(true)}
       >
         <Mic size={20} aria-hidden="true" />

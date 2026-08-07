@@ -2372,6 +2372,26 @@ td > b {
   box-shadow: 0 0 0 3px oklch(80% 0.12 85 / 0.35);
 }
 
+/* P1-3 待机呼吸：idle 时轻微脉动提示在场感，不打断做题；reduced-motion 禁用。 */
+.voice-fab-idle {
+  animation: voice-fab-breathe 3s ease-in-out infinite;
+}
+
+@keyframes voice-fab-breathe {
+  0%, 100% {
+    box-shadow: 0 4px 14px oklch(50% 0.2 277 / 0.3);
+  }
+  50% {
+    box-shadow: 0 4px 20px oklch(50% 0.2 277 / 0.5);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .voice-fab-idle {
+    animation: none;
+  }
+}
+
 .voice-drawer-backdrop {
   position: fixed;
   inset: 0;

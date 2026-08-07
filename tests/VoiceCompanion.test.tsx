@@ -1,5 +1,6 @@
 import {
   act,
+  fireEvent,
   render,
   renderHook,
   screen,
@@ -67,10 +68,10 @@ describe('VoiceCompanion', () => {
     const onOpenChange = vi.fn()
     render(<VoiceCompanion open={false} onOpenChange={onOpenChange} />)
 
-    expect(screen.getByRole('button', { name: '打开语音辅导' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /打开语音辅导/ })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: '按住说话' })).toBeNull()
 
-    screen.getByRole('button', { name: '打开语音辅导' }).click()
+    screen.getByRole('button', { name: /打开语音辅导/ }).click()
     expect(onOpenChange).toHaveBeenCalledWith(true)
   })
 
@@ -139,5 +140,26 @@ describe('useVoiceSession', () => {
       expect.objectContaining({ type: 'multimodal:highlight' })
     )
     expect(result.current.reply).toContain('讲解正文')
+  })
+})
+
+describe('VoiceCompanion 待机/唤醒 (P1-3)', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    vi.restoreAllMocks()
+  })
+
+  it('Alt+V 快捷键唤出抽屉', () => {
+    const onOpenChange = vi.fn()
+    render(<VoiceCompanion open={false} onOpenChange={onOpenChange} />)
+
+    fireEvent.keyDown(window, { key: 'v', altKey: true })
+    expect(onOpenChange).toHaveBeenCalledWith(true)
+  })
+
+  it('idle 时 FAB 带待机呼吸 class', () => {
+    render(<VoiceCompanion open={false} onOpenChange={vi.fn()} />)
+    const fab = screen.getByRole('button', { name: /打开语音辅导/ })
+    expect(fab.className).toContain('voice-fab-idle')
   })
 })
