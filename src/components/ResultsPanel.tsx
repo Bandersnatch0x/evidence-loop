@@ -1,4 +1,4 @@
-import type { CSSProperties } from 'react'
+import { useEffect, useState, type CSSProperties } from 'react'
 import {
   Activity,
   ArrowUpRight,
@@ -68,6 +68,41 @@ export function ResultsPanel({
   attemptId,
   showMidProblemHelp = false
 }: ResultsPanelProps) {
+  // P0-2 证据计分板动画：分数从 previousScore 滚动到 score，证据逐项点亮。
+  // prefers-reduced-motion 时降级为即时切换（参考 PipelineBar 约定）。
+  const [revealedCount, setRevealedCount] = useState(0)
+  const [displayScore, setDisplayScore] = useState(evaluation?.previousScore ?? 0)
+
+  useEffect(() => {
+    if (!evaluation) return
+    const total = evaluation.evidence.length
+    const startScore = evaluation.previousScore ?? 0
+    const finalScore = evaluation.score
+    const prefersReducedMotion =
+      typeof window.matchMedia === 'function' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    if (prefersReducedMotion || total === 0) {
+      setRevealedCount(total)
+      setDisplayScore(finalScore)
+      return
+    }
+    setRevealedCount(0)
+    setDisplayScore(startScore)
+    let step = 0
+    const timer = window.setInterval(() => {
+      step += 1
+      setRevealedCount(step)
+      setDisplayScore(
+        startScore + Math.round(((finalScore - startScore) * step) / total)
+      )
+      if (step >= total) {
+        window.clearInterval(timer)
+        setDisplayScore(finalScore)
+      }
+    }, 400)
+    return () => window.clearInterval(timer)
+  }, [evaluation])
+
   return (
     <section className="results-panel" aria-labelledby="result-title">
       <header className="panel-header result-header">
@@ -110,13 +145,13 @@ export function ResultsPanel({
               style={
                 evaluation.status === 'completed'
                   ? ({
-                      '--score-pct': `${Math.max(0, Math.min(100, evaluation.score))}%`
+                      '--score-pct': `${Math.max(0, Math.min(100, displayScore))}%`
                     } as CSSProperties)
                   : undefined
               }
             >
               <div className="score-ring-core">
-                <span data-testid="evaluation-score">{evaluation.score}</span>
+                <span data-testid="evaluation-score">{displayScore}</span>
                 <small>/ 100</small>
               </div>
             </div>
@@ -150,10 +185,10 @@ export function ResultsPanel({
           <div className="result-section">
             <div className="result-section-title">
               <h3>评分证据</h3>
-              <span>{evaluation.evidence.filter((item) => item.state === 'passed').length}/{evaluation.evidence.length} 通过</span>
+              <span>{evaluation.evidence.slice(0, revealedCount).filter((item) => item.state === 'passed').length}/{evaluation.evidence.length} 通过</span>
             </div>
             <div className="evidence-list">
-              {evaluation.evidence.map((item) => (
+              {evaluation.evidence.slice(0, revealedCount).map((item) => (
                 <article className={`evidence-row is-${item.state}`} key={item.id}>
                   <StateIcon state={item.state} />
                   <div>

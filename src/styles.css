@@ -1269,6 +1269,28 @@ ol {
   font-size: 0.6875rem;
 }
 
+/* P0-2 证据计分板动画：证据逐项点亮的入场过渡。reduced-motion 时禁用。 */
+@keyframes evidence-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.evidence-row {
+  animation: evidence-reveal 0.3s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .evidence-row {
+    animation: none;
+  }
+}
+
 .diagnosis-item {
   display: grid;
   grid-template-columns: 34px minmax(0, 1fr);
