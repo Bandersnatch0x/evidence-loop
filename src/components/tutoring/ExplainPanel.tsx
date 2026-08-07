@@ -1,5 +1,6 @@
-import { BookOpen } from 'lucide-react'
+import { BookOpen, Square, Volume2 } from 'lucide-react'
 import type { TutoringMessage } from '../../../shared/contracts'
+import { useSpeak } from '../../lib/useSpeak'
 import { AiInferenceBadge } from './AiInferenceBadge'
 
 interface ExplainPanelProps {
@@ -12,7 +13,12 @@ interface ExplainPanelProps {
 }
 
 /**
- * Layer A — one-shot explain. Student reads; zero extra chat turns.
+ * Layer A - one-shot explain. Student reads; zero extra chat turns.
+ *
+ * On-demand TTS (P0 from 3dlearn roundtable): an opt-in "朗读讲解" button
+ * reads the explain text via useSpeak. Voice never reads scores - only the
+ * text the caller already renders here - and is off by default so it never
+ * clashes with a screen reader. Unsupported browsers hide the button.
  */
 export function ExplainPanel({
   message,
@@ -21,6 +27,8 @@ export function ExplainPanel({
   onRequest,
   disabledReason
 }: ExplainPanelProps) {
+  const { isSpeaking, isSupported, speak, stop } = useSpeak()
+
   return (
     <section className="tutoring-layer" aria-labelledby="tutoring-explain-title">
       <header className="tutoring-layer-head">
@@ -56,6 +64,22 @@ export function ExplainPanel({
             <span className="tutoring-source">
               {message.source === 'llm' ? 'LLM' : '模板兜底'}
             </span>
+            {isSupported && (
+              <button
+                type="button"
+                className="tutoring-speak"
+                onClick={() => (isSpeaking ? stop() : speak(message.content))}
+                aria-label={isSpeaking ? '停止朗读讲解' : '朗读讲解'}
+                aria-pressed={isSpeaking}
+              >
+                {isSpeaking ? (
+                  <Square size={13} aria-hidden="true" />
+                ) : (
+                  <Volume2 size={13} aria-hidden="true" />
+                )}
+                {isSpeaking ? '停止朗读' : '朗读讲解'}
+              </button>
+            )}
           </div>
           <p>{message.content}</p>
           {message.disclaimer && (

@@ -3339,6 +3339,30 @@ td > b {
   font-weight: 600;
 }
 
+.tutoring-speak {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  font-size: 0.6875rem;
+  color: var(--ink-muted);
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+
+.tutoring-speak:hover {
+  color: var(--ink);
+  border-color: var(--ink-muted);
+}
+
+.tutoring-speak[aria-pressed='true'] {
+  color: var(--ink);
+  border-color: var(--ink-muted);
+}
+
 .tutoring-disclaimer {
   margin: 8px 0 0 !important;
   color: var(--ink-faint);
