@@ -548,6 +548,52 @@ ol {
   min-height: 100vh;
 }
 
+/* P1-2 工作区重负载区 Tab 切换：演示/Visualizer 与评估结果互斥挂载。 */
+.workspace-tabs {
+  display: flex;
+  gap: 2px;
+  padding: 10px 16px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.workspace-tab {
+  position: relative;
+  padding: 8px 14px 10px;
+  border: 0;
+  background: transparent;
+  color: var(--ink-muted);
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: color 120ms ease;
+}
+
+.workspace-tab:hover {
+  color: var(--ink);
+}
+
+.workspace-tab.is-active {
+  color: var(--indigo-deep);
+}
+
+.workspace-tab.is-active::after {
+  content: '';
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: -1px;
+  height: 3px;
+  background: var(--indigo);
+  border-radius: 3px 3px 0 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .workspace-tab {
+    transition: none;
+  }
+}
+
 .workspace-grid {
   display: grid;
   grid-template-columns: minmax(250px, 0.74fr) minmax(390px, 1.18fr) minmax(350px, 1fr);
