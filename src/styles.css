@@ -3885,6 +3885,184 @@ td > b {
   margin-bottom: 14px;
 }
 
+/* P1-1 题库卡片库：共享 QuestionCard + 卡片网格 + 知识点/难度筛选。密度优先无插画。 */
+.question-card-grid-wrap {
+  margin-top: 12px;
+}
+
+.filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.filter-chip {
+  padding: 4px 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink-muted);
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 120ms ease, border-color 120ms ease;
+}
+
+.filter-chip:hover {
+  color: var(--ink);
+  border-color: var(--line-strong);
+}
+
+.filter-chip.is-active {
+  color: var(--indigo-deep);
+  border-color: var(--indigo);
+  background: var(--indigo-wash);
+}
+
+.question-card-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 14px;
+}
+
+.question-card-cell {
+  min-width: 0;
+}
+
+.question-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  height: 100%;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+
+.question-card-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.question-card-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.question-card-badges:empty {
+  display: none;
+}
+
+.question-card-id {
+  font-size: 0.72rem;
+}
+
+.question-card-difficulty {
+  color: var(--ink-muted);
+  font-size: 0.78rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.question-card-title {
+  margin: 0;
+  color: var(--ink);
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.question-card-tags {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.question-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.score-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.score-chip-label {
+  font-weight: 500;
+  opacity: 0.8;
+}
+
+.score-chip.score-high {
+  background: var(--pass-wash);
+  color: var(--pass-deep);
+}
+
+.score-chip.score-mid {
+  background: var(--warn-wash);
+  color: var(--warn-deep);
+}
+
+.score-chip.score-low {
+  background: var(--fail-wash);
+  color: var(--fail-deep);
+}
+
+.evidence-link {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--indigo-deep);
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.question-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-top: auto;
+}
+
+.question-card-empty {
+  padding: 18px 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .filter-chip {
+    transition: none;
+  }
+}
+
 .question-bank-list {
   list-style: none;
   margin: 12px 0 0;

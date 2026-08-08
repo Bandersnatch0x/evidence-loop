@@ -13,6 +13,7 @@ import {
   subjectLabel
 } from '../../lib/labels'
 import { QuestionEditor } from './QuestionEditor'
+import { QuestionCardGrid } from '../questionCard'
 
 type PanelMode = 'list' | 'create' | 'edit'
 
@@ -139,29 +140,28 @@ export function QuestionBankPanel() {
       ) : null}
 
       {items.length > 0 ? (
-        <ul className="question-bank-list">
-          {items.map((item) => (
-            <li key={item.id} className="question-bank-row">
-              <div className="question-bank-meta">
+        <QuestionCardGrid
+          cards={items.map((item) => ({
+            id: item.id,
+            title: item.stem,
+            kpTags: item.kpIds,
+            difficulty: item.difficulty,
+            badges: (
+              <>
+                <code className="muted question-card-id">{item.id}</code>
                 <span className="subject-tag">{subjectLabel(item.subject)}</span>
                 <span className="subject-tag">
                   {questionTypeLabel(item.questionType)}
                 </span>
-                <span className="muted">难度 {item.difficulty}</span>
                 {item.hasSolution ? (
                   <span className="mode-badge practice">有解析</span>
                 ) : (
                   <span className="mode-badge assessment">待补解析</span>
                 )}
-              </div>
-              <div className="question-bank-stem">
-                <code className="muted">{item.id}</code>
-                <div>{item.stem.slice(0, 120)}{item.stem.length > 120 ? '…' : ''}</div>
-                {item.kpIds.length > 0 ? (
-                  <div className="muted">KP: {item.kpIds.join(', ')}</div>
-                ) : null}
-              </div>
-              <div className="question-bank-actions">
+              </>
+            ),
+            footer: (
+              <>
                 <button
                   type="button"
                   className="secondary-button"
@@ -178,10 +178,10 @@ export function QuestionBankPanel() {
                 >
                   <Trash2 size={14} /> 删除
                 </button>
-              </div>
-            </li>
-          ))}
-        </ul>
+              </>
+            )
+          }))}
+        />
       ) : null}
     </section>
   )
