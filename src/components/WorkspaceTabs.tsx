@@ -26,6 +26,12 @@ const StudentDemonstration = lazy(async () => ({
 
 type WorkspaceTab = 'demo' | 'results'
 
+/** P2-1 scaffold usage trace (presentation-only, never scored). */
+export interface ScaffoldUsage {
+  scaffoldUsed: boolean
+  scaffoldDurationMs: number
+}
+
 export interface WorkspaceTabsProps {
   assignment: Assignment
   evaluation?: EvaluationResult
@@ -39,6 +45,8 @@ export interface WorkspaceTabsProps {
   onVariantChange: (variantId: string) => void
   onEvaluate: () => void
   onApplyRepair: () => void
+  /** P2-1: ref updated with whether/long the demo scaffold was viewed before submit. */
+  scaffoldUsageRef?: { current: ScaffoldUsage }
 }
 
 /**
@@ -63,7 +71,8 @@ export function WorkspaceTabs({
   onSubmissionChange,
   onVariantChange,
   onEvaluate,
-  onApplyRepair
+  onApplyRepair,
+  scaffoldUsageRef
 }: WorkspaceTabsProps) {
   const hasDemos =
     !!assignment.demonstrations && assignment.demonstrations.length > 0
@@ -82,6 +91,17 @@ export function WorkspaceTabs({
   useEffect(() => {
     setTab(hasDemos ? 'demo' : 'results')
   }, [assignment.id, hasDemos])
+
+  // P2-1 支架留痕：demo tab 激活时累计观看时长（每秒 tick，精度 ±1s 足够演示）。
+  // 呈现层元数据，永不入分；App 在提交时读取 ref（无需冲刷，ref 总是最新）。
+  useEffect(() => {
+    if (scaffoldUsageRef === undefined || tab !== 'demo') return
+    scaffoldUsageRef.current.scaffoldUsed = true
+    const timer = window.setInterval(() => {
+      scaffoldUsageRef.current.scaffoldDurationMs += 1000
+    }, 1000)
+    return () => window.clearInterval(timer)
+  }, [tab, scaffoldUsageRef])
 
   // 练习态提交前求助：仅 practice + 未提交时开放（D1）。assessment 永不开放。
   const showMidProblemHelp =
@@ -141,6 +161,12 @@ export function WorkspaceTabs({
           评估结果
         </button>
       </div>
+
+      {tab === 'demo' && hasDemos ? (
+        <p className="scaffold-hint">
+          可选支架 · 作答前可查看，使用后本次为支架辅助掌握（不计入评分）
+        </p>
+      ) : null}
 
       <div className="workspace-grid">
         <AssignmentPanel assignment={assignment} />

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { AlertTriangle, RefreshCw } from 'lucide-react'
 import type {
   Assignment,
@@ -23,7 +23,7 @@ import { StudentWorkbench } from './components/student'
 import { TeacherWorkbench } from './components/teacher'
 import { TransparencyView } from './components/TransparencyView'
 import { VoiceCompanion } from './components/VoiceCompanion'
-import { WorkspaceTabs } from './components/WorkspaceTabs'
+import { WorkspaceTabs, type ScaffoldUsage } from './components/WorkspaceTabs'
 import { isMultimodalEnabled } from './config/features'
 import {
   assignmentIdToQuestionId,
@@ -137,6 +137,11 @@ export function App() {
     attemptId: string
     mode: SessionMode
   }>()
+  // P2-1 支架留痕：记录本次作答前是否/多久查看演示支架（呈现层，不入分）。
+  const scaffoldUsageRef = useRef<ScaffoldUsage>({
+    scaffoldUsed: false,
+    scaffoldDurationMs: 0
+  })
 
   const applyAssignment = useCallback((nextAssignment: Assignment) => {
     const defaultVariant = nextAssignment.demoVariants[0]
@@ -145,6 +150,7 @@ export function App() {
     setSubmission(defaultVariant?.code ?? '')
     setEvaluation(undefined)
     setActiveAttempt(undefined)
+    scaffoldUsageRef.current = { scaffoldUsed: false, scaffoldDurationMs: 0 }
   }, [])
 
   const load = useCallback(
@@ -252,7 +258,9 @@ export function App() {
         assignmentId: assignment.id,
         code: submission,
         previousEvaluationId: evaluation?.id ?? history[0]?.id,
-        attemptId
+        attemptId,
+        scaffoldUsed: scaffoldUsageRef.current.scaffoldUsed,
+        scaffoldDurationMs: scaffoldUsageRef.current.scaffoldDurationMs
       })
       setEvaluation(result)
       setHistory((current) => [
@@ -400,6 +408,7 @@ export function App() {
           onVariantChange={handleVariantChange}
           onEvaluate={() => void handleEvaluate()}
           onApplyRepair={handleApplyRepair}
+          scaffoldUsageRef={scaffoldUsageRef}
         />
         {/* T-L Phase C: StudentVizPreview (student-side generation entry) removed
             per ticket 07 player contract — students never author/bind demos.

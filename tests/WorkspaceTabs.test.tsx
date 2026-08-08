@@ -203,3 +203,34 @@ describe('WorkspaceTabs (P1-2)', () => {
     expect(screen.queryByTestId('results-panel')).toBeNull()
   })
 })
+
+describe('WorkspaceTabs 支架留痕 (P2-1)', () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it('records scaffold usage when the demo tab is viewed', async () => {
+    const usageRef = { current: { scaffoldUsed: false, scaffoldDurationMs: 0 } }
+    render(
+      <WorkspaceTabs
+        {...buildProps()}
+        scaffoldUsageRef={usageRef}
+      />
+    )
+    await screen.findByTestId('student-demonstration')
+
+    expect(usageRef.current.scaffoldUsed).toBe(true)
+  })
+
+  it('does not flag scaffold use when there is no demo tab', () => {
+    const usageRef = { current: { scaffoldUsed: false, scaffoldDurationMs: 0 } }
+    render(
+      <WorkspaceTabs
+        {...buildProps({ assignment: buildAssignment() })}
+        scaffoldUsageRef={usageRef}
+      />
+    )
+
+    expect(usageRef.current.scaffoldUsed).toBe(false)
+  })
+})

@@ -38,7 +38,9 @@ export const evaluateRequestSchema = z.object({
   assignmentId: z.string().min(1),
   code: z.string().min(1).max(20_000),
   previousEvaluationId: z.string().min(1).optional(),
-  attemptId: z.string().min(1).optional()
+  attemptId: z.string().min(1).optional(),
+  scaffoldUsed: z.boolean().optional(),
+  scaffoldDurationMs: z.number().int().min(0).optional()
 })
 
 export interface EvaluationRouteContext {
@@ -174,7 +176,10 @@ export async function handleEvaluationApi(
         kind: 'evidence',
         evidenceIds: evaluation.evidence.map((item) => item.id),
         algorithm: 'simple.v1'
-      }
+      },
+      // P2-1 支架留痕：呈现层元数据，永不入分（红线）。
+      scaffoldUsed: parsed.data.scaffoldUsed,
+      scaffoldDurationMs: parsed.data.scaffoldDurationMs
     }
 
     // ADR-0003 §3: scan free-form fields before persistence; reject on hit.

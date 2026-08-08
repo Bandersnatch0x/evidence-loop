@@ -134,3 +134,36 @@ describe('ResultsPanel 证据计分板动画 (P0-2)', () => {
     expect(ring?.className).toContain('score-high')
   })
 })
+
+describe('ResultsPanel 支架留痕徽章 (P2-1)', () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it('shows a scaffold-assisted badge when scaffoldUsed is true', () => {
+    mockMatchMedia(true)
+    render(
+      <ResultsPanel
+        evaluation={makeEvaluation({ scaffoldUsed: true, scaffoldDurationMs: 42000 })}
+        history={[]}
+        onApplyRepair={vi.fn()}
+      />
+    )
+
+    expect(screen.getByText(/支架辅助/)).toBeInTheDocument()
+    expect(screen.getByText(/42/)).toBeInTheDocument()
+  })
+
+  it('omits the badge when scaffoldUsed is not set', () => {
+    mockMatchMedia(true)
+    render(
+      <ResultsPanel
+        evaluation={makeEvaluation()}
+        history={[]}
+        onApplyRepair={vi.fn()}
+      />
+    )
+
+    expect(screen.queryByText(/支架辅助/)).toBeNull()
+  })
+})

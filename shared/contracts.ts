@@ -238,6 +238,14 @@ export interface EvaluationResult {
   studentId?: string
   /** Required provenance tag (ADR-0006). Migrated rows default to evidence. */
   provenance: Provenance
+  /**
+   * P2-1 scaffold trace: whether the student viewed the demonstration scaffold
+   * before this submission, and for how long (ms). Presentation-only metadata -
+   * never enters the score (红线：支架只进呈现层，永不进评分层). Enables
+   * MasteryTimeline to distinguish independent vs scaffold-assisted mastery.
+   */
+  scaffoldUsed?: boolean
+  scaffoldDurationMs?: number
 }
 
 /**
@@ -330,6 +338,10 @@ export interface EvaluateRequest {
    * Legacy demo callers omit this and still get assessment-default Attempts.
    */
   attemptId?: string
+  /** P2-1: whether the student viewed the demonstration scaffold before submit. */
+  scaffoldUsed?: boolean
+  /** P2-1: cumulative ms the demonstration scaffold was viewed before submit. */
+  scaffoldDurationMs?: number
 }
 
 export interface EvaluationHistoryItem {

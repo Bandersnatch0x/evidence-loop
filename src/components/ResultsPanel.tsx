@@ -6,6 +6,7 @@ import {
   CircleDashed,
   CircleX,
   FlaskConical,
+  LifeBuoy,
   Lightbulb,
   LockKeyhole,
   RotateCw
@@ -164,6 +165,14 @@ export function ResultsPanel({
                     algorithm={evaluation.provenance.algorithm}
                   />
                 )}
+                {evaluation.scaffoldUsed ? (
+                  <span className="scaffold-badge" title="本次提交前查看了演示支架">
+                    <LifeBuoy size={13} aria-hidden="true" /> 支架辅助
+                    {evaluation.scaffoldDurationMs !== undefined
+                      ? ` ${Math.round(evaluation.scaffoldDurationMs / 1000)}s`
+                      : ''}
+                  </span>
+                ) : null}
               </div>
               <p>{evaluation.summary}</p>
               {evaluation.scoreDelta !== undefined && (

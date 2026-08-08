@@ -3814,6 +3814,28 @@ td > b {
   animation: pulse-ring-badge 1.5s infinite;
 }
 
+/* P2-1 支架留痕徽章：本次提交前查看了演示支架。呈现层元数据，不入分。 */
+.scaffold-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--indigo-wash);
+  color: var(--indigo-deep);
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.scaffold-hint {
+  margin: 8px 0 0;
+  padding: 6px 12px;
+  border-radius: var(--radius-md);
+  background: var(--indigo-wash);
+  color: var(--indigo-deep);
+  font-size: 0.8rem;
+}
+
 @keyframes pulse-ring-badge {
   0% { box-shadow: 0 0 0 0 oklch(62% 0.13 75 / 0.4); }
   70% { box-shadow: 0 0 0 4px oklch(62% 0.13 75 / 0); }
