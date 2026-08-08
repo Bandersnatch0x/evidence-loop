@@ -9,6 +9,7 @@ import {
   ShieldCheck,
   UserRoundCheck
 } from 'lucide-react'
+import { EvidenceFlowDiagram, demoEvaluationFlow } from './evidenceFlow'
 
 const pipeline = [
   { icon: Box, title: '读取任务', tool: 'assignment.retrieve', text: '加载任务、测试规范和版本化量规。' },
@@ -81,6 +82,15 @@ export function TransparencyView() {
           <article className="safety-warning"><Box size={20} /><div><h3>运行器适用范围</h3><p>Python 子进程隔离仅用于受控本地 Demo。公开部署前必须迁移到无网络容器或微虚拟机，并设置 CPU、内存和文件系统配额。</p></div></article>
         </div>
       </section>
+
+      <section className="transparency-section">
+        <div className="section-heading">
+          <div><span>04</span><h2>证据如何变成分数</h2></div>
+          <p>每条测试证据按权重归约到量规维度，各维度加和为总分--模型不参与打分，整条链可核验。</p>
+        </div>
+        <EvidenceFlowDiagram evaluation={demoEvaluationFlow} />
+      </section>
+
     </div>
   )
 }

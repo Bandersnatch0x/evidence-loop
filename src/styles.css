@@ -1780,6 +1780,195 @@ td > b {
   border-bottom: 0;
 }
 
+/* P2-2 证据链流转可视化：证据 -> 量规 -> 分数 三栏流动图。密度优先、数据驱动（非装饰）。 */
+.evidence-flow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 0;
+  margin-top: 16px;
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+
+.evidence-flow-stage {
+  flex: 1 1 180px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.evidence-flow-stage-title {
+  margin: 0 0 4px;
+  color: var(--ink-muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.evidence-flow-nodes {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.flow-node {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  font-size: 0.85rem;
+}
+
+.flow-node.is-passed {
+  border-color: var(--pass);
+  background: var(--pass-wash);
+}
+
+.flow-node.is-failed {
+  border-color: var(--fail);
+  background: var(--fail-wash);
+}
+
+.flow-node.is-blocked {
+  border-color: var(--warn);
+  background: var(--warn-wash);
+}
+
+.flow-node-label {
+  color: var(--ink);
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.flow-node-weight {
+  color: var(--ink-muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.flow-node.is-passed .flow-node-weight {
+  color: var(--pass-deep);
+}
+
+.flow-node.is-failed .flow-node-weight {
+  color: var(--fail-deep);
+}
+
+.evidence-flow-arrow {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 0 10px;
+  align-self: center;
+}
+
+.evidence-flow-arrow-line {
+  position: relative;
+  width: 28px;
+  height: 2px;
+  background: var(--line-strong);
+}
+
+.evidence-flow-arrow-line::after {
+  content: '';
+  position: absolute;
+  right: -1px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: 4px solid transparent;
+  border-left-color: var(--line-strong);
+}
+
+.evidence-flow-arrow-label {
+  color: var(--ink-faint);
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+.score-node {
+  align-self: flex-start;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 14px 16px;
+}
+
+.score-node .flow-node-score {
+  font-size: 1.6rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.score-node.score-high {
+  border-color: var(--pass);
+  background: var(--pass-wash);
+}
+
+.score-node.score-high .flow-node-score {
+  color: var(--pass-deep);
+}
+
+.score-node.score-mid {
+  border-color: var(--warn);
+  background: var(--warn-wash);
+}
+
+.score-node.score-mid .flow-node-score {
+  color: var(--warn-deep);
+}
+
+.score-node.score-low {
+  border-color: var(--fail);
+  background: var(--fail-wash);
+}
+
+.score-node.score-low .flow-node-score {
+  color: var(--fail-deep);
+}
+
+@media (max-width: 760px) {
+  .evidence-flow {
+    flex-direction: column;
+  }
+
+  .evidence-flow-arrow {
+    flex-direction: row;
+    padding: 4px 0;
+  }
+
+  .evidence-flow-arrow-line {
+    width: 2px;
+    height: 18px;
+  }
+
+  .evidence-flow-arrow-line::after {
+    top: auto;
+    right: 50%;
+    bottom: -1px;
+    transform: translateX(50%);
+    border: 4px solid transparent;
+    border-top-color: var(--line-strong);
+    border-left-color: transparent;
+  }
+}
+
 .section-heading {
   display: flex;
   align-items: flex-end;
