@@ -135,9 +135,9 @@ export function ResultsPanel({
             <div
               className={`score-ring score-${evaluation.status} ${
                 evaluation.status === 'completed'
-                  ? evaluation.score >= 80
+                  ? displayScore >= 80
                     ? 'score-high'
-                    : evaluation.score >= 60
+                    : displayScore >= 60
                       ? 'score-mid'
                       : 'score-low'
                   : ''

@@ -112,4 +112,25 @@ describe('ResultsPanel 证据计分板动画 (P0-2)', () => {
     })
     expect(screen.getByTestId('evaluation-score')).toHaveTextContent(/^60$/)
   })
+
+  it('score-ring 颜色档位跟随 displayScore 滚动', () => {
+    mockMatchMedia(false)
+    render(
+      <ResultsPanel
+        evaluation={makeEvaluation({ previousScore: 50, score: 100 })}
+        history={[]}
+        onApplyRepair={vi.fn()}
+      />
+    )
+
+    const ring = document.querySelector('.score-ring')
+    // 初始 displayScore=previousScore(50) -> low 档
+    expect(ring?.className).toContain('score-low')
+
+    act(() => {
+      vi.advanceTimersByTime(400 * 8)
+    })
+    // 滚动到 100 -> high 档（颜色与数字同步，不再提前定终档）
+    expect(ring?.className).toContain('score-high')
+  })
 })
