@@ -67,6 +67,14 @@ export function useSpeak(): UseSpeakResult {
         return
       }
       // Replace any in-flight utterance before starting the new one.
+      // Detach the previous utterance's handlers first: cancel() can fire
+      // its onend asynchronously, which would otherwise race ahead and
+      // clear the new utterance's speaking state.
+      const prev = utteranceRef.current
+      if (prev) {
+        prev.onend = null
+        prev.onerror = null
+      }
       synth.cancel()
       const utterance = new Utterance(text)
       utterance.lang = 'zh-CN'

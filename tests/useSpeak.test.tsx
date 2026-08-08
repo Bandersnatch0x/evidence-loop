@@ -130,4 +130,47 @@ describe('useSpeak', () => {
 
     expect(cancelSpy).toHaveBeenCalled()
   })
+
+  it('replaces an in-flight utterance without the old onend clearing state', async () => {
+    // Simulate a synth where cancel() fires the previous utterance's onend
+    // asynchronously (real browser behavior). With handlers detached, the
+    // stale onend must not clear the new utterance's speaking state.
+    const created: FakeUtterance[] = []
+
+    class FakeUtteranceImpl {
+      public lang = ''
+      public onend: (() => void) | null = null
+      public onerror: (() => void) | null = null
+      public constructor(public text: string) {
+        created.push(this)
+      }
+    }
+
+    const speakSpy = vi.fn()
+    const cancelSpy = vi.fn(() => {
+      // cancel() runs before the new utterance is created, so the last
+      // item in `created` is the one being cancelled.
+      const prev = created[created.length - 1]
+      queueMicrotask(() => prev?.onend?.())
+    })
+
+    vi.stubGlobal('SpeechSynthesisUtterance', FakeUtteranceImpl)
+    vi.stubGlobal('speechSynthesis', { speak: speakSpy, cancel: cancelSpy })
+
+    const { result } = renderHook(() => useSpeak())
+
+    act(() => {
+      result.current.speak('first')
+    })
+    expect(result.current.isSpeaking).toBe(true)
+
+    await act(async () => {
+      result.current.speak('second')
+      await Promise.resolve()
+    })
+    expect(speakSpy).toHaveBeenCalledTimes(2)
+    // The stale onend fired after speak returned; with handlers detached
+    // it must not clear the new utterance's speaking state.
+    expect(result.current.isSpeaking).toBe(true)
+  })
 })
