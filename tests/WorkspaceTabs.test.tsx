@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type {
   Assignment,
+  EvaluationHistoryItem,
   EvaluationResult
 } from '../shared/contracts'
 import { DEFAULT_EVIDENCE_PROVENANCE } from '../shared/contracts'
@@ -232,5 +233,55 @@ describe('WorkspaceTabs 支架留痕 (P2-1)', () => {
     )
 
     expect(usageRef.current.scaffoldUsed).toBe(false)
+  })
+})
+
+describe('WorkspaceTabs 支架逐步淡出 (P2-1)', () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  function historyItem(id: string): EvaluationHistoryItem {
+    return {
+      id,
+      assignmentId: 'python-average',
+      attempt: 1,
+      createdAt: '2026-08-08T08:00:00.000Z',
+      score: 60,
+      status: 'completed',
+      studentId: 'demo'
+    }
+  }
+
+  it('keeps the scaffold at full opacity on first attempt', async () => {
+    render(<WorkspaceTabs {...buildProps()} history={[]} />)
+    await screen.findByTestId('student-demonstration')
+    expect(document.querySelector('.scaffold-slot')).toHaveAttribute(
+      'data-fade-level',
+      '0'
+    )
+  })
+
+  it('fades the scaffold on re-practice', async () => {
+    render(<WorkspaceTabs {...buildProps()} history={[historyItem('h1')]} />)
+    await screen.findByTestId('student-demonstration')
+    expect(document.querySelector('.scaffold-slot')).toHaveAttribute(
+      'data-fade-level',
+      '1'
+    )
+  })
+
+  it('fades further after multiple prior attempts', async () => {
+    render(
+      <WorkspaceTabs
+        {...buildProps()}
+        history={[historyItem('h1'), historyItem('h2')]}
+      />
+    )
+    await screen.findByTestId('student-demonstration')
+    expect(document.querySelector('.scaffold-slot')).toHaveAttribute(
+      'data-fade-level',
+      '2'
+    )
   })
 })

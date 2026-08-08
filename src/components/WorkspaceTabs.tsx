@@ -79,6 +79,9 @@ export function WorkspaceTabs({
   // Visualizer 是无 primary 演示时的回退可视化（ADR-0013/0015），仅展示、不入分。
   const hasPrimaryDemo =
     assignment.demonstrations?.some((ref) => ref.role === 'primary') === true
+  // P2-1 再练支架逐步淡出：基于历史提交次数降低支架显著度（鼓励独立完成）。
+  // 0 次历史=首次（满显），1 次=轻度淡出，2+ 次=进一步淡出。
+  const scaffoldFadeLevel = history.length >= 2 ? 2 : history.length
 
   const [tab, setTab] = useState<WorkspaceTab>(hasDemos ? 'demo' : 'results')
 
@@ -165,6 +168,9 @@ export function WorkspaceTabs({
       {tab === 'demo' && hasDemos ? (
         <p className="scaffold-hint">
           可选支架 · 作答前可查看，使用后本次为支架辅助掌握（不计入评分）
+          {scaffoldFadeLevel > 0
+            ? ` · 已练过 ${history.length} 次，支架逐步淡出（鼓励独立完成）`
+            : ''}
         </p>
       ) : null}
 
@@ -172,12 +178,22 @@ export function WorkspaceTabs({
         <AssignmentPanel assignment={assignment} />
 
         {tab === 'demo' && hasDemos && (
-          <Suspense fallback={<div className="view-loading">正在加载演示…</div>}>
-            <StudentDemonstration
-              refs={assignment.demonstrations ?? []}
-              expanded={evaluation !== undefined}
-            />
-          </Suspense>
+          <div
+            className="scaffold-slot"
+            data-fade-level={scaffoldFadeLevel}
+            aria-label={
+              scaffoldFadeLevel > 0
+                ? `演示支架已淡化（第 ${history.length + 1} 次练习，鼓励独立完成）`
+                : undefined
+            }
+          >
+            <Suspense fallback={<div className="view-loading">正在加载演示…</div>}>
+              <StudentDemonstration
+                refs={assignment.demonstrations ?? []}
+                expanded={evaluation !== undefined}
+              />
+            </Suspense>
+          </div>
         )}
 
         <SubmissionPanel
