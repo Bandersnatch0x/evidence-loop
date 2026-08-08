@@ -269,9 +269,30 @@ export function ResultsPanel({
             </ol>
           </details>
 
-          {history.length > 1 && (
-            <p className="history-note">已保存 {history.length} 轮评估，可用于对比修复前后的学习证据。</p>
-          )}
+          {history.length > 1 ? (
+            <details className="history-details">
+              <summary>
+                历次评估（{history.length} 轮 · 区分独立 / 支架辅助）
+              </summary>
+              <ol className="history-list">
+                {history
+                  .filter((item) => item.id !== evaluation.id)
+                  .map((item) => (
+                    <li key={item.id} className="history-row">
+                      <span>第 {item.attempt} 次</span>
+                      <b>{item.score} 分</b>
+                      {item.scaffoldUsed ? (
+                        <span className="scaffold-badge">
+                          <LifeBuoy size={11} aria-hidden="true" /> 支架
+                        </span>
+                      ) : (
+                        <span className="independent-mark">独立</span>
+                      )}
+                    </li>
+                  ))}
+              </ol>
+            </details>
+          ) : null}
         </div>
       )}
     </section>

@@ -167,3 +167,43 @@ describe('ResultsPanel 支架留痕徽章 (P2-1)', () => {
     expect(screen.queryByText(/支架辅助/)).toBeNull()
   })
 })
+
+describe('ResultsPanel 历史支架区分 (P2-1)', () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it('marks scaffold-assisted vs independent attempts in the history list', () => {
+    mockMatchMedia(true)
+    const history = [
+      {
+        id: 'h1',
+        assignmentId: 'asg-1',
+        attempt: 1,
+        createdAt: '2026-01-01T00:00:00.000Z',
+        score: 60,
+        status: 'completed' as const,
+        scaffoldUsed: true
+      },
+      {
+        id: 'h2',
+        assignmentId: 'asg-1',
+        attempt: 2,
+        createdAt: '2026-01-02T00:00:00.000Z',
+        score: 80,
+        status: 'completed' as const,
+        scaffoldUsed: false
+      }
+    ]
+    render(
+      <ResultsPanel
+        evaluation={makeEvaluation({ id: 'eval-current' })}
+        history={history}
+        onApplyRepair={vi.fn()}
+      />
+    )
+
+    expect(screen.getByText('支架')).toBeInTheDocument()
+    expect(screen.getByText('独立')).toBeInTheDocument()
+  })
+})

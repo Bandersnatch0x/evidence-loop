@@ -226,7 +226,8 @@ export class JsonEvaluationStore implements EvaluationStore {
           score,
           scoreDelta,
           status,
-          studentId
+          studentId,
+          scaffoldUsed
         }) => ({
           id,
           assignmentId: taskId,
@@ -235,7 +236,8 @@ export class JsonEvaluationStore implements EvaluationStore {
           score,
           scoreDelta,
           status,
-          studentId
+          studentId,
+          scaffoldUsed
         })
       )
   }

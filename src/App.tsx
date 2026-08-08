@@ -60,7 +60,8 @@ function toHistoryItem(result: EvaluationResult): EvaluationHistoryItem {
     score: result.score,
     scoreDelta: result.scoreDelta,
     status: result.status,
-    studentId: result.studentId
+    studentId: result.studentId,
+    scaffoldUsed: result.scaffoldUsed
   }
 }
 

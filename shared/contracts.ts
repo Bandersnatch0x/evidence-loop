@@ -353,6 +353,8 @@ export interface EvaluationHistoryItem {
   scoreDelta?: number
   status: EvaluationStatus
   studentId?: string
+  /** P2-1 scaffold trace (presentation-only, never scored). */
+  scaffoldUsed?: boolean
 }
 
 /** Demo role used by the mock multi-tenant access control layer. */
