@@ -17,6 +17,8 @@ export interface PlayerControlsProps {
   chapters: Array<{ title: string }>
   currentChapter: number
   onChapter: (index: number) => void
+  /** P2-1: replay from the start (restart animation + first chapter). */
+  onReplay?: () => void
   /** Accessibility text view toggle. */
   showTextView: boolean
   onToggleTextView: () => void
@@ -41,12 +43,16 @@ export function PlayerControls(props: PlayerControlsProps) {
     chapters,
     currentChapter,
     onChapter,
+    onReplay,
     showTextView,
     onToggleTextView,
     containerRef
   } = props
   const [fullscreen, setFullscreen] = useState(false)
   const fsChangeRef = useRef<(() => void) | null>(null)
+  const hasChapters = chapters.length > 1
+  const atFirstChapter = currentChapter <= 0
+  const atLastChapter = currentChapter >= chapters.length - 1
 
   useEffect(() => {
     const onFsChange = (): void => {
@@ -77,6 +83,38 @@ export function PlayerControls(props: PlayerControlsProps) {
       >
         {playing ? '⏸' : '▶'}
       </button>
+      {hasChapters ? (
+        <button
+          type="button"
+          className="player-btn"
+          onClick={() => onChapter(currentChapter - 1)}
+          disabled={atFirstChapter}
+          aria-label="上一段"
+        >
+          ⏮
+        </button>
+      ) : null}
+      {hasChapters ? (
+        <button
+          type="button"
+          className="player-btn"
+          onClick={() => onChapter(currentChapter + 1)}
+          disabled={atLastChapter}
+          aria-label="下一段"
+        >
+          ⏭
+        </button>
+      ) : null}
+      {onReplay !== undefined ? (
+        <button
+          type="button"
+          className="player-btn"
+          onClick={onReplay}
+          aria-label="重播"
+        >
+          ↺
+        </button>
+      ) : null}
       <input
         type="range"
         className="player-scrub"

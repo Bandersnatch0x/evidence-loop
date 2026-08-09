@@ -160,6 +160,15 @@ export function StudentPlayer({ payload, device, play = false }: StudentPlayerPr
     setCurrentTime(t)
   }
 
+  // P2-1 重播：回到起点（时间 + 章节）并从首段重新播放。分段原则优于连续动画。
+  const handleReplay = (): void => {
+    currentTimeRef.current = 0
+    setCurrentTime(0)
+    setCurrentChapter(0)
+    setLoadState((s) => requestChapter(s, 0))
+    setPlaying(true)
+  }
+
   const handleChapter = (index: number): void => {
     setCurrentChapter(index)
     setLoadState((s) => requestChapter(s, index))
@@ -358,6 +367,7 @@ export function StudentPlayer({ payload, device, play = false }: StudentPlayerPr
           chapters={chapters}
           currentChapter={currentChapter}
           onChapter={handleChapter}
+          onReplay={handleReplay}
           showTextView={showTextView}
           onToggleTextView={() => setShowTextView((v) => !v)}
           containerRef={containerRef}
