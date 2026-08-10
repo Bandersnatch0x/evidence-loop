@@ -159,4 +159,11 @@ describe('T-J StudentDemonstration', () => {
     render(<StudentDemonstration refs={refs} expanded={false} loadPlayer={vi.fn(() => Promise.resolve({ document: null, mediaManifest: [] }))} />)
     await waitFor(() => expect(screen.getByText(/源不可用/)).not.toBeNull())
   })
+
+  it('degrades to an error placeholder when the payload load rejects', async () => {
+    const loadPlayer = vi.fn(() => Promise.reject(new Error('network down')))
+    render(<StudentDemonstration refs={[REFS[0]!]} expanded={false} loadPlayer={loadPlayer} />)
+    await waitFor(() => expect(screen.getByRole('alert')).not.toBeNull())
+    expect(screen.getByText(/演示加载失败/)).not.toBeNull()
+  })
 })

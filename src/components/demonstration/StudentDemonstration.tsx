@@ -29,18 +29,41 @@ export function StudentDemonstration({ refs, expanded, loadPlayer }: StudentDemo
   const supplementary = refs.filter((r) => r.role === 'supplementary')
   const [active, setActive] = useState<{ demoId: string; versionId: string; document: unknown; mediaManifest: PlayerPayload['mediaManifest'] } | null>(null)
   const [collapsed, setCollapsed] = useState(false)
+  const [loadFailed, setLoadFailed] = useState(false)
 
   useEffect(() => {
     if (!primary) return
+    let cancelled = false
     const load = async (): Promise<void> => {
-      const data = loadPlayer
-        ? await loadPlayer(primary.demoId, primary.versionId)
-        : await fetch(`/api/demonstrations/${primary.demoId}/versions/${primary.versionId}/player`).then((r) =>
-            r.ok ? (r.json() as Promise<{ document: unknown; mediaManifest: PlayerPayload['mediaManifest'] }>) : { document: null, mediaManifest: [] }
-          )
-      setActive({ demoId: primary.demoId, versionId: primary.versionId, document: data.document, mediaManifest: data.mediaManifest })
+      try {
+        const data = loadPlayer
+          ? await loadPlayer(primary.demoId, primary.versionId)
+          : await fetch(
+              `/api/demonstrations/${primary.demoId}/versions/${primary.versionId}/player`
+            ).then((r) =>
+              r.ok
+                ? (r.json() as Promise<{
+                    document: unknown
+                    mediaManifest: PlayerPayload['mediaManifest']
+                  }>)
+                : { document: null, mediaManifest: [] }
+            )
+        if (cancelled) return
+        setActive({
+          demoId: primary.demoId,
+          versionId: primary.versionId,
+          document: data.document,
+          mediaManifest: data.mediaManifest
+        })
+      } catch {
+        // 网络失败/解析失败：不抛未处理 rejection，展示可重试的降级占位。
+        if (!cancelled) setLoadFailed(true)
+      }
     }
     void load()
+    return () => {
+      cancelled = true
+    }
   }, [primary, loadPlayer])
 
   if (!primary) return null
@@ -71,6 +94,10 @@ export function StudentDemonstration({ refs, expanded, loadPlayer }: StudentDemo
             externalVideos: []
           }}
         />
+      ) : loadFailed ? (
+        <div className="student-demo-loading student-demo-error" role="alert">
+          演示加载失败，请刷新重试。
+        </div>
       ) : (
         <div className="student-demo-loading" role="status">
           正在加载演示…
