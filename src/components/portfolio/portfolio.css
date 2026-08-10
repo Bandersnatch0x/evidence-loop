@@ -1,0 +1,90 @@
+/**
+ * T23 循证作品集导出面板样式。
+ * 令牌取自 DESIGN.md：1px 发丝边框零阴影；最小字号 0.6875rem（11px 地板）。
+ */
+
+.portfolio-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+}
+
+.portfolio-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.portfolio-header h3 {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 650;
+}
+
+.portfolio-provenance {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  color: var(--indigo-deep);
+  font-size: 0.6875rem;
+  font-weight: 650;
+  background: var(--indigo-wash);
+  border-radius: 999px;
+}
+
+.portfolio-note {
+  margin: 0;
+  color: var(--ink-muted);
+  font-size: 0.75rem;
+  line-height: 1.6;
+}
+
+.portfolio-student-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: var(--ink-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.portfolio-student-picker input {
+  padding: 8px 10px;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.8125rem;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+}
+
+.portfolio-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.is-spinning {
+  animation: portfolio-spin 1s linear infinite;
+}
+
+@keyframes portfolio-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .is-spinning {
+    animation: none;
+  }
+}

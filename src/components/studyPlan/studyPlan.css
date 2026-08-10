@@ -1,0 +1,160 @@
+/**
+ * 硬事实学习计划（T18）。局部样式，不改全局 styles.css。
+ * 令牌取自 DESIGN.md：靛蓝只做品牌 / 政策徽章；1px 发丝边框零阴影；
+ * 最小字号 0.6875rem（11px 地板）。
+ */
+
+.study-plan {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.study-plan-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.study-plan-header h3 {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.875rem;
+  font-weight: 650;
+}
+
+.study-plan-provenance {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 11px;
+  color: var(--indigo-deep);
+  font-size: 0.6875rem;
+  font-weight: 650;
+  background: var(--indigo-wash);
+  border-radius: 999px;
+}
+
+/* 建议层徽章：与硬事实视觉上必须可区分（provenance 分层呈现）。 */
+.study-plan-hint {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  padding: 10px 12px;
+  color: var(--ink-muted);
+  font-size: 0.75rem;
+  border: 1px dashed var(--line);
+  border-radius: var(--radius-md);
+}
+
+.study-plan-hint strong {
+  color: var(--ink);
+  font-weight: 650;
+}
+
+.study-plan-empty {
+  padding: 16px;
+  color: var(--ink-muted);
+  font-size: 0.75rem;
+  border: 1px dashed var(--line);
+  border-radius: var(--radius-md);
+}
+
+.study-plan-timeline {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(96px, 1fr));
+  gap: 8px;
+  overflow-x: auto;
+}
+
+.study-plan-day {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 108px;
+  padding: 10px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+}
+
+.study-plan-day.is-today {
+  border-color: var(--indigo);
+  background: var(--indigo-wash);
+}
+
+.study-plan-day-label {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px;
+  color: var(--ink-muted);
+  font-size: 0.6875rem;
+  font-weight: 650;
+}
+
+.study-plan-day-empty {
+  color: var(--ink-muted);
+  font-size: 0.6875rem;
+}
+
+.study-plan-task {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 7px 8px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm, 6px);
+  text-align: left;
+}
+
+button.study-plan-task {
+  cursor: pointer;
+  font: inherit;
+}
+
+button.study-plan-task:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.study-plan-task-kp {
+  font-size: 0.75rem;
+  font-weight: 650;
+}
+
+.study-plan-task-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  color: var(--ink-muted);
+  font-size: 0.6875rem;
+}
+
+.study-plan-reason {
+  padding: 1px 6px;
+  font-size: 0.6875rem;
+  background: var(--indigo-wash);
+  border-radius: 999px;
+}
+
+.study-plan-evidence {
+  color: var(--ink-muted);
+  font-size: 0.6875rem;
+}
+
+.study-plan-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.study-plan-note {
+  color: var(--ink-muted);
+  font-size: 0.6875rem;
+}

@@ -1,0 +1,256 @@
+/**
+ * T22 媒体/转写 → 闪卡草稿校对面板样式（与 T15 materialImport 面板同族）。
+ * 令牌取自 DESIGN.md：1px 发丝边框零阴影；最小字号 0.6875rem（11px 地板）。
+ */
+
+.flashcard-draft-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+}
+
+.flashcard-draft-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.flashcard-draft-header h3 {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 650;
+}
+
+.flashcard-draft-provenance {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 11px;
+  color: var(--indigo-deep);
+  font-size: 0.6875rem;
+  font-weight: 650;
+  background: var(--indigo-wash);
+  border-radius: 999px;
+}
+
+.flashcard-draft-gate {
+  margin: 0;
+  padding: 10px 12px;
+  color: var(--indigo-deep);
+  font-size: 0.6875rem;
+  line-height: 1.6;
+  background: var(--indigo-wash);
+  border-radius: var(--radius-md);
+}
+
+.flashcard-draft-input {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.flashcard-draft-input textarea {
+  width: 100%;
+  min-height: 90px;
+  padding: 10px 12px;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.8125rem;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  resize: vertical;
+}
+
+.flashcard-draft-input label {
+  color: var(--ink-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.flashcard-draft-jobs {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.flashcard-draft-jobs > label {
+  color: var(--ink-muted);
+  font-size: 0.6875rem;
+  font-weight: 600;
+}
+
+.flashcard-draft-job-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.flashcard-draft-job-list button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  color: var(--ink-muted);
+  font-size: 0.6875rem;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.flashcard-draft-job-list button.is-active {
+  color: var(--surface);
+  background: var(--indigo);
+  border-color: var(--indigo);
+}
+
+.flashcard-draft-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.flashcard-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 12px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+}
+
+.flashcard-row.is-draft {
+  border-left: 3px solid var(--warn);
+}
+
+.flashcard-row.is-confirmed {
+  border-left: 3px solid var(--pass);
+  background: var(--pass-wash);
+}
+
+.flashcard-row.is-discarded {
+  border-left: 3px solid var(--line-strong);
+  opacity: 0.55;
+}
+
+.flashcard-row-main {
+  flex: 1;
+  min-width: 260px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.flashcard-row-main label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: var(--ink-muted);
+  font-size: 0.75rem;
+}
+
+.flashcard-row-main input {
+  padding: 7px 10px;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.8125rem;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+}
+
+.flashcard-row-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.flashcard-row-provenance,
+.flashcard-row-grounded,
+.flashcard-row-ungrounded,
+.flashcard-row-lowconf {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  border-radius: 999px;
+}
+
+.flashcard-row-provenance {
+  color: var(--indigo-deep);
+  background: var(--indigo-wash);
+}
+
+.flashcard-row-grounded {
+  color: var(--pass-deep);
+  background: var(--pass-wash);
+}
+
+.flashcard-row-ungrounded {
+  color: var(--fail-deep);
+  background: var(--fail-wash);
+}
+
+.flashcard-row-lowconf {
+  color: var(--warn-deep);
+  background: var(--warn-wash);
+}
+
+.flashcard-row-excerpt {
+  color: var(--ink-muted);
+  font-size: 0.6875rem;
+  line-height: 1.5;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.flashcard-row-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: stretch;
+  justify-content: flex-start;
+}
+
+.flashcard-row-actions button {
+  padding: 6px 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.flashcard-row-actions button.primary-button {
+  color: var(--surface);
+  background: var(--indigo);
+  border: 1px solid var(--indigo);
+}
+
+.flashcard-row-actions button.secondary-button {
+  color: var(--ink-muted);
+  background: var(--surface);
+  border: 1px solid var(--line);
+}
+
+.flashcard-row-status {
+  color: var(--ink-muted);
+  font-size: 0.6875rem;
+}

@@ -1,0 +1,258 @@
+/**
+ * 人物对话探究（T21）。局部样式，不改全局 styles.css。
+ * 令牌取自 DESIGN.md：靛蓝只做品牌 / 政策徽章，AI 推断用琥珀轻警告色；
+ * 1px 发丝边框零阴影；最小字号 0.6875rem（11px 地板）。
+ */
+
+.persona-dialogue-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+}
+
+/* 顶栏常驻标识：练习探究 · 不计入测评 */
+.persona-dialogue-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  color: var(--indigo-deep);
+  font-size: 0.6875rem;
+  font-weight: 650;
+  background: var(--indigo-wash);
+  border-radius: var(--radius-md);
+}
+
+.persona-dialogue-close {
+  margin-left: auto;
+  padding: 4px;
+  color: var(--ink-muted);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.persona-dialogue-close:hover {
+  color: var(--ink);
+  background: var(--surface-sunken);
+}
+
+.persona-dialogue-error {
+  margin: 0;
+  padding: 8px 12px;
+  color: var(--fail-deep);
+  font-size: 0.75rem;
+  background: var(--fail-wash);
+  border-radius: var(--radius-md);
+}
+
+/* 人物选择卡片网格 */
+.persona-dialogue-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.persona-dialogue-picker-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  color: var(--ink-muted);
+  font-size: 0.75rem;
+  font-weight: 650;
+}
+
+.persona-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px;
+  text-align: left;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+
+.persona-card:hover {
+  border-color: var(--indigo);
+}
+
+.persona-card:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.persona-card-name {
+  color: var(--ink);
+  font-size: 0.8125rem;
+  font-weight: 650;
+}
+
+.persona-card-era {
+  color: var(--indigo-deep);
+  font-size: 0.6875rem;
+}
+
+.persona-card-excerpt {
+  color: var(--ink-muted);
+  font-size: 0.6875rem;
+  line-height: 1.5;
+}
+
+/* 对话区域 */
+.persona-dialogue-chat {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.persona-dialogue-turns {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 380px;
+  overflow-y: auto;
+  padding: 4px 2px;
+}
+
+.persona-turn {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-width: 85%;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line);
+}
+
+.persona-turn.assistant {
+  align-self: flex-start;
+  background: var(--surface-sunken);
+}
+
+.persona-turn.is-typing p {
+  animation: persona-typing-pulse 1.4s infinite ease-in-out;
+}
+
+@keyframes persona-typing-pulse {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 1; }
+}
+
+.persona-turn.user {
+  align-self: flex-end;
+  background: var(--indigo-wash);
+  border-color: var(--indigo-deep);
+}
+
+.persona-turn-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.6875rem;
+}
+
+.persona-turn-meta strong {
+  color: var(--ink);
+  font-weight: 650;
+}
+
+.persona-turn-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 6px;
+  color: var(--warn-deep);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  background: var(--warn-wash);
+  border-radius: 999px;
+}
+
+.persona-turn p {
+  margin: 0;
+  color: var(--ink);
+  font-size: 0.8125rem;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+.persona-dialogue-limit {
+  margin: 4px 0;
+  padding: 8px 10px;
+  color: var(--warn-deep);
+  font-size: 0.75rem;
+  background: var(--warn-wash);
+  border-radius: var(--radius-md);
+}
+
+.persona-dialogue-essay-cta {
+  padding: 10px 16px;
+  color: var(--surface);
+  font-size: 0.8125rem;
+  font-weight: 650;
+  background: var(--indigo);
+  border: 1px solid var(--indigo);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+
+.persona-dialogue-essay-cta:hover {
+  background: var(--indigo-deep);
+}
+
+.persona-dialogue-essay-cta:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* 输入框行 */
+.persona-dialogue-input-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.persona-dialogue-input {
+  flex: 1;
+  padding: 8px 12px;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.8125rem;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+}
+
+.persona-dialogue-input:focus-visible {
+  outline: 3px solid oklch(52% 0.13 252 / 0.3);
+  outline-offset: 2px;
+}
+
+.persona-dialogue-send {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 14px;
+  color: var(--surface);
+  background: var(--indigo);
+  border: 1px solid var(--indigo);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+
+.persona-dialogue-send:hover {
+  background: var(--indigo-deep);
+}
+
+.persona-dialogue-send:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}

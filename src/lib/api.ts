@@ -95,6 +95,11 @@ export function listEvaluations(
   return requestJson(`/api/evaluations${query}`)
 }
 
+/** P2-2: fetch a full evaluation (with evidence/dimensions) by id. */
+export function getEvaluation(id: string): Promise<EvaluationResult> {
+  return requestJson(`/api/evaluations/${encodeURIComponent(id)}`)
+}
+
 export function evaluateCode(
   request: EvaluateRequest
 ): Promise<EvaluationResult> {

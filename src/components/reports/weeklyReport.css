@@ -1,0 +1,266 @@
+/**
+ * 学情周报（T19）。局部样式，不改全局 styles.css。
+ * 令牌取自 DESIGN.md：靛蓝只做品牌 / 政策徽章；1px 发丝边框零阴影；
+ * 最小字号 0.6875rem（11px 地板）。
+ *
+ * 分层视觉是产品要求而非装饰：证据层用实心靛蓝徽章，AI 文案用灰色虚线，
+ * 教师批注用中性灰。看报告的人必须一眼分清「判出来的」和「写出来的」。
+ */
+
+.weekly-report {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.weekly-report-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.weekly-report-head h3 {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.875rem;
+  font-weight: 650;
+}
+
+.weekly-report-meta {
+  color: var(--ink-muted);
+  font-size: 0.6875rem;
+}
+
+.weekly-report-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.weekly-report-note {
+  color: var(--ink-muted);
+  font-size: 0.6875rem;
+}
+
+.weekly-report-banner {
+  padding: 10px 12px;
+  color: var(--ink-muted);
+  font-size: 0.75rem;
+  border: 1px dashed var(--line);
+  border-radius: var(--radius-md);
+}
+
+.weekly-report-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.weekly-report-section {
+  padding: 11px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+}
+
+.weekly-report-section-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 8px;
+}
+
+.weekly-report-section-head h4 {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 650;
+}
+
+/* --- 分层徽章 ----------------------------------------------------------- */
+
+.weekly-report-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  font-size: 0.6875rem;
+  font-weight: 650;
+  border-radius: 999px;
+}
+
+.weekly-report-badge-evidence {
+  color: var(--indigo-deep);
+  background: var(--indigo-wash);
+}
+
+.weekly-report-badge-advisory,
+.weekly-report-badge-empty {
+  color: var(--ink-muted);
+  border: 1px dashed var(--line);
+}
+
+.weekly-report-badge-teacher_annotation {
+  color: var(--ink-muted);
+  border: 1px solid var(--line);
+}
+
+/* --- 数字 --------------------------------------------------------------- */
+
+.weekly-report-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.weekly-report-metric {
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm, 6px);
+}
+
+.weekly-report-metric-value {
+  display: block;
+  font-size: 1.125rem;
+  font-weight: 650;
+  line-height: 1.2;
+}
+
+.weekly-report-metric-value em {
+  margin-left: 2px;
+  color: var(--ink-muted);
+  font-size: 0.6875rem;
+  font-style: normal;
+  font-weight: 400;
+}
+
+.weekly-report-metric-label {
+  display: block;
+  font-size: 0.6875rem;
+}
+
+.weekly-report-metric-refs {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: var(--ink-muted);
+  font-size: 0.6875rem;
+}
+
+/* --- 趋势表 ------------------------------------------------------------- */
+
+.weekly-report-table {
+  width: 100%;
+  margin-bottom: 8px;
+  font-size: 0.6875rem;
+  border-collapse: collapse;
+}
+
+.weekly-report-table th,
+.weekly-report-table td {
+  padding: 4px 7px;
+  text-align: left;
+  border-bottom: 1px solid var(--line);
+}
+
+.weekly-report-table th {
+  color: var(--ink-muted);
+  font-weight: 650;
+}
+
+.weekly-report-table .num {
+  text-align: right;
+}
+
+.weekly-report-table .mono {
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  word-break: break-all;
+}
+
+/* --- 列表项 ------------------------------------------------------------- */
+
+.weekly-report-items {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin: 0 0 8px;
+  padding: 0;
+  list-style: none;
+}
+
+.weekly-report-item {
+  padding: 7px 9px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm, 6px);
+}
+
+.weekly-report-item-teacher_annotation {
+  border-style: dashed;
+}
+
+.weekly-report-item-label {
+  margin-right: 6px;
+  font-size: 0.75rem;
+  font-weight: 650;
+  word-break: break-word;
+}
+
+.weekly-report-item-detail,
+.weekly-report-item-refs {
+  display: block;
+  color: var(--ink-muted);
+  font-size: 0.6875rem;
+}
+
+/* --- 注解与空态 --------------------------------------------------------- */
+
+.weekly-report-notes {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin: 0;
+  padding: 0;
+  color: var(--ink-muted);
+  font-size: 0.6875rem;
+  list-style: none;
+}
+
+.weekly-report-notes li {
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.weekly-report-empty {
+  margin: 0;
+  padding: 10px 12px;
+  color: var(--ink-muted);
+  font-size: 0.75rem;
+  border: 1px dashed var(--line);
+  border-radius: var(--radius-md);
+}
+
+/* --- AI 文案 ------------------------------------------------------------ */
+
+.weekly-report-narrative {
+  display: block;
+  margin-top: 8px;
+  padding: 9px 11px;
+  border: 1px dashed var(--line);
+  border-radius: var(--radius-md);
+}
+
+.weekly-report-narrative p {
+  margin: 6px 0 4px;
+  color: var(--ink-muted);
+  font-size: 0.75rem;
+}
+
+.weekly-report-narrative-src {
+  color: var(--ink-muted);
+  font-size: 0.6875rem;
+}

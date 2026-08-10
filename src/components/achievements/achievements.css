@@ -1,0 +1,280 @@
+/**
+ * 证据驱动的轻激励（T20）。局部样式，不改全局 styles.css。
+ *
+ * 克制原则（PRD）：
+ *   * 单色线性图标，无金色/奖杯/彩带/粒子；已获得只用「墨色 + 靛蓝细边」，
+ *     未获得用降低对比度的灰，不用「灰化的金牌」暗示稀缺；
+ *   * 没有进度条百分比条、没有等级色阶 —— 目录是平的，5 枚地位相同；
+ *   * toast 非阻塞、可忽略、不遮挡主内容，且尊重 prefers-reduced-motion。
+ * 令牌取自 DESIGN.md：1px 发丝边框零阴影；最小字号 0.6875rem（11px 地板）。
+ */
+
+.achievements {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.achievements-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.achievements-header h3 {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.875rem;
+  font-weight: 650;
+}
+
+.achievements-provenance {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 11px;
+  color: var(--indigo-deep);
+  font-size: 0.6875rem;
+  font-weight: 650;
+  background: var(--indigo-wash);
+  border-radius: 999px;
+}
+
+.achievements-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 8px;
+}
+
+.achievement-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 11px 12px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  text-align: left;
+}
+
+button.achievement-card {
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+}
+
+button.achievement-card:disabled {
+  cursor: default;
+}
+
+/* 已获得：只加一道靛蓝细边，不加金色、不加光晕。 */
+.achievement-card.is-earned {
+  border-color: var(--indigo);
+}
+
+/* 未获得 / 不可用：降对比度即可，不做「锁」的戏剧化处理。 */
+.achievement-card.is-locked,
+.achievement-card.is-unavailable {
+  color: var(--ink-muted);
+}
+
+.achievement-card-top {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.achievement-card-name {
+  font-size: 0.8125rem;
+  font-weight: 650;
+}
+
+.achievement-card-condition {
+  color: var(--ink-muted);
+  font-size: 0.6875rem;
+  line-height: 1.5;
+}
+
+.achievement-card-detail {
+  color: var(--ink-muted);
+  font-size: 0.6875rem;
+}
+
+.achievement-card-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--indigo-deep);
+  font-size: 0.6875rem;
+  font-weight: 650;
+}
+
+/* ---- 「凭什么」抽屉：徽章的自证来源 ---------------------------------- */
+
+.achievement-evidence {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  background: var(--surface);
+  border: 1px solid var(--indigo);
+  border-radius: var(--radius-md);
+}
+
+.achievement-evidence-title {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.8125rem;
+  font-weight: 650;
+}
+
+.achievement-evidence-meta {
+  color: var(--ink-muted);
+  font-size: 0.6875rem;
+}
+
+.achievement-evidence-list {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin: 0;
+  padding-left: 16px;
+}
+
+.achievement-evidence-list li {
+  color: var(--ink);
+  font-size: 0.6875rem;
+  line-height: 1.55;
+}
+
+/* 建议层：与硬事实视觉上必须可区分（provenance 分层呈现）。 */
+.achievement-hint {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  padding: 9px 11px;
+  color: var(--ink-muted);
+  font-size: 0.75rem;
+  border: 1px dashed var(--line);
+  border-radius: var(--radius-md);
+}
+
+.achievement-hint strong {
+  color: var(--ink);
+  font-weight: 650;
+}
+
+.achievements-note {
+  color: var(--ink-muted);
+  font-size: 0.6875rem;
+}
+
+.achievements-empty {
+  padding: 16px;
+  color: var(--ink-muted);
+  font-size: 0.75rem;
+  border: 1px dashed var(--line);
+  border-radius: var(--radius-md);
+}
+
+/* ---- 非阻塞 toast ---------------------------------------------------- */
+
+.achievement-toast {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  padding: 10px 12px;
+  background: var(--surface);
+  border: 1px solid var(--indigo);
+  border-radius: var(--radius-md);
+  animation: achievement-toast-in 180ms ease-out;
+}
+
+.achievement-toast-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.achievement-toast-title {
+  font-size: 0.75rem;
+  font-weight: 650;
+}
+
+.achievement-toast-detail {
+  color: var(--ink-muted);
+  font-size: 0.6875rem;
+}
+
+.achievement-toast-dismiss {
+  margin-left: auto;
+  padding: 2px;
+  color: var(--ink-muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+@keyframes achievement-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* 无障碍：用户要求减少动效时彻底不动（不是「变慢」，是不动）。 */
+@media (prefers-reduced-motion: reduce) {
+  .achievement-toast {
+    animation: none;
+  }
+}
+
+/* ---- 教师聚合：计数条，不是排行榜 ------------------------------------ */
+
+.achievements-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.achievements-summary-row {
+  display: grid;
+  grid-template-columns: minmax(96px, 1fr) minmax(80px, 2fr) auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.achievements-summary-name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+}
+
+/* 计数条：中性墨色，长度 = 覆盖率。没有名次、没有第一名高亮。 */
+.achievements-summary-bar {
+  height: 6px;
+  background: var(--indigo-wash);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.achievements-summary-bar span {
+  display: block;
+  height: 100%;
+  background: var(--indigo);
+}
+
+.achievements-summary-count {
+  color: var(--ink-muted);
+  font-size: 0.6875rem;
+  font-variant-numeric: tabular-nums;
+}

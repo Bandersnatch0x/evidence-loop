@@ -1,0 +1,249 @@
+/**
+ * 跨学科模拟考（T16）。局部样式，不改全局 styles.css。
+ * 令牌取自 DESIGN.md：靛蓝只做品牌 / 政策徽章；1px 发丝边框零阴影；
+ * 最小字号 0.6875rem（11px 地板）。
+ */
+
+.mock-exam {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.mock-exam-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.mock-exam-header h3 {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.875rem;
+  font-weight: 650;
+}
+
+.mock-exam-provenance {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 11px;
+  color: var(--indigo-deep);
+  font-size: 0.6875rem;
+  font-weight: 650;
+  background: var(--indigo-wash);
+  border-radius: 999px;
+}
+
+/* 硬闸门声明：随每次组卷回传，视觉上与题目列表分离。 */
+.mock-exam-gate {
+  padding: 10px 12px;
+  color: var(--ink-muted);
+  font-size: 0.6875rem;
+  border: 1px dashed var(--line);
+  border-radius: var(--radius-md);
+}
+
+.mock-exam-units {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+}
+
+.mock-exam-units legend {
+  color: var(--ink-muted);
+  font-size: 0.6875rem;
+  font-weight: 650;
+}
+
+.mock-exam-unit {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+}
+
+.mock-exam-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.mock-exam-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--ink-muted);
+  font-size: 0.6875rem;
+}
+
+.mock-exam-field input {
+  width: 72px;
+  padding: 5px 7px;
+  font: inherit;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm, 6px);
+}
+
+.mock-exam-warnings {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 10px 12px;
+  color: var(--ink-muted);
+  font-size: 0.6875rem;
+  list-style: none;
+  border: 1px dashed var(--line);
+  border-radius: var(--radius-md);
+}
+
+.mock-exam-warnings li {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.mock-exam-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mock-exam-item {
+  display: grid;
+  grid-template-columns: 24px 1fr auto auto;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 10px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+}
+
+.mock-exam-index {
+  color: var(--ink-muted);
+  font-size: 0.6875rem;
+  font-weight: 650;
+}
+
+.mock-exam-stem {
+  overflow: hidden;
+  font-size: 0.75rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mock-exam-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 0;
+}
+
+.mock-exam-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 7px;
+  color: var(--ink-muted);
+  font-size: 0.6875rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+}
+
+.mock-exam-kp {
+  padding: 1px 6px;
+  font-size: 0.6875rem;
+  background: var(--indigo-wash);
+  border-radius: 999px;
+}
+
+.mock-exam-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--ink-muted);
+  font-size: 0.6875rem;
+}
+
+.mock-exam-entry {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+}
+
+.mock-exam-entry-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.mock-exam-entry-header h4 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8125rem;
+  font-weight: 650;
+}
+
+.mock-exam-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+}
+
+.mock-exam-section h4 {
+  font-size: 0.75rem;
+  font-weight: 650;
+}
+
+.mock-exam-kp-list,
+.mock-exam-evidence {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mock-exam-kp-list li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.mock-exam-evidence li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 7px 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm, 6px);
+}
+
+.mock-exam-evidence strong {
+  font-size: 0.75rem;
+  font-weight: 650;
+}

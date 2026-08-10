@@ -20,6 +20,7 @@ import { PipelineBar } from './components/PipelineBar'
 import { ReviewView } from './components/ReviewView'
 import { MobileHeader, Sidebar, type AppView } from './components/Sidebar'
 import { StudentWorkbench } from './components/student'
+import { StudentPlanHub, TeacherToolsHub } from './components/effort2'
 import { TeacherWorkbench } from './components/teacher'
 import { TransparencyView } from './components/TransparencyView'
 import { VoiceCompanion } from './components/VoiceCompanion'
@@ -102,11 +103,21 @@ function ErrorState({ message, onRetry }: { message: string; onRetry: () => void
 }
 
 function isTeacherOnlyView(view: AppView): boolean {
-  return view === 'cohort' || view === 'cohort-mastery' || view === 'teaching'
+  return (
+    view === 'cohort' ||
+    view === 'cohort-mastery' ||
+    view === 'teaching' ||
+    view === 'teacher-tools'
+  )
 }
 
 function isStudentOnlyView(view: AppView): boolean {
-  return view === 'mastery' || view === 'review' || view === 'practice'
+  return (
+    view === 'mastery' ||
+    view === 'review' ||
+    view === 'practice' ||
+    view === 'student-plan'
+  )
 }
 
 export function App() {
@@ -496,6 +507,26 @@ export function App() {
             displayName: learner.displayName
           }))}
         />
+      )
+  } else if (activeView === 'student-plan') {
+    mainBody =
+      demoRole === 'student' ? (
+        <StudentPlanHub onStartMockExam={() => setActiveView('practice')} />
+      ) : (
+        <div className="view-loading role-denied" role="status">
+          <AlertTriangle size={18} />
+          我的循证计划仅对学生角色开放。请切换到学生。
+        </div>
+      )
+  } else if (activeView === 'teacher-tools') {
+    mainBody =
+      demoRole === 'teacher' || demoRole === 'admin' ? (
+        <TeacherToolsHub />
+      ) : (
+        <div className="view-loading role-denied" role="status">
+          <AlertTriangle size={18} />
+          循证工具仅对教师/管理员开放。
+        </div>
       )
   } else {
     mainBody = <TransparencyView />

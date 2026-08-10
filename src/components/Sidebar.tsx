@@ -4,6 +4,7 @@
   ClipboardList,
   GraduationCap,
   Grid3x3,
+  Layers,
   Menu,
   NotebookPen,
   ShieldCheck,
@@ -23,6 +24,8 @@ export type AppView =
   | 'cohort'
   | 'cohort-mastery'
   | 'transparency'
+  | 'student-plan'
+  | 'teacher-tools'
 
 interface SidebarProps {
   activeView: AppView
@@ -59,7 +62,19 @@ const navigation = [
     icon: Grid3x3,
     roles: ['teacher', 'admin']
   },
-  { id: 'transparency', label: '项目透明度', icon: ShieldCheck }
+  { id: 'transparency', label: '项目透明度', icon: ShieldCheck },
+  {
+    id: 'student-plan',
+    label: '我的循证计划',
+    icon: Target,
+    roles: ['student']
+  },
+  {
+    id: 'teacher-tools',
+    label: '循证工具',
+    icon: Layers,
+    roles: ['teacher', 'admin']
+  }
 ] satisfies NavItem[]
 
 export function MobileHeader({ onOpen }: { onOpen: () => void }) {

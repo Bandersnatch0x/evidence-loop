@@ -1,0 +1,129 @@
+/**
+ * Agent 编队卡片（T17）。局部样式，不改全局 styles.css。
+ * 令牌全部取自 DESIGN.md：靛蓝只做品牌 / 政策徽章，语义色不用于装饰；
+ * 卡片 1px 发丝边框零阴影；最小字号 0.6875rem（11px 地板）。
+ */
+
+.agent-roster-iron-rule {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 12px;
+  color: var(--indigo-deep);
+  font-size: 0.6875rem;
+  font-weight: 650;
+  background: var(--indigo-wash);
+  border-radius: 999px;
+}
+
+.agent-roster-iron-rule small {
+  color: var(--ink-muted);
+  font-size: 0.6875rem;
+  font-weight: 400;
+}
+
+.agent-roster-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(248px, 1fr));
+  gap: 12px;
+}
+
+.agent-card {
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+}
+
+.agent-card-icon {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  color: var(--indigo);
+  background: var(--indigo-wash);
+  border-radius: var(--radius-md);
+}
+
+.agent-card h3 {
+  margin-top: 16px;
+  font-size: 0.875rem;
+  font-weight: 650;
+}
+
+.agent-card code {
+  display: block;
+  margin-top: 6px;
+  color: var(--ink-muted);
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  overflow-wrap: anywhere;
+}
+
+.agent-card-flags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.agent-flag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  color: var(--ink-muted);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  background: var(--surface-sunken);
+  border-radius: 999px;
+}
+
+.agent-flag.is-brand {
+  color: var(--indigo-deep);
+  background: var(--indigo-wash);
+}
+
+.agent-card-facet {
+  margin-top: 14px;
+  padding-top: 13px;
+  border-top: 1px solid var(--line);
+}
+
+.agent-card-facet > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--ink);
+  font-size: 0.6875rem;
+  font-weight: 650;
+}
+
+.agent-card-facet ul {
+  display: grid;
+  gap: 6px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.agent-card-facet li {
+  position: relative;
+  padding-left: 12px;
+  color: var(--ink-muted);
+  font-size: 0.6875rem;
+  line-height: 1.6;
+}
+
+.agent-card-facet li::before {
+  position: absolute;
+  top: 0.5em;
+  left: 0;
+  width: 4px;
+  height: 4px;
+  content: "";
+  background: var(--line-strong);
+  border-radius: 50%;
+}

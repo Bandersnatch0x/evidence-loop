@@ -1,0 +1,82 @@
+/**
+ * Effort 2 聚合页（学生计划 Hub / 教师工具 Hub）样式。
+ * 令牌取自 DESIGN.md：1px 发丝边框零阴影；最小字号 0.6875rem（11px 地板）。
+ */
+
+.effort2-hub {
+  display: grid;
+  gap: 24px;
+  padding: 24px 20px;
+  max-width: 980px;
+  margin: 0 auto;
+}
+
+.effort2-hub-head h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 6px;
+  color: var(--ink);
+  font-size: 1.125rem;
+  font-weight: 650;
+}
+
+.effort2-hub-head p {
+  margin: 0;
+  color: var(--ink-muted);
+  font-size: 0.8125rem;
+  line-height: 1.6;
+}
+
+.effort2-section {
+  display: grid;
+  gap: 12px;
+}
+
+.effort2-section > h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  color: var(--ink-muted);
+  font-size: 0.875rem;
+  font-weight: 650;
+  text-transform: none;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 8px;
+}
+
+.effort2-subnav {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 8px 0;
+  background: var(--paper);
+  border-bottom: 1px solid var(--line);
+  scroll-behavior: smooth;
+}
+
+.effort2-subnav a {
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+  padding: 4px 12px;
+  color: var(--ink-muted);
+  font-size: 0.75rem;
+  font-weight: 650;
+  text-decoration: none;
+  background: var(--surface-sunken);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  transition: all 0.15s ease;
+}
+
+.effort2-subnav a:hover,
+.effort2-subnav a:focus-visible {
+  color: var(--indigo-deep);
+  background: var(--indigo-wash);
+  border-color: var(--indigo);
+}
