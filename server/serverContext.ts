@@ -51,7 +51,11 @@ import { createRunnerRegistry } from './runner/RunnerRegistry'
 import { JsonKnowledgeStore } from './knowledge/KnowledgeStore'
 import { InterventionService } from './mastery/InterventionService'
 import { createSTTProvider } from './stt/createSTTProvider'
-import { JsonAttemptStore } from './store/AttemptStore'
+import {
+  JsonAttemptStore,
+  type AttemptStore
+} from './store/AttemptStore'
+import { SqliteAttemptStore } from './store/SqliteAttemptStore'
 import { FsBlobStore, type BlobStore } from './media/BlobStore'
 import { QuotaService } from './media/QuotaService'
 import { UploadStore } from './media/UploadStore'
@@ -97,9 +101,46 @@ export async function createServerContext(
   options: EvidenceRingServerOptions = {}
 ): Promise<ComposedServerContext> {
   const demoAssignments = createAssignmentRegistry()
-  const store = new JsonAttemptStore(
-    options.dataFile ?? join(projectRoot, '.data', 'evaluations.json')
-  )
+
+  // Product database first: the default attempt store (复赛 item 2) lives in it.
+  const ownsProductDb = options.productDb === undefined
+  let productDb: Database.Database | undefined
+  if (options.productDb !== undefined) {
+    productDb = options.productDb
+  } else {
+    const defaultProductDbPath = join(projectRoot, '.data', 'product.sqlite')
+    const productDbPath =
+      options.productDbPath ??
+      (options.auditStore ? ':memory:' : defaultProductDbPath)
+    if (productDbPath !== ':memory:') {
+      mkdirSync(dirname(productDbPath), { recursive: true })
+    }
+    productDb = new Database(productDbPath)
+    productDb.pragma('journal_mode = WAL')
+  }
+
+  // Attempt store: explicit override > legacy JSON dataFile > SQLite default
+  // (复赛 item 2: 评估历史迁移到数据库，支持多实例).
+  const store: AttemptStore =
+    options.attemptStore ??
+    (options.dataFile !== undefined
+      ? new JsonAttemptStore(options.dataFile)
+      : new SqliteAttemptStore({ database: productDb }))
+
+  // One-shot legacy import: .data/evaluations.json → product database.
+  if (
+    store instanceof SqliteAttemptStore &&
+    options.attemptStore === undefined &&
+    options.dataFile === undefined
+  ) {
+    const legacyPath = join(projectRoot, '.data', 'evaluations.json')
+    const imported = await store.importLegacyJson(legacyPath)
+    if (imported > 0) {
+      console.log(
+        `[attempt-store] migrated ${imported} legacy evaluation(s) into product database`
+      )
+    }
+  }
   const runners =
     options.runners ??
     createRunnerRegistry(options.runner ?? createConfiguredRunner())
@@ -125,8 +166,6 @@ export async function createServerContext(
       evaluationStore: store
     })
 
-  const ownsProductDb = options.productDb === undefined
-  let productDb: Database.Database | undefined
   let mediaWorker: MediaWorkerLoop | undefined
   let disposed = false
   const dispose = async (): Promise<void> => {
@@ -157,21 +196,7 @@ export async function createServerContext(
     await runners.warm()
     await knowledge.getGraph()
 
-    if (options.productDb !== undefined) {
-      productDb = options.productDb
-    } else {
-    const defaultProductDbPath = join(projectRoot, '.data', 'product.sqlite')
-    const productDbPath =
-      options.productDbPath ??
-      (options.auditStore ? ':memory:' : defaultProductDbPath)
-    if (productDbPath !== ':memory:') {
-      mkdirSync(dirname(productDbPath), { recursive: true })
-    }
-    productDb = new Database(productDbPath)
-    productDb.pragma('journal_mode = WAL')
-  }
-
-  const questionStore = new QuestionStore({ database: productDb })
+    const questionStore = new QuestionStore({ database: productDb })
   const questionBank = new QuestionBankService({ store: questionStore })
   const auth = new AuthService(new AuthStore(productDb))
   const org = new SqliteOrgReader(productDb)

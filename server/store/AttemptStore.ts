@@ -208,25 +208,30 @@ export class JsonAttemptStore implements AttemptStore {
       })
     }
     if (!this.filePath) return []
-    try {
-      const contents = (await readFile(this.filePath, 'utf8')).replace(
-        /^\uFEFF/,
-        ''
-      )
-      const parsed = JSON.parse(contents) as unknown
-      if (!Array.isArray(parsed)) return []
-      // Expand-contract: disk may mix Attempt wrappers with pre-T01 bare
-      // EvaluationResult rows. Skip junk so one corrupt entry cannot 500 list.
-      return (parsed as unknown[]).flatMap((row) => {
-        const normalized = normalizeAttempt(row)
-        return normalized === undefined ? [] : [normalized]
-      })
-    } catch (error) {
-      if (error instanceof Error && 'code' in error && error.code === 'ENOENT') {
-        return []
-      }
-      throw error
+    return readAttemptsJson(this.filePath)
+  }
+}
+
+/**
+ * Read + normalize an attempts JSON file. Accepts both Attempt-shaped rows and
+ * pre-T01 bare EvaluationResult rows. Skips junk so one corrupt entry cannot
+ * 500 list/boot. Shared by JsonAttemptStore and SqliteAttemptStore's one-shot
+ * legacy import (复赛: 评估历史迁移到数据库).
+ */
+export async function readAttemptsJson(filePath: string): Promise<Attempt[]> {
+  try {
+    const contents = (await readFile(filePath, 'utf8')).replace(/^\uFEFF/, '')
+    const parsed = JSON.parse(contents) as unknown
+    if (!Array.isArray(parsed)) return []
+    return (parsed as unknown[]).flatMap((row) => {
+      const normalized = normalizeAttempt(row)
+      return normalized === undefined ? [] : [normalized]
+    })
+  } catch (error) {
+    if (error instanceof Error && 'code' in error && error.code === 'ENOENT') {
+      return []
     }
+    throw error
   }
 }
 
@@ -237,7 +242,7 @@ export class JsonAttemptStore implements AttemptStore {
  *
  * Returns undefined for unrecognizable rows (filtered by readAllAttempts).
  */
-function normalizeAttempt(raw: unknown): Attempt | undefined {
+export function normalizeAttempt(raw: unknown): Attempt | undefined {
   if (isAttemptRecord(raw)) {
     const embedded = raw.result
     const result = ensureEvaluationProvenance({

@@ -187,7 +187,11 @@ export const attempts = sqliteTable(
     mode: text('mode').notNull(),
     createdAt: text('created_at').notNull(),
     /** Full EvaluationResult JSON (embedded for expand-contract). */
-    resultJson: text('result_json').notNull()
+    resultJson: text('result_json').notNull(),
+    /** T07 paper-batch binding (migration 0020; null on free practice). */
+    paperId: text('paper_id'),
+    /** T12/P1 assignment deadline ISO-8601 (migration 0020; optional). */
+    dueAt: text('due_at')
   },
   (table) => [
     index('idx_attempts_student_created').on(table.studentId, table.createdAt),

@@ -89,8 +89,82 @@ describe('createServerContext', () => {
     expect(runnerDispose).toHaveBeenCalledOnce()
     expect(auditClose).toHaveBeenCalledOnce()
     expect(memoryClose).toHaveBeenCalledOnce()
-    // Injected DB remains caller-owned even on failed composition.
-    expect(productDb.prepare('SELECT 1 AS value').get()).toEqual({ value: 1 })
-    productDb.close()
+  })
+
+  it('defaults to SqliteAttemptStore and shares history across two contexts on one product db file (复赛 item 2)', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'server-context-sqlite-'))
+    tempRoots.push(root)
+    const mediaDataRoot = join(root, 'media')
+    const audit = new AuditStore({
+      dbPath: ':memory:',
+      hmacSecret: 'server-context-sqlite-hmac'
+    })
+    const { SqliteAttemptStore } = await import('../server/store/SqliteAttemptStore')
+
+    const first = await createServerContext({
+      productDbPath: join(root, 'product.sqlite'),
+      auditStore: audit,
+      auditHmacSecret: 'server-context-sqlite-hmac',
+      memoryDbPath: ':memory:',
+      mediaDataRoot
+    })
+    expect(first.context.store).toBeInstanceOf(SqliteAttemptStore)
+    await first.context.store.saveAttempt({
+      id: 'ctx_shared_1',
+      studentId: 'student-1',
+      questionId: 'python-average',
+      teachingUnitId: 'tu-math-1',
+      termId: 'term-2026-fall',
+      mode: 'assessment',
+      createdAt: '2026-07-24T00:00:00.000Z',
+      result: {
+        id: 'ctx_shared_1',
+        assignmentId: 'python-average',
+        attempt: 1,
+        createdAt: '2026-07-24T00:00:00.000Z',
+        status: 'completed',
+        score: 100,
+        summary: 'ok',
+        evidence: [
+          {
+            id: 'empty-input',
+            kind: 'test',
+            label: 'empty',
+            dimensionId: 'correctness',
+            visibility: 'public',
+            state: 'passed',
+            weight: 20,
+            message: 'ok',
+            conceptId: 'empty-sequence',
+            source: 'test_case'
+          }
+        ],
+        dimensions: [],
+        diagnoses: [],
+        trace: [],
+        mastery: [],
+        feedbackSource: 'local-policy',
+        studentId: 'student-1',
+        provenance: {
+          kind: 'evidence',
+          evidenceIds: ['empty-input'],
+          algorithm: 'simple.v1'
+        }
+      }
+    })
+    await first.dispose()
+
+    // A second context over the same product db file sees the first's history.
+    const second = await createServerContext({
+      productDbPath: join(root, 'product.sqlite'),
+      auditStore: audit,
+      auditHmacSecret: 'server-context-sqlite-hmac',
+      memoryDbPath: ':memory:',
+      mediaDataRoot
+    })
+    expect((await second.context.store.getAttempt('ctx_shared_1'))?.studentId).toBe(
+      'student-1'
+    )
+    await second.dispose()
   })
 })

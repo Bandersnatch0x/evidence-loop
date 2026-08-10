@@ -13,7 +13,7 @@ import type { MistakeBookService, PracticeSessionService } from './student'
 import type { createTutoringService } from './tutoring'
 import type { MediaRouteContext } from './media/mediaRoutes'
 import type { ReviewerRouteContext } from './demonstration/reviewerRoutes'
-import type { JsonAttemptStore } from './store/AttemptStore'
+import type { AttemptStore } from './store/AttemptStore'
 import type { KnowledgeStore } from './knowledge/KnowledgeStore'
 import type { InterventionService } from './mastery/InterventionService'
 import type { MemoryLayer } from './memory/MemoryLayer'
@@ -32,7 +32,7 @@ import type { PortfolioExportService, PortfolioExportStore } from './portfolio'
 /** Runtime dependencies consumed by the HTTP router. */
 export interface ApiContext {
   assignments: AssignmentRegistry
-  store: JsonAttemptStore
+  store: AttemptStore
   agent: EvaluationAgent
   runnerName: string
   knowledge: KnowledgeStore
@@ -75,7 +75,10 @@ export interface ApiContext {
 
 /** Dependency overrides and storage options for server composition. */
 export interface EvidenceRingServerOptions {
+  /** Legacy JSON-file attempt store. When set, overrides the default SQLite store. */
   dataFile?: string
+  /** Explicit attempt store. Highest precedence over dataFile / default SQLite. */
+  attemptStore?: AttemptStore
   vite?: boolean
   runner?: CodeRunner
   runners?: RunnerRegistry
