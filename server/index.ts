@@ -37,6 +37,7 @@ import { handleTransparencyApi } from './transparency/transparencyRoutes'
 import { handleStudyPlanApi } from './studyPlan/studyPlanRoutes'
 import { handleWeeklyReportApi } from './reports'
 import { handleAchievementApi } from './achievements'
+import { handleTaskTemplateApi } from './taskTemplate'
 import { handleDialogueApi } from './dialogue/dialogueRoutes'
 import { tryHandleFlashcardDraftRoute } from './flashcardDraft'
 import { handlePortfolioApi } from './portfolio/portfolioRoutes'
@@ -837,6 +838,16 @@ async function handleApi(
     await handleAchievementApi(request, response, requestUrl, {
       db: context.productDb,
       achievements: context.achievements,
+      user,
+      org: context.org
+    })
+  ) {
+    return
+  }
+  if (
+    await handleTaskTemplateApi(request, response, requestUrl, {
+      db: context.productDb,
+      taskTemplates: context.taskTemplates,
       user,
       org: context.org
     })

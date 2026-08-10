@@ -544,7 +544,8 @@ describe('architecture guard: Effort 2 modules never import scoring write paths'
     'server/dialogue',
     'server/flashcardDraft',
     'server/portfolio',
-    'server/transparency'
+    'server/transparency',
+    'server/taskTemplate'
   ]
   // Allow list: modules may use config/mastery thresholds; forbid write-side paths.
   const FORBIDDEN = [
@@ -565,8 +566,8 @@ describe('architecture guard: Effort 2 modules never import scoring write paths'
       violations.length === 0
         ? ''
         : [
-            'Effort 2 Î¥¹æ£º²ÄÁÏµ¼Èë/Ä£Äâ¿¼/¼Æ»®/ÖÜ±¨/³É¾Í/¶Ô»°/ÉÁ¿¨/×÷Æ·¼¯',
-            '²»µÃ import ÆÀ·ÖÐ´Â·¾¶¡£Î¥¹æ£º',
+            'Effort 2 Î¥ï¿½æ£ºï¿½ï¿½ï¿½Ïµï¿½ï¿½ï¿½/Ä£ï¿½â¿¼/ï¿½Æ»ï¿½/ï¿½Ü±ï¿½/ï¿½É¾ï¿½/ï¿½Ô»ï¿½/ï¿½ï¿½ï¿½ï¿½/ï¿½ï¿½Æ·ï¿½ï¿½',
+            'ï¿½ï¿½ï¿½ï¿½ import ï¿½ï¿½ï¿½ï¿½Ð´Â·ï¿½ï¿½ï¿½ï¿½Î¥ï¿½æ£º',
             formatViolations(violations)
           ].join('\n')
     ).toEqual([])

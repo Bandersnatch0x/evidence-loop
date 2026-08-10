@@ -80,3 +80,129 @@
   background: var(--indigo-wash);
   border-color: var(--indigo);
 }
+
+/* ---- 复赛 item 3：知识点任务模板 ---- */
+.task-template-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.task-template-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 12px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.task-template-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+
+.task-template-card header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--indigo-deep);
+}
+
+.task-template-card header h4 {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 700;
+  flex: 1;
+}
+
+.task-template-subject {
+  font-size: 0.7rem;
+  font-weight: 650;
+  color: var(--ink-muted);
+  background: var(--surface-sunken);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+
+.task-template-desc {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--ink-muted);
+  line-height: 1.5;
+}
+
+.task-template-kps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.task-template-kps li {
+  font-size: 0.7rem;
+  color: var(--ink-deep);
+  background: var(--indigo-wash);
+  border: 1px solid var(--indigo-soft);
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+
+.task-template-card footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: auto;
+}
+
+.task-template-meta {
+  font-size: 0.72rem;
+  color: var(--ink-muted);
+}
+
+.task-template-deploy {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.75rem;
+  font-weight: 650;
+  padding: 4px 10px;
+  color: #fff;
+  background: var(--indigo-deep);
+  border: 1px solid var(--indigo-deep);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.task-template-deploy:hover:not(:disabled),
+.task-template-deploy:focus-visible {
+  filter: brightness(1.1);
+}
+
+.task-template-deploy:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.task-template-result {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 650;
+  color: var(--green-deep, #1a7f37);
+}
+
+.task-template-error {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--red-deep, #b42318);
+}

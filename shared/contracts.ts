@@ -1220,6 +1220,46 @@ export interface CreateTeacherTipInput {
   questionId?: string
 }
 
+/**
+ * 知识点任务模板（复赛 item 3）：预置题库中可一键部署的任务单元。
+ *
+ * 模板把「任务配置 + 量规 + 知识诊断」绑到知识点：questionId 指向系统预置库
+ * （seedQuestionsFromAssignments 导入），kpIds 关联 121 节点知识 DAG，
+ * 部署 = 以 handpick 布置到教学单元（练习态/测评态由部署时 mode 决定）。
+ * 铁律不变：模板不写分数，分数只来自题目自身 runner 的可复现证据。
+ */
+export interface TaskTemplate {
+  id: string
+  name: string
+  subject: SubjectLanguage
+  /** 绑定知识点（知识 DAG 节点 id，如 kp.math.algebra.quadratic）。 */
+  kpIds: string[]
+  /** 系统预置库中的题目 id。 */
+  questionId: string
+  description: string
+  estimatedMinutes: number
+  difficulty: 1 | 2 | 3
+}
+
+/** list 响应：附 kp 名称便于 UI 展示。 */
+export interface TaskTemplateWithKpNames extends TaskTemplate {
+  kpNames: string[]
+}
+
+/** POST /api/teacher/task-templates/:id/deploy */
+export interface DeployTaskTemplateInput {
+  teachingUnitId: string
+  /** Optional subset of enrolled students; omitted = whole class. */
+  studentIds?: string[]
+  /** T12/P1 deadline (ISO-8601). Optional. */
+  dueAt?: string
+}
+
+export interface DeployTaskTemplateResult {
+  template: TaskTemplate
+  assignment: CreateAssignmentResult
+}
+
 export interface CreateTeacherTipResult {
   tip: TeacherTip
   /** Students who received a delivery envelope. */

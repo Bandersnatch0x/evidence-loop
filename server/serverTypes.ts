@@ -28,6 +28,7 @@ import type { AchievementService } from './achievements'
 import type { PersonaDialogueService } from './dialogue'
 import type { FlashcardDraftService } from './flashcardDraft'
 import type { PortfolioExportService, PortfolioExportStore } from './portfolio'
+import type { TaskTemplateService } from './taskTemplate'
 
 /** Runtime dependencies consumed by the HTTP router. */
 export interface ApiContext {
@@ -71,6 +72,7 @@ export interface ApiContext {
   flashcardDraft: FlashcardDraftService
   portfolio: PortfolioExportService
   portfolioExports: PortfolioExportStore
+  taskTemplates: TaskTemplateService
 }
 
 /** Dependency overrides and storage options for server composition. */

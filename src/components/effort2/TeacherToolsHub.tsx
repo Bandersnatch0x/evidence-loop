@@ -7,10 +7,20 @@
  *
  * demo 常量：tu-demo（教学单元）、bank-demo（题库标签）。
  */
-import { ClipboardList, FileArchive, FileText, Layers, Sparkles, Trophy, Wand2 } from 'lucide-react'
+import {
+  BookOpenCheck,
+  ClipboardList,
+  FileArchive,
+  FileText,
+  Layers,
+  Sparkles,
+  Trophy,
+  Wand2
+} from 'lucide-react'
 import { DEMO_STUDENT_ID } from '../../lib/demoRole'
 import { FlashcardDraftReviewPanel } from '../flashcardDraft'
 import { MaterialDraftReviewPanel } from '../materialImport'
+import { TaskTemplatePanel } from '../taskTemplate'
 import { TeacherMockExamWizard } from '../mockExam'
 import { PortfolioExportPanel } from '../portfolio'
 import { TeacherWeeklyReportPanel } from '../reports'
@@ -34,6 +44,7 @@ export function TeacherToolsHub() {
       </header>
 
       <nav className="effort2-subnav" aria-label="工具楼层快捷导航">
+        <a href="#t-templates">任务模板</a>
         <a href="#t-material">材料出题</a>
         <a href="#t-flashcard">闪卡草稿</a>
         <a href="#t-mockexam">模拟考向导</a>
@@ -42,6 +53,13 @@ export function TeacherToolsHub() {
         <a href="#t-achievements">成就计数</a>
         <a href="#t-portfolio">作品集导出</a>
       </nav>
+
+      <section id="t-templates" className="effort2-section">
+        <h3>
+          <BookOpenCheck size={16} /> 知识点任务模板（复赛 item 3）
+        </h3>
+        <TaskTemplatePanel />
+      </section>
 
       <section id="t-material" className="effort2-section">
         <h3>

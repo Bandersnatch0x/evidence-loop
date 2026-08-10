@@ -87,6 +87,7 @@ import {
   FlashcardDraftStore
 } from './flashcardDraft'
 import { PortfolioExportService, PortfolioExportStore } from './portfolio'
+import { TaskTemplateService, TaskTemplateStore } from './taskTemplate'
 import type { ApiContext, EvidenceRingServerOptions } from './serverTypes'
 
 const projectRoot = resolve(fileURLToPath(new URL('..', import.meta.url)))
@@ -381,6 +382,12 @@ export async function createServerContext(
     }
   })
   const portfolioExports = new PortfolioExportStore({ database: productDb })
+  const taskTemplates = new TaskTemplateService({
+    store: new TaskTemplateStore(),
+    questions: questionStore,
+    assignments: assignmentService,
+    knowledge
+  })
 
   const context: ApiContext = {
     assignments,
@@ -427,7 +434,8 @@ export async function createServerContext(
     dialogue,
     flashcardDraft,
     portfolio,
-    portfolioExports
+    portfolioExports,
+    taskTemplates
   }
 
     return { context, dispose }

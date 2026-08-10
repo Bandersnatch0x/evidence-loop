@@ -1,0 +1,32 @@
+[
+  {
+    "id": "tpl.math.simplify",
+    "name": "代数式化简：完全平方展开",
+    "subject": "math",
+    "kpIds": ["kp.math.algebra.simplify"],
+    "questionId": "expression-perfect-square",
+    "description": "将 (x+1)^2 展开为多项式。CAS 代数等价即可判对，不同书写形式不扣分。",
+    "estimatedMinutes": 8,
+    "difficulty": 2
+  },
+  {
+    "id": "tpl.physics.ohm_law",
+    "name": "欧姆定律求电阻",
+    "subject": "physics",
+    "kpIds": ["kp.physics.electricity.ohm_law"],
+    "questionId": "numeric-ohm-law",
+    "description": "已知电压与电流，求电阻 R（允许 ±0.01 容差）。",
+    "estimatedMinutes": 5,
+    "difficulty": 1
+  },
+  {
+    "id": "tpl.chemistry.equation_balance",
+    "name": "化学方程式配平：氢气燃烧生成水",
+    "subject": "chemistry",
+    "kpIds": ["kp.chemistry.reaction.equation_balance"],
+    "questionId": "chem-water-formation",
+    "description": "写出并配平 H2 与 O2 生成 H2O 的方程式。支持整体倍数的等价配平。",
+    "estimatedMinutes": 8,
+    "difficulty": 2
+  }
+]
