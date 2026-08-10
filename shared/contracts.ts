@@ -1112,6 +1112,10 @@ export interface CreateAssignmentInput {
   teachingUnitId: string
   mode: SessionMode
   kind: AssignmentKind
+  /** Stable paper identity for retry-safe assignment creation. */
+  paperId?: string
+  /** Per-question unit ownership for cross-subject papers. */
+  questionTeachingUnitIds?: Record<string, string>
   /** handpick: explicit question ids. */
   questionIds?: string[]
   /** assemble_by_kp: KP filter for QuestionBankService.assembleByKnowledgePoints. */

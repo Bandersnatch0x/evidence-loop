@@ -26,6 +26,7 @@ export type AuditResourceType =
   | 'demonstration'
   | 'publication'
   | 'media'
+  | 'portfolio'
 /**
  * Interaction modality for audit events (ADR-0005 §7).
  * `'canvas'` is reserved for Phase 2 handwriting — do not emit yet.

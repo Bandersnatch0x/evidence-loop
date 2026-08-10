@@ -20,6 +20,14 @@ import type { MemoryLayer } from './memory/MemoryLayer'
 import type { STTProvider } from './stt/STTProvider'
 import type { RunnerRegistry } from './runner/RunnerRegistry'
 import type { CodeRunner } from './runner/types'
+import type { MaterialImportService } from './materialImport'
+import type { MockExamService } from './mockExam'
+import type { StudyPlanService } from './studyPlan'
+import type { WeeklyReportService, WeeklyReportExportStore } from './reports'
+import type { AchievementService } from './achievements'
+import type { PersonaDialogueService } from './dialogue'
+import type { FlashcardDraftService } from './flashcardDraft'
+import type { PortfolioExportService, PortfolioExportStore } from './portfolio'
 
 /** Runtime dependencies consumed by the HTTP router. */
 export interface ApiContext {
@@ -52,6 +60,17 @@ export interface ApiContext {
   evidenceProjector: EvidenceProjector
   media: MediaRouteContext
   demonstration: ReviewerRouteContext
+  // ---- Effort 2 (T15-T23) ----
+  materialImport: MaterialImportService
+  mockExam: MockExamService
+  studyPlan: StudyPlanService
+  weeklyReport: WeeklyReportService
+  weeklyReportExports: WeeklyReportExportStore
+  achievements: AchievementService
+  dialogue: PersonaDialogueService
+  flashcardDraft: FlashcardDraftService
+  portfolio: PortfolioExportService
+  portfolioExports: PortfolioExportStore
 }
 
 /** Dependency overrides and storage options for server composition. */

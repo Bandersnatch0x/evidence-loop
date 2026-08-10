@@ -52,6 +52,16 @@ export interface EvaluationRouteContext {
   review: Pick<ReviewScheduler, 'applyFromEvaluation'>
   evidenceProjector: Pick<EvidenceProjector, 'projectAttempt'>
   user: SessionUser
+  /**
+   * T20: after a successful evaluation, recompute evidence achievements.
+   * Best-effort / never blocks scoring (errors swallowed).
+   */
+  achievements?: {
+    sync: (
+      studentId: string,
+      options?: { teachingUnitId?: string }
+    ) => Promise<unknown>
+  }
 }
 
 /** Students see only their own history; teachers/admins see all. */
@@ -247,6 +257,7 @@ export async function handleEvaluationApi(
       projectedMode = existing.mode
       if (resultForAttempt.status === 'completed') {
         await evidenceProjector.projectAttempt(updatedAttempt)
+        await syncAchievementsSafe(context, existing.studentId, existing.teachingUnitId)
       }
       const containerId = resolveContainerId(resultForAttempt, runnerName)
       createRouteAuditor(audit, context.user, {
@@ -278,6 +289,9 @@ export async function handleEvaluationApi(
     if (owned.status === 'completed') {
       await mastery.recomputeFromEvaluation(owned)
       review.applyFromEvaluation(owned)
+      if (owned.studentId) {
+        await syncAchievementsSafe(context, owned.studentId)
+      }
     }
 
     const containerId = resolveContainerId(owned, runnerName)
@@ -300,6 +314,28 @@ export async function handleEvaluationApi(
     })
 
     respondJson(response, 201, owned)
+    return true
+  }
+
+  const evaluationGetMatch = pathname.match(/^\/api\/evaluations\/([^/]+)$/)
+  if (request.method === 'GET' && evaluationGetMatch?.[1]) {
+    const evaluationId = decodeURIComponent(evaluationGetMatch[1])
+    const existing = await store.get(evaluationId)
+    if (!existing) {
+      respondJson(response, 404, { error: 'Evaluation not found' })
+      return true
+    }
+    const isOwner =
+      existing.studentId === (context.user.studentId ?? context.user.userId)
+    const isPrivileged =
+      context.user.role === 'teacher' || context.user.role === 'admin'
+    if (!isOwner && !isPrivileged) {
+      respondJson(response, 403, {
+        error: 'Forbidden: cannot view an evaluation you do not own'
+      })
+      return true
+    }
+    respondJson(response, 200, existing)
     return true
   }
 
@@ -345,4 +381,21 @@ export async function handleEvaluationApi(
   }
 
   return false
+}
+
+/** T20: never fail evaluation because badge recompute threw. */
+async function syncAchievementsSafe(
+  context: EvaluationRouteContext,
+  studentId: string,
+  teachingUnitId?: string
+): Promise<void> {
+  if (!context.achievements) return
+  try {
+    await context.achievements.sync(
+      studentId,
+      teachingUnitId ? { teachingUnitId } : {}
+    )
+  } catch (error) {
+    console.error('Achievement sync failed:', error)
+  }
 }

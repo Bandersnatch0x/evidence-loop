@@ -28,6 +28,7 @@ export interface AttemptListFilters {
  */
 export interface AttemptStore extends EvaluationStore {
   saveAttempt(attempt: Attempt): Promise<void>
+  saveAttempts(attempts: Attempt[]): Promise<void>
   getAttempt(id: string): Promise<Attempt | undefined>
   listAttempts(filters?: AttemptListFilters): Promise<Attempt[]>
   deleteAttempt(id: string): Promise<boolean>
@@ -36,6 +37,7 @@ export interface AttemptStore extends EvaluationStore {
 export function isAttemptStore(store: EvaluationStore): store is AttemptStore {
   return (
     typeof (store as AttemptStore).saveAttempt === 'function' &&
+    typeof (store as AttemptStore).saveAttempts === 'function' &&
     typeof (store as AttemptStore).listAttempts === 'function' &&
     typeof (store as AttemptStore).getAttempt === 'function'
   )
@@ -61,17 +63,26 @@ export class JsonAttemptStore implements AttemptStore {
   }
 
   public saveAttempt(attempt: Attempt): Promise<void> {
+    return this.saveAttempts([attempt])
+  }
+
+  public saveAttempts(attempts: Attempt[]): Promise<void> {
     this.writeChain = this.writeChain.then(async () => {
-      const normalized = normalizeAttempt(attempt)
-      if (normalized === undefined) {
-        throw new Error(
-          `Cannot save attempt ${attempt.id}: missing valid result payload`
-        )
+      const normalizedById = new Map<string, Attempt>()
+      for (const attempt of attempts) {
+        const normalized = normalizeAttempt(attempt)
+        if (normalized === undefined) {
+          throw new Error(
+            `Cannot save attempt ${attempt.id}: missing valid result payload`
+          )
+        }
+        normalizedById.set(normalized.id, normalized)
       }
       const all = await this.readAllAttempts()
+      const incomingIds = new Set(normalizedById.keys())
       const next = [
-        ...all.filter((item) => item.id !== normalized.id),
-        normalized
+        ...all.filter((item) => !incomingIds.has(item.id)),
+        ...normalizedById.values()
       ]
       await this.persist(next)
     })

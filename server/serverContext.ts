@@ -70,6 +70,19 @@ import { AiQuotaStore } from './demonstration/aiAssistant'
 import { createDemoAuditSink } from './demonstration/demoAuditSink'
 import { seedPresetDemonstrations } from './demonstration/seedPresets'
 import type { ReviewerRouteContext } from './demonstration/reviewerRoutes'
+import { MaterialImportService, MaterialImportStore } from './materialImport'
+import { createDraftQuestionGenerator } from './materialImport'
+import { MockExamPlanStore, MockExamService } from './mockExam'
+import { StudyPlanService, StudyPlanSnapshotStore } from './studyPlan'
+import { WeeklyReportService, WeeklyReportExportStore } from './reports'
+import { AchievementService, AchievementStore } from './achievements'
+import { createPersonaDialogueService } from './dialogue'
+import {
+  createFlashcardDraftGenerator,
+  FlashcardDraftService,
+  FlashcardDraftStore
+} from './flashcardDraft'
+import { PortfolioExportService, PortfolioExportStore } from './portfolio'
 import type { ApiContext, EvidenceRingServerOptions } from './serverTypes'
 
 const projectRoot = resolve(fileURLToPath(new URL('..', import.meta.url)))
@@ -279,6 +292,71 @@ export async function createServerContext(
     review: memory.review
   })
 
+  // ---------------------------------------------------------------------------
+  // Effort 2 vertical slices (T15-T23). All services are advisory-only:
+  // they consume deterministic Runner evidence through read-only ports and
+  // never write score / evidence / MasteryProfile (ADR-0001).
+  // ---------------------------------------------------------------------------
+  const materialImport = new MaterialImportService({
+    store: new MaterialImportStore({ database: productDb }),
+    questionBank,
+    generator: createDraftQuestionGenerator(process.env),
+    now: () => new Date()
+  })
+  const mockExam = new MockExamService({
+    org,
+    questions: questionStore,
+    mastery: memory.mastery,
+    plans: new MockExamPlanStore({ database: productDb }),
+    attempts: store,
+    assign: assignmentService,
+    excludeRecentDays: 0
+  })
+  const studyPlan = new StudyPlanService({
+    review: memory.review,
+    mastery: memory.mastery,
+    org,
+    questions: questionStore,
+    interventions,
+    snapshots: new StudyPlanSnapshotStore({ database: productDb })
+  })
+  const weeklyReport = new WeeklyReportService({
+    attempts: store,
+    mastery: memory.mastery,
+    mistakes,
+    tips,
+    org,
+    plan: studyPlan
+  })
+  const weeklyReportExports = new WeeklyReportExportStore({
+    database: productDb
+  })
+  const achievements = new AchievementService({
+    attempts: store,
+    questions: questionStore,
+    mistakes,
+    studyPlan,
+    awards: new AchievementStore({ database: productDb }),
+    org
+  })
+  const dialogue = createPersonaDialogueService({ database: productDb })
+  const flashcardDraft = new FlashcardDraftService({
+    store: new FlashcardDraftStore({ database: productDb }),
+    questionBank,
+    generator: createFlashcardDraftGenerator(process.env),
+    now: () => new Date()
+  })
+  const portfolio = new PortfolioExportService({
+    attempts: store,
+    questions: questionStore,
+    org,
+    aliases: {
+      getDisplayName: (studentId: string) =>
+        auth.getPublicUser(studentId)?.displayName
+    }
+  })
+  const portfolioExports = new PortfolioExportStore({ database: productDb })
+
   const context: ApiContext = {
     assignments,
     store,
@@ -314,7 +392,17 @@ export async function createServerContext(
     interventions,
     stt: options.sttProvider ?? createSTTProvider(),
     media,
-    demonstration
+    demonstration,
+    materialImport,
+    mockExam,
+    studyPlan,
+    weeklyReport,
+    weeklyReportExports,
+    achievements,
+    dialogue,
+    flashcardDraft,
+    portfolio,
+    portfolioExports
   }
 
     return { context, dispose }

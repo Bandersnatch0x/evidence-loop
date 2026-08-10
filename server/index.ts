@@ -31,6 +31,15 @@ import { handleAuthorApi } from './demonstration/authorRoutes'
 import { handleAiApi } from './demonstration/aiRoutes'
 import { handleReferenceApi } from './demonstration/referenceRoutes'
 import { handleLibraryApi } from './demonstration/libraryRoutes'
+import { tryHandleMaterialImportRoute } from './materialImport'
+import { handleMockExamApi } from './mockExam'
+import { handleTransparencyApi } from './transparency/transparencyRoutes'
+import { handleStudyPlanApi } from './studyPlan/studyPlanRoutes'
+import { handleWeeklyReportApi } from './reports'
+import { handleAchievementApi } from './achievements'
+import { handleDialogueApi } from './dialogue/dialogueRoutes'
+import { tryHandleFlashcardDraftRoute } from './flashcardDraft'
+import { handlePortfolioApi } from './portfolio/portfolioRoutes'
 import { respondMultimodalAsk } from './multimodal/askRoute'
 import { respondSTTFinalize, respondSTTStart } from './multimodal/sttRoute'
 import { PIIError, findPIIInText } from './pii/PIIDetector'
@@ -273,7 +282,8 @@ async function handleApi(
       mastery: memory.mastery,
       review: memory.review,
       evidenceProjector: context.evidenceProjector,
-      user
+      user,
+      achievements: context.achievements
     })
   ) {
     return
@@ -748,6 +758,117 @@ async function handleApi(
       }
     })
     respondJson(response, 200, updated)
+    return
+  }
+
+  // ---------------------------------------------------------------------------
+  // Effort 2 vertical slices (T15-T23). Each returns true when it consumed the
+  // request. All follow ADR-0001: suggestions only, never write score/evidence.
+  //
+  // ORDER MATTERS: these MUST run before handleStudentApi / handleTeacherApi,
+  // which consume every /api/student/* and /api/teacher/* prefix (unknown
+  // sub-paths also return true with 404). T15-T23 own several /api/student/*
+  // and /api/teacher/* endpoints, so they get first claim on the prefix.
+  // ---------------------------------------------------------------------------
+  // T22 ticket aliases: /material-import/transcript|audio → flashcard drafts
+  if (
+    requestUrl.pathname === '/api/teacher/material-import/transcript' ||
+    requestUrl.pathname === '/api/teacher/material-import/audio'
+  ) {
+    const rewritten = new URL(requestUrl.href)
+    rewritten.pathname =
+      requestUrl.pathname.endsWith('/audio')
+        ? '/api/teacher/flashcard-drafts/audio'
+        : '/api/teacher/flashcard-drafts'
+    if (
+      await tryHandleFlashcardDraftRoute(request, response, rewritten, {
+        flashcardDraft: context.flashcardDraft,
+        user
+      })
+    ) {
+      return
+    }
+  }
+  if (
+    await tryHandleMaterialImportRoute(request, response, requestUrl, {
+      materialImportService: context.materialImport,
+      user
+    })
+  ) {
+    return
+  }
+  if (
+    await handleMockExamApi(request, response, requestUrl, {
+      db: context.productDb,
+      mockExam: context.mockExam,
+      user,
+      org: context.org
+    })
+  ) {
+    return
+  }
+  if (handleTransparencyApi(request, response, requestUrl.pathname)) {
+    return
+  }
+  if (
+    await handleStudyPlanApi(request, response, requestUrl, {
+      db: context.productDb,
+      studyPlan: context.studyPlan,
+      user,
+      org: context.org,
+      assign: context.assignByWeakness
+    })
+  ) {
+    return
+  }
+  if (
+    await handleWeeklyReportApi(request, response, requestUrl, {
+      db: context.productDb,
+      weeklyReport: context.weeklyReport,
+      org: context.org,
+      user,
+      exports: context.weeklyReportExports,
+      audit
+    })
+  ) {
+    return
+  }
+  if (
+    await handleAchievementApi(request, response, requestUrl, {
+      db: context.productDb,
+      achievements: context.achievements,
+      user,
+      org: context.org
+    })
+  ) {
+    return
+  }
+  if (
+    await handleDialogueApi(request, response, requestUrl, {
+      dialogue: context.dialogue,
+      user
+    })
+  ) {
+    return
+  }
+  if (
+    await tryHandleFlashcardDraftRoute(request, response, requestUrl, {
+      flashcardDraft: context.flashcardDraft,
+      user
+    })
+  ) {
+    return
+  }
+  if (
+    await handlePortfolioApi(request, response, requestUrl, {
+      db: context.productDb,
+      portfolio: context.portfolio,
+      org: context.org,
+      user,
+      exports: context.portfolioExports,
+      audit
+    })
+  ) {
     return
   }
 

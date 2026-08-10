@@ -1,10 +1,11 @@
-import { randomUUID } from 'node:crypto'
+import { createHash, randomUUID } from 'node:crypto'
 import type {
   Attempt,
   CreateAssignmentInput,
   CreateAssignmentResult,
   EvaluationResult,
-  SessionMode
+  SessionMode,
+  TeachingUnit
 } from '../../shared/contracts'
 import type { Paper, QuestionBankService } from '../questionbank/QuestionBankService'
 import type { AssignByWeaknessService } from '../adaptive/AssignByWeaknessService'
@@ -115,25 +116,41 @@ export class AssignmentService {
       throw new AssignmentError('Assignment has no questions')
     }
 
-    const attemptIds: string[] = []
+    const unitsByQuestion = this.resolveQuestionUnits(
+      input,
+      unit,
+      paper.questionIds,
+      teacherId
+    )
+    const placeholders: Attempt[] = []
     for (const studentId of studentIds) {
       for (const questionId of paper.questionIds) {
-        const attemptId = `att_${randomUUID()}`
+        const questionUnit = unitsByQuestion.get(questionId) ?? unit
+        const attemptId = assignmentAttemptId(paper.id, studentId, questionId)
         const attempt = makePlaceholderForAssignment({
           id: attemptId,
           studentId,
           questionId,
-          teachingUnitId: unit.id,
-          termId: unit.termId,
+          teachingUnitId: questionUnit.id,
+          termId: questionUnit.termId,
           mode: input.mode,
           paperId: paper.id,
           createdAt,
           dueAt
         })
-        await this.attempts.saveAttempt(attempt)
-        attemptIds.push(attemptId)
+        placeholders.push(attempt)
       }
     }
+    const existingAttempts = await Promise.all(
+      placeholders.map((attempt) => this.attempts.getAttempt(attempt.id))
+    )
+    const missingPlaceholders = placeholders.filter(
+      (_attempt, index) => existingAttempts[index] === undefined
+    )
+    if (missingPlaceholders.length > 0) {
+      await this.attempts.saveAttempts(missingPlaceholders)
+    }
+    const attemptIds = placeholders.map((attempt) => attempt.id)
 
     return {
       teachingUnitId: unit.id,
@@ -163,7 +180,7 @@ export class AssignmentService {
         this.questionBank.getAssignable(id, teacherId)
       }
       return {
-        id: `paper_${randomUUID()}`,
+        id: input.paperId?.trim() || `paper_${randomUUID()}`,
         title: input.title ?? '手选布置',
         authorId: teacherId,
         questionIds: ids,
@@ -175,12 +192,49 @@ export class AssignmentService {
     if (!input.kpIds || input.kpIds.length === 0) {
       throw new AssignmentError('assemble_by_kp requires kpIds')
     }
-    return this.questionBank.assembleByKnowledgePoints({
+    const paper = this.questionBank.assembleByKnowledgePoints({
       authorId: teacherId,
       kpIds: input.kpIds,
       limit: input.limit,
       title: input.title ?? '按知识点组卷'
     })
+    const paperId = input.paperId?.trim()
+    return paperId ? { ...paper, id: paperId } : paper
+  }
+
+  private resolveQuestionUnits(
+    input: CreateAssignmentInput,
+    primaryUnit: TeachingUnit,
+    questionIds: string[],
+    teacherId: string
+  ): Map<string, TeachingUnit> {
+    const result = new Map<string, TeachingUnit>()
+    for (const questionId of questionIds) {
+      const mappedId = input.questionTeachingUnitIds?.[questionId]?.trim()
+      const unitId = mappedId || primaryUnit.id
+      const unit =
+        unitId === primaryUnit.id
+          ? primaryUnit
+          : this.org.getTeachingUnit(unitId)
+      if (!unit) {
+        throw new AssignmentError(`Teaching unit not found: ${unitId}`)
+      }
+      if (unit.teacherId !== teacherId) {
+        throw new AssignmentError(
+          'Forbidden: only the teaching-unit teacher may assign from this unit'
+        )
+      }
+      if (
+        unit.classId !== primaryUnit.classId ||
+        unit.termId !== primaryUnit.termId
+      ) {
+        throw new AssignmentError(
+          `Teaching unit ${unit.id} must belong to the same class and term`
+        )
+      }
+      result.set(questionId, unit)
+    }
+    return result
   }
 
   private resolveStudents(
@@ -204,6 +258,18 @@ export class AssignmentService {
     // Whole-class default for handpick/assemble (mirrors by_weakness).
     return [...enrolled]
   }
+}
+
+function assignmentAttemptId(
+  paperId: string,
+  studentId: string,
+  questionId: string
+): string {
+  const digest = createHash('sha256')
+    .update(JSON.stringify([paperId, studentId, questionId]))
+    .digest('hex')
+    .slice(0, 32)
+  return `att_${digest}`
 }
 
 /**
