@@ -16,7 +16,8 @@
     "db:generate": "drizzle-kit generate",
     "db:studio": "drizzle-kit studio",
     "dev:no-watch": "tsx server/index.ts",
-    "reproduce": "node scripts/reproduce.mjs"
+    "reproduce": "node scripts/reproduce.mjs",
+    "accept:docker": "node scripts/accept-docker.mjs"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.7",

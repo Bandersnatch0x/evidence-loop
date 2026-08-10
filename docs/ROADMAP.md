@@ -10,7 +10,7 @@
 
 ## 复赛（8/25-9/23）
 
-1. 无网络 Docker 容器运行器：代码、池化、异常回收和自动化测试已于 2026-07-23 完成；真实 Docker daemon 集成验收待具备运行环境后执行
+1. 无网络 Docker 容器运行器：代码、池化、异常回收和自动化测试已于 2026-07-23 完成；真实 Docker daemon 集成验收 ✅（复赛 2026-08-10 落地：`tests/dockerDaemonAcceptance.test.ts` 5 用例覆盖 daemon 探活/镜像就绪 → 池预热真实提交 → 出站 TCP 隔离 → 逃逸提交被拒止 → dispose 无残留；`scripts/accept-docker.mjs` + `npm run accept:docker` 一键探 daemon/补镜像/跑验收，无 daemon 整组 skip 并给启用提示；WSL kali-linux + 硬化镜像 `evidence-ring-python-runner:local` 实测全绿）
 2. 评估历史迁移到数据库，支持多实例 ✅（复赛 2026-08-10 落地：`SqliteAttemptStore` 接 `attempts` 表 + migration 0020 paper_id/due_at；serverContext 默认切 SQLite，启动一次性导入 `.data/evaluations.json`，JsonAttemptStore 经 `dataFile`/`attemptStore` 保留可切）
 3. 增加 2-3 个知识点任务模板（关联 011 知识点 seed 文件：`server/knowledge/` seed 数据）✅（复赛 2026-08-10 落地：`TaskTemplate` 模板库 = 预置题 + 知识点绑定；3 模板覆盖 数学·完全平方（expression）/ 物理·欧姆定律（numeric）/ 化学·配平（chem_equation）；`GET /api/teacher/task-templates` 目录 + `POST /:id/deploy` 一键布置，复用 AssignmentService handpick，unit ownership 双门）
 4. 录制 2-3 分钟 Demo 视频
