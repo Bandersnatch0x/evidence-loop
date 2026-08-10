@@ -46,6 +46,10 @@ const REAL_GLB: Buffer = (() => {
   return Buffer.concat([header, json])
 })()
 
+function toRequestBody(bytes: Buffer): ArrayBuffer {
+  return Uint8Array.from(bytes).buffer
+}
+
 describe('media routes', () => {
   let server: Awaited<ReturnType<typeof createEvidenceRingServer>>
   let baseUrl: string
@@ -110,7 +114,7 @@ describe('media routes', () => {
         'upload-offset': '0',
         'content-type': 'application/offset+octet-stream'
       },
-      body: payload
+      body: toRequestBody(payload)
     })
     expect(patch.status).toBe(204)
     expect(patch.headers.get('upload-offset')).toBe(String(payload.length))
@@ -139,7 +143,7 @@ describe('media routes', () => {
         'upload-offset': '0',
         'content-type': 'application/offset+octet-stream'
       },
-      body: REAL_GLB
+      body: toRequestBody(REAL_GLB)
     })
     expect(upload.status).toBe(204)
 
@@ -259,7 +263,7 @@ describe('media routes', () => {
         'upload-offset': '0',
         'content-type': 'application/offset+octet-stream'
       },
-      body: payload
+      body: toRequestBody(payload)
     })
     const hash = hashMediaBytes(payload)
     const res = await fetch(`${baseUrl}/api/media/blobs/${hash}`, {

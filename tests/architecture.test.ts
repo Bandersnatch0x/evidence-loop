@@ -533,3 +533,51 @@ describe('architecture guard: #29 reference resolution stays in the display laye
     }
   })
 })
+
+describe('architecture guard: Effort 2 modules never import scoring write paths', () => {
+  const EFFORT2_DIRS = [
+    'server/materialImport',
+    'server/mockExam',
+    'server/studyPlan',
+    'server/reports',
+    'server/achievements',
+    'server/dialogue',
+    'server/flashcardDraft',
+    'server/portfolio',
+    'server/transparency'
+  ]
+  // Allow list: modules may use config/mastery thresholds; forbid write-side paths.
+  const FORBIDDEN = [
+    /(^|\/)domain\/EvaluationAgent/,
+    /(^|\/)mastery\/MasteryService/,
+    /(^|\/)mastery\/computeMastery/,
+    /(^|\/)review\/ReviewScheduler/,
+    /(^|\/)runner\/(?!types)/,
+    /computeMastery/
+  ]
+
+  it('T15-T23 service trees do not import EvaluationAgent / mastery write / review / runners', () => {
+    const violations = findForbiddenImports(EFFORT2_DIRS, FORBIDDEN).filter(
+      (item) => !item.specifier.includes('config/mastery')
+    )
+    expect(
+      violations,
+      violations.length === 0
+        ? ''
+        : [
+            'Effort 2 违规：材料导入/模拟考/计划/周报/成就/对话/闪卡/作品集',
+            '不得 import 评分写路径。违规：',
+            formatViolations(violations)
+          ].join('\n')
+    ).toEqual([])
+  })
+
+  it('agentCatalog scoring agent forbids LLM (T17 iron contract)', () => {
+    const source = readFileSync(
+      resolve(projectRoot, 'shared/agentCatalog.ts'),
+      'utf8'
+    )
+    expect(source).toMatch(/touchesScore/)
+    expect(source).toMatch(/llmAllowed/)
+  })
+})

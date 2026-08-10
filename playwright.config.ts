@@ -4,6 +4,9 @@ import { defineConfig } from '@playwright/test'
 const noProxy = [process.env.NO_PROXY, 'localhost', '127.0.0.1'].filter(Boolean).join(',')
 process.env.NO_PROXY = noProxy
 process.env.no_proxy = noProxy
+const e2ePort = Number(process.env.E2E_PORT ?? 4240)
+const e2eBaseUrl = process.env.BASE_URL ?? `http://localhost:${String(e2ePort)}`
+process.env.BASE_URL = e2eBaseUrl
 
 export default defineConfig({
   testDir: './e2e',
@@ -11,7 +14,7 @@ export default defineConfig({
   retries: 0,
   workers: 1,
   use: {
-    baseURL: process.env.BASE_URL ?? 'http://localhost:4180',
+    baseURL: e2eBaseUrl,
     headless: true,
     viewport: { width: 1280, height: 800 }
   },
@@ -37,7 +40,10 @@ export default defineConfig({
     command: 'npm run dev:no-watch',
     // Probe an EvidenceRing-specific endpoint on its dedicated port. Reuse is
     // safe only when this exact health route is available.
-    url: 'http://localhost:4180/api/health',
+    url: `${e2eBaseUrl}/api/health`,
+    env: {
+      PORT: String(e2ePort)
+    },
     reuseExistingServer: true,
     timeout: 120_000
   }

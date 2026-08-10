@@ -186,4 +186,84 @@ describe('handleEvaluationApi', () => {
     expect(status()).toBe(201)
     expect((body() as EvaluationResult).score).toBe(100)
   })
+
+  it('logs achievement sync failures without failing the evaluation', async () => {
+    const { context } = fakeContext()
+    const syncError = new Error('achievement store unavailable')
+    context.achievements = {
+      sync: vi.fn().mockRejectedValue(syncError)
+    }
+    const consoleError = vi
+      .spyOn(console, 'error')
+      .mockImplementation(() => undefined)
+    const { response, status } = makeResponse()
+
+    await handleEvaluationApi(
+      makePostRequest({ assignmentId: 'a1', code: 'def f(): pass' }),
+      response,
+      new URL('http://localhost/api/evaluations'),
+      context
+    )
+
+    expect(status()).toBe(201)
+    expect(consoleError).toHaveBeenCalledWith(
+      'Achievement sync failed:',
+      syncError
+    )
+    consoleError.mockRestore()
+  })
+})
+
+describe('handleEvaluationApi GET /api/evaluations/:id (P2-2)', () => {
+  it('returns the full evaluation for the owner', async () => {
+    const { context } = fakeContext()
+    const owned = fakeEvaluation({ id: 'eval-1', studentId: 'student-1' })
+    ;(context.store.get as ReturnType<typeof vi.fn>).mockResolvedValue(owned)
+
+    const { response, status, body } = makeResponse()
+    const handled = await handleEvaluationApi(
+      makeGetRequest(),
+      response,
+      new URL('http://localhost/api/evaluations/eval-1'),
+      context
+    )
+
+    expect(handled).toBe(true)
+    expect(status()).toBe(200)
+    expect((body() as EvaluationResult).id).toBe('eval-1')
+  })
+
+  it('returns 404 when the evaluation does not exist', async () => {
+    const { context } = fakeContext()
+    ;(context.store.get as ReturnType<typeof vi.fn>).mockResolvedValue(undefined)
+
+    const { response, status } = makeResponse()
+    const handled = await handleEvaluationApi(
+      makeGetRequest(),
+      response,
+      new URL('http://localhost/api/evaluations/missing'),
+      context
+    )
+
+    expect(handled).toBe(true)
+    expect(status()).toBe(404)
+  })
+
+  it('denies a non-owner student viewing another student evaluation', async () => {
+    const { context } = fakeContext()
+    ;(context.store.get as ReturnType<typeof vi.fn>).mockResolvedValue(
+      fakeEvaluation({ id: 'eval-1', studentId: 'other-student' })
+    )
+
+    const { response, status } = makeResponse()
+    const handled = await handleEvaluationApi(
+      makeGetRequest(),
+      response,
+      new URL('http://localhost/api/evaluations/eval-1'),
+      context
+    )
+
+    expect(handled).toBe(true)
+    expect(status()).toBe(403)
+  })
 })

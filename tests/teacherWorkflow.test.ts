@@ -320,6 +320,60 @@ describe('T08 AssignmentService (three shapes)', () => {
     expect(saved?.paperId?.startsWith('paper_')).toBe(true)
   })
 
+  it('uses per-question teaching units and is idempotent for a stable paperId', async () => {
+    org.saveTeachingUnit({
+      id: 'tu-2',
+      teacherId,
+      classId: 'cls-1',
+      subjectId: 'subj-math',
+      termId: 'term-1',
+      taughtKpIds: ['kp-A']
+    })
+    const service = new AssignmentService({
+      questionBank: bank,
+      attempts,
+      org,
+      now: NOW
+    })
+    const input = {
+      teachingUnitId: 'tu-1',
+      mode: 'assessment' as const,
+      kind: 'handpick' as const,
+      questionIds: [...choiceQuestionIds],
+      studentIds: ['student-a'],
+      paperId: 'paper-cross-unit',
+      questionTeachingUnitIds: {
+        [choiceQuestionIds[0] ?? '']: 'tu-1',
+        [choiceQuestionIds[1] ?? '']: 'tu-2'
+      }
+    }
+
+    const first = await service.create(input, teacherId)
+    const completed = await attempts.getAttempt(first.attemptIds[0] ?? '')
+    if (!completed) throw new Error('Expected assignment attempt to exist')
+    await attempts.saveAttempt({
+      ...completed,
+      result: {
+        ...completed.result,
+        status: 'completed',
+        score: 100
+      }
+    })
+    const second = await service.create(input, teacherId)
+    const saved = await attempts.listAttempts()
+
+    expect(first.paperId).toBe('paper-cross-unit')
+    expect(second.attemptIds).toEqual(first.attemptIds)
+    expect(saved).toHaveLength(2)
+    expect(saved.map((attempt) => attempt.teachingUnitId).sort()).toEqual([
+      'tu-1',
+      'tu-2'
+    ])
+    expect(await attempts.getAttempt(first.attemptIds[0] ?? '')).toMatchObject({
+      result: { status: 'completed', score: 100 }
+    })
+  })
+
   it('forbids another teacher from assigning on this unit', async () => {
     const service = new AssignmentService({
       questionBank: bank,
