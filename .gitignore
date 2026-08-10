@@ -14,3 +14,6 @@ output/
 
 # pi subagent run artifacts (tooling output, not source)
 .pi-subagents/
+
+# workbuddy session memory (tooling output, not source)
+.workbuddy/

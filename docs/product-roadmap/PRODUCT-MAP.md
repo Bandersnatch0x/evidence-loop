@@ -51,30 +51,68 @@
 - [T13 T08 评审收口](decisions/T13-t08-review-closeout.md) — P5 终裁 HMAC 签名 / P6 成绩与激活码 CSV 导出 / S6 list 装配失败可见。批量发提示仍出界。
 - [T14 教师批量发提示](decisions/T14-batch-teacher-tips.md) — **IMPLEMENTED**。站内消息通道（TeachingUnit fan-out + 学生收件箱），不碰 score。见 reports/T14-implementation-report.md。
 
+## Effort 2：黑客松对标增强（T15–T23）— IMPLEMENTED（评审后 AuthZ 加固）
+
+**目的地**：在铁律不变前提下，补齐国外教育黑客松高频能力——材料进题、模拟考、多 Agent 叙事、硬事实学习计划、周报、克制激励；Wave C 为体验加深项。
+
+**来源**：国外 AI+教育黑客松调研（ChatEDU / Edu.AI / Nexora / DigiEduHack / FutureHacks 等）× EvidenceRing 差距分析。
+
+### Wave A（优先开建）
+
+| 票 | 文件 | 内容 | 状态 |
+|----|------|------|------|
+| T15 | [材料→草稿题](decisions/T15-material-to-draft-questions.md) | 讲义/文本 → LLM 草稿 → 教师校对入库（非自动出题） | IMPLEMENTED |
+| T16 | [跨学科模拟考](decisions/T16-interdisciplinary-mock-exam.md) | 薄弱+已教 KP 组 paper，测评打包+分科报告 | IMPLEMENTED |
+| T17 | [多 Agent 产品叙事](decisions/T17-multi-agent-product-narrative.md) | 五 Agent 目录+透明度页+口播；不引入新框架 | IMPLEMENTED |
+
+### Wave B（粘性 / 教师刚需）
+
+| 票 | 文件 | 内容 | 状态 |
+|----|------|------|------|
+| T18 | [硬事实学习计划](decisions/T18-hard-fact-study-plan.md) | 7 日 plan 只由 FSRS/薄弱/掌握度生成；LLM 只写 hint | IMPLEMENTED |
+| T19 | [学情周报导出](decisions/T19-learning-weekly-report.md) | 教师/学生周报 HTML；证据层 vs AI 层标注 | IMPLEMENTED |
+| T20 | [证据轻激励](decisions/T20-evidence-light-motivation.md) | 闭环/证据成就；无排行榜 | IMPLEMENTED |
+
+### Wave C（体验加深，非阻塞）
+
+| 票 | 文件 | 内容 | 状态 | 依赖 |
+|----|------|------|------|------|
+| T21 | [人物对话探究](decisions/T21-persona-dialogue-inquiry.md) | 练习态角色对话，不入分 | IMPLEMENTED | T05 |
+| T22 | [音视频→草稿](decisions/T22-media-to-flashcard-drafts.md) | 字幕/音频 → 复用 T15 闸门 | IMPLEMENTED | **T15** |
+| T23 | [证据作品集导出](decisions/T23-evidence-portfolio-export.md) | Attempt 证据包 JSON/zip | IMPLEMENTED | T01 |
+
+**建议实现顺序**：T17（薄、利路演）→ T15 → T16 → T18 → T19 / T20 → T21–T23。
+
+**铁律（Effort 2 全票）**：
+- LLM 不写 score / evidence / 正式 MasteryProfile
+- 草稿题未教师确认不得用于 assessment
+- 无排行榜 / 无情绪摄像头评分 / 无无闸门自动出题
+
 ## Not yet specified
 
-<!-- 已在范围内、但还不够清晰无法开票的雾。以下多数已被主决策票吸收，剩余为"建设期再定"的次级项 -->
+<!-- 已在范围内、但还不够清晰无法开票的雾 -->
 
-- **激励体系**：打卡/进度/掌握度升级动画，与"证据严肃调性"的取舍（未决，建设期再定）
-- **家长报告导出**：学情导出成 PDF 给家长（未决，可 graduate 为独立小票）
 - **课标对齐**：121 知识点 DAG 是否对齐真实课标（人教/部编版章节）——内容工作，非架构，建设期对齐
-- **数据导出**：学情/成绩/错题导出 Excel/PDF（教务对接过渡，未决）
+- **教务级批量导出**：全校 Excel 成绩包（T19 仅周报/个人；规模化另票）
 
 <!-- 已被主决策票解答，不再是雾：
-  AI 讲解可信度 → T05/T09（AI 讲解标 llm_inference，RAG 挂标准解析降幻觉）
-  AI 辅导成本/延迟/限流 → T05（境内模型 + try/catch 模板 fallback）
-  移动端 → T07（响应式优先，学生刷题手机场景）
-  空状态/冷启动 → T08（教师引导流程：建单元→导入→建/导题）
-  教师批量发提示 → T14（站内消息通道，IMPLEMENTED）
+  AI 讲解可信度 → T05/T09
+  AI 辅导成本/延迟/限流 → T05
+  移动端 → T07
+  空状态/冷启动 → T08
+  教师批量发提示 → T14 IMPLEMENTED
+  激励体系 → T20 IMPLEMENTED
+  家长/学情报告导出 → T19 IMPLEMENTED（教师生成可转发报告，无家长账号）
+  材料进题 / 模拟考 / 多 Agent 叙事 → T15–T17 IMPLEMENTED
+  学习计划 → T18 IMPLEMENTED
+  人物对话 / 媒体草稿 / 作品集 → T21–T23 IMPLEMENTED
 -->
 
-## 地图状态：CLEARED ✅ → IMPLEMENTED ✅
+## 地图状态
 
-所有主决策票（T01-T10）与研究票（TR1/TR2）已关闭。四个先验裁决（D1 双模 / D2 证据分级+OCR闸门 / D3 教学单元 / D4 学期切片）+ D5 数据出境已落定。
+### Effort 1（学生刷题 + AI 辅导 + 教师学情）：CLEARED ✅ → IMPLEMENTED ✅
 
-### 实现状态（全部落地 ✅）
-
-四波编排 + 接线闭环，全产品实现完成：
+所有主决策票（T01-T10）与研究票（TR1/TR2）已关闭。四个先验裁决（D1 双模 / D2 证据分级+OCR闸门 / D3 教学单元 / D4 学期切片）+ D5 数据出境已落定。T11–T14 评审与提示通道已落地。
 
 | 波次 | 票 | 内容 | 落地 commit |
 |------|----|------|------------|
@@ -85,17 +123,16 @@
 | 接线 | — | 主路由挂载 7 模块 + 前端工作台入口 | `wiring + ui` |
 | 评审修复 | — | 生产认证后门关闭 / 错题本占位过滤 / 归属校验 / paperId 显式字段 | `5c98b22` |
 | 贯通 | T07 | attemptId 评价路径 + D1 掌握度分流 + 前端双模入口 | `e2c0102+` |
-
-**验证基线**：tsc 0 错误 / lint 0 问题 / vitest 442 tests green / vite build ✓。
+| 提示 | T14 | 教师批量发提示 | 见 report |
 
 **铁律守护落地**（CI 测试断言）：
-- D1 双模：练习态证据不进正式 MasteryProfile（架构测试 + MistakeBook 只认 assessment 判对）
-- T05 物理隔离：辅导 generator 不接触打分路径，产物 `llm_inference` provenance，永不回写 score
-- T08 主观题终裁：`teacher_annotation` 写 `result.teacherAnnotation`，**不进 `result.score`**，provenance 不翻转，单份批改无批量 API（结构性禁止）
+- D1 双模：练习态证据不进正式 MasteryProfile
+- T05 物理隔离：辅导 generator 不接触打分路径
+- T08 主观题终裁：不进 `result.score`
 
-**仍未通电（建设期项，非本轮范围）**：真实 LLM provider 密钥（现 `LocalFeedbackGenerator` 模板 + `OpenAICompatible` 骨架待配 `LLM_API_KEY`）；真实 OCR 服务（现 `MockOcrProvider`，`createOcrProvider` 按 `OCR_PROVIDER` 切 Mathpix/Paddle）；生产数据库（现 SQLite，接口隔离可换 Postgres）。
+**仍未通电（建设期）**：真实 `LLM_API_KEY`；真实 OCR；Postgres。
 
-剩余 fog 均为建设期可定的次级项，不阻塞。
+### Effort 2（黑客松对标增强）：IMPLEMENTED ✅ — T15–T23（含评审 AuthZ / 审计 / UI 挂载加固）
 
 ## Out of scope
 
@@ -103,7 +140,8 @@
 
 - 老师间题库共享（先私有，规模化再说）
 - 多校 / SaaS 化
-- AI 自动出题（题目来源限定老师导入/扫描）
+- **无人工闸门的 AI 自动出题入库**（T15 仅允许教师校对后的草稿晋升；题目权威仍是老师）
 - 支付 / 商业化
 - 直播 / 录课 / 社交（PK / 排行榜）
+- 课堂摄像头情绪评分
 - 遗忘曲线之外的学习科学模型
