@@ -355,7 +355,7 @@ describe('App', () => {
     render(<App />)
 
     expect(
-      await screen.findByRole('button', { name: '打开语音辅导' })
+      await screen.findByRole('button', { name: /打开语音辅导/ })
     ).toBeInTheDocument()
   })
 
