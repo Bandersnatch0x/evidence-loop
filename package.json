@@ -15,7 +15,8 @@
     "check": "npm run lint && npm run test && npm run build && node scripts/verify-build-budget.mjs && npm run test:e2e",
     "db:generate": "drizzle-kit generate",
     "db:studio": "drizzle-kit studio",
-    "dev:no-watch": "tsx server/index.ts"
+    "dev:no-watch": "tsx server/index.ts",
+    "reproduce": "node scripts/reproduce.mjs"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.7",

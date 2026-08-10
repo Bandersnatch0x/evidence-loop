@@ -30,6 +30,15 @@ $env:PORT='5280'; npm run dev
 
 可选环境变量见 `.env.example`。未配置 `LLM_API_KEY` 时使用本地规则反馈。
 
+### 一键复现
+
+```bash
+npm run reproduce              # 全新安装 + lint + test + build + budget + e2e + 启动冒烟
+npm run reproduce -- --skip-e2e
+```
+
+完整部署指南（数据布局 / SQLite 迁移 / 端口与常见坑 / 隔离运行器）：[`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md)。
+
 ### WSLC 隔离环境
 
 仓库提供项目专用入口，挂载范围仅包含当前项目、Claude/Codex 状态目录和 Maven 缓存。Linux 依赖保存在 `evidence-ring-node-modules` 命名卷中，不覆盖 Windows 的 `node_modules`。

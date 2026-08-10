@@ -14,7 +14,7 @@
 2. 评估历史迁移到数据库，支持多实例 ✅（复赛 2026-08-10 落地：`SqliteAttemptStore` 接 `attempts` 表 + migration 0020 paper_id/due_at；serverContext 默认切 SQLite，启动一次性导入 `.data/evaluations.json`，JsonAttemptStore 经 `dataFile`/`attemptStore` 保留可切）
 3. 增加 2-3 个知识点任务模板（关联 011 知识点 seed 文件：`server/knowledge/` seed 数据）✅（复赛 2026-08-10 落地：`TaskTemplate` 模板库 = 预置题 + 知识点绑定；3 模板覆盖 数学·完全平方（expression）/ 物理·欧姆定律（numeric）/ 化学·配平（chem_equation）；`GET /api/teacher/task-templates` 目录 + `POST /:id/deploy` 一键布置，复用 AssignmentService handpick，unit ownership 双门）
 4. 录制 2-3 分钟 Demo 视频
-5. 补齐部署脚本与一键复现文档
+5. 补齐部署脚本与一键复现文档 ✅（复赛 2026-08-10 落地：`scripts/reproduce.mjs` 一键全链（lint→test→build→budget→e2e→启动冒烟，跨平台/可跳步）+ `docs/DEPLOYMENT.md`（数据布局/SQLite 迁移/端口与 ABI 坑/隔离运行器/零外网）；顺手修掉 `StudentDemonstration` 播放器载荷加载失败的未处理 rejection（reproduce 首跑抓出））
 
 ### Phase 1 多模态交付（ADR-0005）
 
