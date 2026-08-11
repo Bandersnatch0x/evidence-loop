@@ -13,7 +13,7 @@
 1. 无网络 Docker 容器运行器：代码、池化、异常回收和自动化测试已于 2026-07-23 完成；真实 Docker daemon 集成验收 ✅（复赛 2026-08-10 落地：`tests/dockerDaemonAcceptance.test.ts` 5 用例覆盖 daemon 探活/镜像就绪 → 池预热真实提交 → 出站 TCP 隔离 → 逃逸提交被拒止 → dispose 无残留；`scripts/accept-docker.mjs` + `npm run accept:docker` 一键探 daemon/补镜像/跑验收，无 daemon 整组 skip 并给启用提示；WSL kali-linux + 硬化镜像 `evidence-ring-python-runner:local` 实测全绿）
 2. 评估历史迁移到数据库，支持多实例 ✅（复赛 2026-08-10 落地：`SqliteAttemptStore` 接 `attempts` 表 + migration 0020 paper_id/due_at；serverContext 默认切 SQLite，启动一次性导入 `.data/evaluations.json`，JsonAttemptStore 经 `dataFile`/`attemptStore` 保留可切）
 3. 增加 2-3 个知识点任务模板（关联 011 知识点 seed 文件：`server/knowledge/` seed 数据）✅（复赛 2026-08-10 落地：`TaskTemplate` 模板库 = 预置题 + 知识点绑定；3 模板覆盖 数学·完全平方（expression）/ 物理·欧姆定律（numeric）/ 化学·配平（chem_equation）；`GET /api/teacher/task-templates` 目录 + `POST /:id/deploy` 一键布置，复用 AssignmentService handpick，unit ownership 双门）
-4. 录制 2-3 分钟 Demo 视频
+4. 录制 2-3 分钟 Demo 视频 ✅（复赛 2026-08-10 落地：补录 3 段核心铁律路径 `live-evidence`/`live-tutoring`/`live-teacher`（分数只来自证据 / 辅导不改分 / 终裁不折叠+提示不是分），与 3 段多模态 live + 3 段 opener 拼成 `demo-full.mp4`（8 段 ~2.6 分钟）；`scripts/record-demo-videos.mjs` 支持单段重录 `CLIP=xxx`，`scripts/assemble-hybrid.mjs` 一键产出 demo-full + 3 条短 hybrid；视频二进制由本机执行产出，见 `docs/screenshots/demo-videos/README.md`）
 5. 补齐部署脚本与一键复现文档 ✅（复赛 2026-08-10 落地：`scripts/reproduce.mjs` 一键全链（lint→test→build→budget→e2e→启动冒烟，跨平台/可跳步）+ `docs/DEPLOYMENT.md`（数据布局/SQLite 迁移/端口与 ABI 坑/隔离运行器/零外网）；顺手修掉 `StudentDemonstration` 播放器载荷加载失败的未处理 rejection（reproduce 首跑抓出））
 
 ### Phase 1 多模态交付（ADR-0005）
