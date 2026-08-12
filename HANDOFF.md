@@ -1,17 +1,19 @@
-﻿# Handoff: 循证环 · EvidenceRing 产品化 + T14 站内消息
+﻿# Handoff: 循证环 · EvidenceRing 产品化 + T14 站内消息 + 复赛 5/5 + 决赛交付件
 
 ## Mission
 
 GOAI Boundless Agents · AI+教育 — **循证环 · EvidenceRing（循证实训 Agent）**。
 Wayfinder 十票产品化(`.scratch/wayfinder/MAP.md`,状态 IMPLEMENTED)已全部建成；
 T11–T13 评审扫尾 + **T14 教师批量发提示（站内消息）** 已落地；
-现场演示脚本、成套交卷计时壳、T14 学生多选 UI 已补齐。
+现场演示脚本、成套交卷计时壳、T14 学生多选 UI 已补齐；
+**复赛 5 项（Docker 集成 / SQLite 多实例 / 任务模板库 / 演示视频 / 一键复现）全部落地**；
+决赛交付件（现场 SOP / 专家问答库 / 弱网演练清单）已收口。
 
 **Authoritative root:** `D:/code_space/evidence-loop`(Node 20,better-sqlite3 ^11)
 
-## Status (2026-07-27)
+## Status (2026-08-12)
 
-**十票 + T11–T14 IMPLEMENTED；演示交付件齐（卡点+10min 口播）；读兼容加固已收口；E2E 复验绿；工作区 clean。**
+**十票 + T11–T14 IMPLEMENTED；复赛 5/5 落地并验收；决赛交付件已收口；工作区 clean（3 份决赛文档待 commit）。**
 
 | 波次 | 内容 | commit |
 |------|------|--------|
@@ -24,6 +26,13 @@ T11–T13 评审扫尾 + **T14 教师批量发提示（站内消息）** 已落�
 | 读兼容 | AttemptStore 容忍 pre-T01 bare EvaluationResult + 坏行跳过；ESLint ignore `output/` | `a71b4ac` |
 | Demo 讲稿 | 一页卡点 + 10 分钟口播逐字 | `fefc178` |
 | E2E | Playwright demo loops → **16/16**（2026-07-25 `:18473`；2026-07-26 `:5280` 复验） | `scripts/e2e-demo-loops.mjs` |
+| **复赛 1** | 真实 Docker daemon 集成验收（隔离运行器；`scripts/accept-docker.mjs`） | `44feaa4` |
+| **复赛 2** | 评估历史迁移 SQLite 多实例（`SqliteAttemptStore` + migration 0020） | `9a05735` |
+| **复赛 3** | 知识点任务模板库（3 模板，`GET /api/teacher/task-templates` + 一键部署） | `0af47f3` |
+| **复赛 4** | 2-3 分钟演示视频（补录核心铁律路径 + 混剪包） | `666036c` |
+| **复赛 5** | 一键复现脚本 + 部署文档（`scripts/reproduce.mjs` + `docs/DEPLOYMENT.md`） | `d327ab5` |
+| 修复 | `StudentDemonstration` 载荷加载失败降级，消除未处理 rejection | `ac1f664` |
+| 决赛交付 | 现场 SOP `DEMO-final-preflight.md` + 专家问答库 `DEMO-expert-qa.md` + 弱网演练 `DEMO-weaknetwork-drill.md`（待 commit） | — |
 
 验证快照（交付准备）：
 - `npm run check` **PASS**：lint + 全量 vitest **481 passed + 1 skipped** + `tsc --noEmit` + Vite build
@@ -35,7 +44,15 @@ T11–T13 评审扫尾 + **T14 教师批量发提示（站内消息）** 已落�
   - 报告：`output/playwright/e2e/report.json`（gitignore）
 - Windows 注意：Hyper-V 排除了 `4173`/`5173` 段 → 用 `PORT=5280` 或 `18473`
 
-## 复赛已交付(产品化十票之前的地基,勿重做)
+## 复赛已交付(产品化十票之后,勿重做)
+
+- **Docker 隔离运行器**(复赛 1): `DockerPythonRunner` `--network=none` + 资源限制 + cap-drop 全丢；daemon 验收 5 用例（探活/隔离/逃逸拒止/无残留）；默认子进程模式仍可用
+- **SQLite 多实例**(复赛 2): `SqliteAttemptStore` + migration 0020 `paper_id/due_at`；serverContext 默认 SQLite，启动一次性导入 `.data/evaluations.json`；`JsonAttemptStore` 可切回
+- **知识点任务模板库**(复赛 3): `TaskTemplate` = 预置题 + 知识点绑定；3 模板（数学完全平方 / 物理欧姆定律 / 化学配平）；unit ownership 双门
+- **演示视频**(复赛 4): 8 段 ~2.6min `demo-full.mp4` 由本机 `scripts/assemble-hybrid.mjs` 产出；单段重录 `CLIP=xxx`
+- **一键复现**(复赛 5): `scripts/reproduce.mjs` lint→test→build→budget→e2e→启动冒烟，跨平台可跳步；`docs/DEPLOYMENT.md` 零外网
+
+## 产品化十票之前的地基(勿重做)
 
 - **多模态 Phase 1**(ADR-0005): VoiceCompanion / DOM 高亮 / STT / feature flag 红线
 - **多学科题型引擎**(ADR-0008): 7 题型 Runner + 9 学科 121 KP DAG
@@ -77,13 +94,14 @@ T11–T13 评审扫尾 + **T14 教师批量发提示（站内消息）** 已落�
 
 ## Next
 
-代码与 E2E 闭环已齐。剩余全是**交付准备**（非功能缺口）：
+复赛 5/5 已落地，代码与 E2E 闭环齐。剩余全是**交付准备**（非功能缺口）：
 
-1. **现场演练**：按 `docs/DEMO-live-script.md` 讲一遍，掐节奏、确认弱网路径
-2. **专家问答脱口**：评分边界 / 安全 / 开源复用（脚本已有备稿）
-3. **决赛加码（YAGNI，除非评分明确要求）**：Excel/PDF 教务导出、成套 Attempt 批量提交 API、家长端
+1. **现场演练**：按 `docs/DEMO-final-preflight.md`（决赛固化 SOP）+ `docs/DEMO-weaknetwork-drill.md`（弱网演练）走一遍，掐节奏
+2. **专家问答脱口**：`docs/DEMO-expert-qa.md` 5 维度 37 问 + 铁律快答卡（评分边界 / 安全 / 开源复用）
+3. **演讲打磨**：口播稿 / 卡点 / 10min 逐字稿按决赛 SOP 对齐（开场句 / 收束三句 / 多 Agent 插播 30s）
+4. **决赛加码（YAGNI，除非评分明确要求）**：Excel/PDF 教务导出、成套 Attempt 批量提交 API、家长端
 
-不要在没拿到评分细则前开建 #3。
+不要在没拿到评分细则前开建 #4。
 
 ## Key docs
 
@@ -93,7 +111,10 @@ T11–T13 评审扫尾 + **T14 教师批量发提示（站内消息）** 已落�
 | `docs/DEMO-live-script.md` | 现场演示脚本 + 专家问答 |
 | `docs/DEMO-cue-card.md` | 一页现场卡点（时间盒 / 脱口 Q&A / 故障） |
 | `docs/DEMO-oral-10min.md` | 10 分钟口播逐字稿 |
-| `docs/DEMO-preflight.md` | 上场 T-30 预检清单 |
+| `docs/DEMO-final-preflight.md` | **决赛现场固化 SOP**（T-30 → T-0 + 故障决策树 D1-D8） |
+| `docs/DEMO-expert-qa.md` | **专家问答库**（5 维度 37 问 + 铁律快答卡） |
+| `docs/DEMO-weaknetwork-drill.md` | **弱网演练清单**（无公网 / STT 降级 / 语音兜底） |
+| `docs/DEMO-preflight.md` | 原始上场预检（final-preflight 的底稿） |
 | `docs/SUBMISSION_GUIDE.md` | 报名填表（决赛口径；含是否改名结论） |
 | `docs/PROJECT_BRIEF.md` | 作品简介附件正文 |
 | `output/submission/EvidenceRing-submission.zip` | 作品附件（gitignore；改名后需重打） |
@@ -123,3 +144,4 @@ node scripts/e2e-demo-loops.mjs http://127.0.0.1:5280
 - 核心 Agent 环、7 题型 Runner、9 学科 DAG、多模态 Phase 1
 - T11–T14（已落地）
 - 现场演示脚本 / 成套计时壳 / TipComposer 多选（本轮已落地）
+- 复赛 5 项（Docker 集成 / SQLite 多实例 / 模板库 / 演示视频 / 一键复现，已落地并验收）
