@@ -196,7 +196,7 @@ export function AchievementWall({
             {data.algorithm} ·{' '}
             <button
               type="button"
-              className="link-button"
+              className="ghost-button"
               onClick={() => void load(false)}
             >
               <RefreshCw size={12} /> 重新判定

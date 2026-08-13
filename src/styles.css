@@ -962,6 +962,46 @@ ol {
   box-shadow: none;
 }
 
+/* Ghost button: transparent, ink-muted, for low-emphasis actions
+   (review ratings, demo toggles, recompute, link-style actions). */
+.ghost-button {
+  display: inline-flex;
+  min-height: 40px;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 0 12px;
+  border-radius: var(--radius-md);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--ink-muted);
+  background: transparent;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background-color 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+              color 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.ghost-button:hover:not(:disabled) {
+  color: var(--ink);
+  background: var(--surface-sunken);
+}
+
+.ghost-button:active:not(:disabled) {
+  transform: translateY(1px) scale(0.97);
+}
+
+.ghost-button:disabled {
+  opacity: 0.48;
+  cursor: not-allowed;
+}
+
+/* Review rating semantic tint (overlaid on ghost-button). */
+.review-rating.rating-1:hover:not(:disabled) { color: var(--fail-deep); background: var(--fail-wash); }
+.review-rating.rating-2:hover:not(:disabled) { color: var(--warn-deep); background: var(--warn-wash); }
+.review-rating.rating-3:hover:not(:disabled) { color: var(--ink); background: var(--surface-sunken); }
+.review-rating.rating-4:hover:not(:disabled) { color: var(--pass-deep); background: var(--pass-wash); }
+
 .spinner {
   animation: spin 850ms linear infinite;
 }
@@ -5287,4 +5327,73 @@ tbody tr {
 .cohort-tab.active {
   color: var(--indigo-deep);
   border-bottom-color: var(--indigo);
+}
+
+/* MasteryView — heatmap grid + cell (was missing, tags had no layout) */
+.mastery-view {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 16px 40px;
+}
+.mastery-section {
+  margin-bottom: 24px;
+}
+.mastery-heatmap {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 10px;
+}
+.mastery-heatmap.is-empty {
+  display: block;
+  padding: 24px;
+  text-align: center;
+  color: var(--ink-faint);
+}
+.mastery-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--cell-bg, var(--surface));
+  color: var(--cell-ink, var(--ink));
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.2s, transform 0.2s;
+  min-height: 84px;
+}
+.mastery-cell:hover:not(:disabled) {
+  border-color: var(--line-strong);
+  transform: translateY(-1px);
+}
+.mastery-cell.is-selected {
+  border-color: var(--indigo);
+  box-shadow: 0 0 0 2px oklch(52% 0.13 252 / 0.2);
+}
+.mastery-cell-name {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.3;
+  word-break: break-word;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+.mastery-cell-score {
+  font-size: 1.25rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.mastery-cell-foot {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.6875rem;
+  color: var(--ink-faint);
+}
+.mastery-cell-band {
+  font-weight: 600;
 }

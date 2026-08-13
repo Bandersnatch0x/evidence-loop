@@ -113,12 +113,12 @@ export function PaperExamShell({ session }: PaperExamShellProps) {
       <div className="paper-exam-actions">
         <span className={`paper-exam-status-badge ${status}`}>{statusLabel}</span>
         {status === 'running' ? (
-          <button type="button" className="paper-submit-btn" onClick={submitPaper}>
+          <button type="button" className="primary-button" onClick={submitPaper}>
             <Flag size={14} /> 交卷
           </button>
         ) : null}
         {status === 'expired' && !submitted ? (
-          <button type="button" className="paper-submit-btn" onClick={submitPaper}>
+          <button type="button" className="primary-button" onClick={submitPaper}>
             <Flag size={14} /> 确认交卷
           </button>
         ) : null}

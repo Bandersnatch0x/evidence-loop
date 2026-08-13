@@ -134,7 +134,7 @@ export function Gradebook({ teachingUnitId }: GradebookProps) {
             共 {queue.length} 份 · 待批 {pending} 份
           </span>
         </div>
-        <button type="button" className="export-csv-btn" onClick={exportCsv}>
+        <button type="button" className="secondary-button" onClick={exportCsv}>
           <Download size={14} /> 导出成绩 CSV
         </button>
       </header>

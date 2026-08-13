@@ -99,7 +99,7 @@ export function StudentImport({ teachingUnitId }: StudentImportProps) {
             <h4>激活码清单（线下分发）</h4>
             <button
               type="button"
-              className="export-csv-btn"
+              className="secondary-button"
               onClick={() =>
                 downloadCsv(
                   `activation-codes-${teachingUnitId}.csv`,

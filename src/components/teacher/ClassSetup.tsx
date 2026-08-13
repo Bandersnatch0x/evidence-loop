@@ -120,7 +120,7 @@ export function ClassSetup({ onSelected, onCreated }: ClassSetupProps) {
               <li key={unit.id}>
                 <button
                   type="button"
-                  className="unit-pick-btn"
+                  className="secondary-button"
                   disabled={submitting}
                   onClick={() => void selectUnit(unit.id)}
                 >
@@ -138,7 +138,7 @@ export function ClassSetup({ onSelected, onCreated }: ClassSetupProps) {
         )}
         <button
           type="button"
-          className="demo-unit-btn"
+          className="ghost-button"
           disabled={submitting}
           onClick={() => void selectUnit('tu-demo')}
         >
@@ -186,7 +186,7 @@ export function ClassSetup({ onSelected, onCreated }: ClassSetupProps) {
           disabled={submitting}
         />
       </label>
-      <button type="button" onClick={() => void submit()} disabled={submitting}>
+      <button type="button" className="primary-button" onClick={() => void submit()} disabled={submitting}>
         创建
       </button>
       {error !== undefined ? (

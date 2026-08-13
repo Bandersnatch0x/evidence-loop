@@ -161,7 +161,7 @@ function ReviewCardBody({
 
       <button
         type="button"
-        className="review-demo-toggle"
+        className="ghost-button review-demo-toggle"
         aria-expanded={demoOpen}
         onClick={() => void toggleDemo()}
       >
@@ -182,7 +182,7 @@ function ReviewCardBody({
           <button
             key={option.rating}
             type="button"
-            className={`review-rating rating-${option.rating}`}
+            className={`ghost-button review-rating rating-${option.rating}`}
             disabled={isPending}
             onClick={() => void onComplete(card.id, option.rating)}
           >

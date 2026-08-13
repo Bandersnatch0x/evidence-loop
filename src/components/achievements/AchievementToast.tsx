@@ -63,7 +63,7 @@ export function AchievementToast({
         {onInspect ? (
           <button
             type="button"
-            className="link-button"
+            className="ghost-button"
             onClick={() => {
               onInspect(achievement)
             }}

@@ -121,10 +121,10 @@ export function TipComposer({ teachingUnitId }: TipComposerProps) {
       <fieldset className="tip-student-picker" disabled={submitting}>
         <legend>目标学生（不选 = 本单元全班）</legend>
         <div className="tip-student-actions">
-          <button type="button" className="linkish-btn" onClick={selectAllDemo}>
+          <button type="button" className="ghost-button" onClick={selectAllDemo}>
             全选演示名单
           </button>
-          <button type="button" className="linkish-btn" onClick={clearSelection}>
+          <button type="button" className="ghost-button" onClick={clearSelection}>
             清空（全班）
           </button>
         </div>
