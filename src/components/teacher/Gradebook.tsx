@@ -3,6 +3,7 @@ import { AlertTriangle, ClipboardList, Download, ShieldAlert } from 'lucide-reac
 import type { GradingQueueItem } from '../../../shared/contracts'
 import { getGradingQueue, gradeSubjective } from '../../lib/api'
 import { downloadCsv } from '../../lib/downloadCsv'
+import { ErrorBanner } from '../../components/Banner'
 
 interface GradebookProps {
   teachingUnitId: string
@@ -295,9 +296,7 @@ function GradingRow({ item, onGraded }: GradingRowProps) {
       )}
 
       {error !== undefined ? (
-        <div className="error-banner" role="alert">
-          <AlertTriangle size={16} /> {error}
-        </div>
+        <ErrorBanner>{error}</ErrorBanner>
       ) : null}
     </li>
   )

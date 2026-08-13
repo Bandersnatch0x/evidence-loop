@@ -40,6 +40,12 @@ interface ResultsPanelProps {
   showMidProblemHelp?: boolean
 }
 
+function scoreTier(score: number): 'score-high' | 'score-mid' | 'score-low' {
+  if (score >= 80) return 'score-high'
+  if (score >= 60) return 'score-mid'
+  return 'score-low'
+}
+
 function StateIcon({ state }: { state: ResultState }) {
   if (state === 'passed') return <CheckCircle2 size={16} />
   if (state === 'failed') return <CircleX size={16} />
@@ -135,13 +141,7 @@ export function ResultsPanel({
           <div className="score-block">
             <div
               className={`score-ring score-${evaluation.status} ${
-                evaluation.status === 'completed'
-                  ? displayScore >= 80
-                    ? 'score-high'
-                    : displayScore >= 60
-                      ? 'score-mid'
-                      : 'score-low'
-                  : ''
+                evaluation.status === 'completed' ? scoreTier(displayScore) : ''
               }`}
               role="img"
               aria-label={`得分 ${displayScore} / 100`}

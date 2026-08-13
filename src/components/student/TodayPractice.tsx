@@ -12,6 +12,7 @@ import {
 import { questionTypeLabel, subjectLabel } from '../../lib/labels'
 import { QuestionCardGrid } from '../questionCard'
 import type { QuestionCardProps } from '../questionCard'
+import { ErrorBanner } from '../../components/Banner'
 
 interface TodayPracticeProps {
   studentId: string
@@ -126,9 +127,7 @@ export function TodayPractice({
 
       {isLoading ? <p className="muted">正在生成今日队列…</p> : null}
       {error !== undefined ? (
-        <div className="error-banner" role="alert">
-          <AlertTriangle size={18} /> {error}
-        </div>
+        <ErrorBanner>{error}</ErrorBanner>
       ) : null}
 
       {!isLoading && error === undefined && cards.length === 0 ? (

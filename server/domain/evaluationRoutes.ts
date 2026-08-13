@@ -101,10 +101,11 @@ export async function resolvePreviousEvaluation(
   }
 
   if (user.role === 'student') {
-    const history = await store.list({
-      assignmentId,
-      studentId: user.studentId ?? user.userId
-    })
+    const owner = user.studentId ?? user.userId
+    if (store.latestForStudent !== undefined) {
+      return store.latestForStudent(assignmentId, owner)
+    }
+    const history = await store.list({ assignmentId, studentId: owner })
     const latestId = history[0]?.id
     return latestId ? store.get(latestId) : undefined
   }
@@ -257,7 +258,8 @@ export async function handleEvaluationApi(
       projectedMode = existing.mode
       if (resultForAttempt.status === 'completed') {
         await evidenceProjector.projectAttempt(updatedAttempt)
-        await syncAchievementsSafe(context, existing.studentId, existing.teachingUnitId)
+        // Best-effort badge sync: never blocks the response (T20 contract).
+        void syncAchievementsSafe(context, existing.studentId, existing.teachingUnitId)
       }
       const containerId = resolveContainerId(resultForAttempt, runnerName)
       createRouteAuditor(audit, context.user, {
@@ -290,7 +292,8 @@ export async function handleEvaluationApi(
       await mastery.recomputeFromEvaluation(owned)
       review.applyFromEvaluation(owned)
       if (owned.studentId) {
-        await syncAchievementsSafe(context, owned.studentId)
+        // Best-effort badge sync: never blocks the response (T20 contract).
+        void syncAchievementsSafe(context, owned.studentId)
       }
     }
 

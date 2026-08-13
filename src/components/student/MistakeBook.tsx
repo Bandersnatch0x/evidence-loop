@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { AlertTriangle, BookOpen, CheckCircle2, RotateCcw } from 'lucide-react'
 import type { MistakeBookView } from '../../../shared/contracts'
 import { getMistakeBook } from '../../lib/api'
+import { ErrorBanner } from '../../components/Banner'
 
 interface MistakeBookProps {
   /** Refresh trigger — parent bumps this after a re-attempt to reload. */
@@ -55,9 +56,7 @@ export function MistakeBook({
   if (isLoading) return <p className="muted">加载错题本…</p>
   if (error !== undefined) {
     return (
-      <div className="error-banner" role="alert">
-        <AlertTriangle size={18} /> {error}
-      </div>
+      <ErrorBanner>{error}</ErrorBanner>
     )
   }
   if (!book || book.entries.length === 0) {

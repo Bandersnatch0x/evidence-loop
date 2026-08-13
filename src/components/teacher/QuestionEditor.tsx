@@ -21,6 +21,7 @@ import {
   type PayloadFormFields
 } from './payloadDefaults'
 import { VisualizationGenerator } from './VisualizationGenerator'
+import { ErrorBanner } from '../../components/Banner'
 // Lazy-load the reference drawer: it transitively imports StudentPlayer, so a
 // static import would pull the entire player renderer into the teacher bundle.
 const ReferenceDrawer = lazy(async () => ({
@@ -382,9 +383,7 @@ export function QuestionEditor({
       ) : null}
 
       {error !== undefined ? (
-        <div className="error-banner" role="alert">
-          <AlertTriangle size={18} /> {error}
-        </div>
+        <ErrorBanner>{error}</ErrorBanner>
       ) : null}
       {success !== undefined ? (
         <div className="success-banner" role="status">

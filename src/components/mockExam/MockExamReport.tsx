@@ -15,6 +15,7 @@ import type { MockExamPaperReport } from '../../../shared/mockExam'
 import { subjectLabel } from '../../lib/labels'
 import { getMockExamReport } from './mockExamApi'
 import './mockExam.css'
+import { ErrorBanner } from '../../components/Banner'
 
 interface MockExamReportProps {
   paperId: string
@@ -57,9 +58,7 @@ export function MockExamReport({
   if (isLoading) return <p className="mock-exam-note">加载中…</p>
   if (error !== undefined) {
     return (
-      <div className="error-banner" role="alert">
-        <AlertTriangle size={18} /> {error}
-      </div>
+      <ErrorBanner>{error}</ErrorBanner>
     )
   }
   if (report === undefined) return null

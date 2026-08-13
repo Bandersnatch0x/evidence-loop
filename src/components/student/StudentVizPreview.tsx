@@ -7,6 +7,7 @@ import { Suspense, lazy, useState, type ReactNode } from 'react'
 import { AlertTriangle, Sparkles } from 'lucide-react'
 import type { Visualization } from '../../../shared/contracts'
 import { studentPreviewVisualization } from '../../lib/api'
+import { ErrorBanner } from '../../components/Banner'
 
 const BallStickScene = lazy(() =>
   import('../visualizer/scenes/BallStickScene').then((m) => ({
@@ -94,9 +95,7 @@ export function StudentVizPreview() {
         <Sparkles size={14} /> 生成预览
       </button>
       {error !== undefined ? (
-        <div className="error-banner" role="alert">
-          <AlertTriangle size={18} /> {error}
-        </div>
+        <ErrorBanner>{error}</ErrorBanner>
       ) : null}
       {warnings.length > 0 ? (
         <div className="viz-warnings">

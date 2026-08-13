@@ -2,6 +2,7 @@
 import { AlertTriangle, Bell, Check } from 'lucide-react'
 import type { StudentTipItem } from '../../../shared/contracts'
 import { listStudentTips, markStudentTipRead } from '../../lib/api'
+import { ErrorBanner } from '../../components/Banner'
 
 interface TeacherTipsInboxProps {
   /** Bump from parent to re-fetch after practice actions. */
@@ -74,9 +75,7 @@ export function TeacherTipsInbox({ refreshKey = 0, onStartQuestion }: TeacherTip
 
       {loading ? <p className="muted">加载中…</p> : null}
       {error !== undefined ? (
-        <div className="error-banner" role="alert">
-          <AlertTriangle size={18} /> {error}
-        </div>
+        <ErrorBanner>{error}</ErrorBanner>
       ) : null}
       {!loading && error === undefined && items.length === 0 ? (
         <p className="muted">暂时没有老师提示。</p>

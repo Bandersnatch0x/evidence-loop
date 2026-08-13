@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { AlertTriangle, GraduationCap, PenLine } from 'lucide-react'
 import type { SessionMode } from '../../../shared/contracts'
 import { startPractice } from '../../lib/api'
+import { ErrorBanner } from '../../components/Banner'
 
 interface PracticeViewProps {
   questionId: string
@@ -79,9 +80,7 @@ export function PracticeView({
       </div>
 
       {error !== undefined ? (
-        <div className="error-banner" role="alert">
-          <AlertTriangle size={18} /> {error}
-        </div>
+        <ErrorBanner>{error}</ErrorBanner>
       ) : null}
     </section>
   )

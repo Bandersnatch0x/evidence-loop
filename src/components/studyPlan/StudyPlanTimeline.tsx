@@ -27,6 +27,7 @@ import {
 import { StudyPlanDayColumn } from './StudyPlanDayColumn'
 import { evidenceSummary } from './evidenceSummary'
 import './studyPlan.css'
+import { ErrorBanner } from '../../components/Banner'
 
 interface StudyPlanTimelineProps {
   studentId: string
@@ -106,9 +107,7 @@ export function StudyPlanTimeline({
       {isLoading ? <p className="study-plan-note">正在按硬输入重算计划…</p> : null}
 
       {error !== undefined ? (
-        <div className="error-banner" role="alert">
-          <AlertTriangle size={18} /> {error}
-        </div>
+        <ErrorBanner>{error}</ErrorBanner>
       ) : null}
 
       {plan !== undefined && plan.status === 'insufficient_evidence' ? (

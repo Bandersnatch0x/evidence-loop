@@ -30,6 +30,7 @@ import { AchievementEvidencePanel } from './AchievementEvidencePanel'
 import { AchievementIcon } from './AchievementIcon'
 import { AchievementToast } from './AchievementToast'
 import './achievements.css'
+import { ErrorBanner } from '../../components/Banner'
 
 interface AchievementWallProps {
   studentId: string
@@ -135,9 +136,7 @@ export function AchievementWall({
       ) : null}
 
       {error !== undefined ? (
-        <div className="error-banner" role="alert">
-          <AlertTriangle size={18} /> {error}
-        </div>
+        <ErrorBanner>{error}</ErrorBanner>
       ) : null}
 
       {unbacked.length > 0 ? (

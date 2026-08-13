@@ -95,7 +95,6 @@ export function SubmissionPanel({
           className="primary-button"
           type="button"
           aria-busy={isEvaluating}
-          aria-label={isEvaluating ? '正在生成证据' : '运行循证评估'}
           disabled={isEvaluating || isEmpty}
           onClick={onEvaluate}
         >

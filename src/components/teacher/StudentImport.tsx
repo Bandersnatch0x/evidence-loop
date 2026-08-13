@@ -3,6 +3,7 @@ import { AlertTriangle, Download, Upload } from 'lucide-react'
 import type { ImportRosterResult } from '../../../shared/contracts'
 import { importRoster } from '../../lib/api'
 import { downloadCsv } from '../../lib/downloadCsv'
+import { ErrorBanner } from '../../components/Banner'
 
 interface StudentImportProps {
   teachingUnitId: string
@@ -89,9 +90,7 @@ export function StudentImport({ teachingUnitId }: StudentImportProps) {
       </button>
 
       {error !== undefined ? (
-        <div className="error-banner" role="alert">
-          <AlertTriangle size={18} /> {error}
-        </div>
+        <ErrorBanner>{error}</ErrorBanner>
       ) : null}
 
       {result !== undefined ? (

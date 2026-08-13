@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
-import { AlertTriangle, Building2, Layers } from 'lucide-react'
+import { Building2, Layers } from 'lucide-react'
 import type { TeachingUnit, TeachingUnitView } from '../../../shared/contracts'
+import { ErrorBanner } from '../../components/Banner'
 import {
   createTeachingUnit,
   getTeachingUnit,
@@ -189,9 +190,7 @@ export function ClassSetup({ onSelected, onCreated }: ClassSetupProps) {
         创建
       </button>
       {error !== undefined ? (
-        <div className="error-banner" role="alert">
-          <AlertTriangle size={18} /> {error}
-        </div>
+        <ErrorBanner>{error}</ErrorBanner>
       ) : null}
     </section>
   )

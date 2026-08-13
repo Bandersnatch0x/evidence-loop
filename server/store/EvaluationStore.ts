@@ -23,6 +23,11 @@ export interface EvaluationStore {
   list(filters?: EvaluationListFilters | string): Promise<EvaluationHistoryItem[]>
   listResults(filters?: EvaluationListFilters): Promise<EvaluationResult[]>
   latest(assignmentId: string): Promise<EvaluationResult | undefined>
+  /** Latest evaluation for a specific student on an assignment. */
+  latestForStudent?(
+    assignmentId: string,
+    studentId: string
+  ): Promise<EvaluationResult | undefined>
   /**
    * Right-to-erasure (GDPR / 被遗忘权). Hard-deletes a single evaluation
    * record. Returns true when a record was removed, false when the id was

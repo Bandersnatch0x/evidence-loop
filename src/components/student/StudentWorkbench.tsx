@@ -7,6 +7,7 @@ import { PaperExamShell } from './PaperExamShell'
 import { TeacherTipsInbox } from './TeacherTipsInbox'
 import { PracticeView } from './PracticeView'
 import { TodayPractice } from './TodayPractice'
+import { ErrorBanner } from '../../components/Banner'
 
 interface StudentWorkbenchProps {
   /** Current assignment id used as the question for free practice. */
@@ -98,9 +99,7 @@ export function StudentWorkbench({
       </header>
 
       {actionError !== undefined ? (
-        <div className="error-banner" role="alert">
-          <AlertTriangle size={18} /> {actionError}
-        </div>
+        <ErrorBanner>{actionError}</ErrorBanner>
       ) : null}
 
       <TeacherTipsInbox
@@ -162,9 +161,7 @@ export function StudentWorkbench({
         </h3>
         {isLoading ? <p className="muted">加载中…</p> : null}
         {error !== undefined ? (
-          <div className="error-banner" role="alert">
-            <AlertTriangle size={18} /> {error}
-          </div>
+          <ErrorBanner>{error}</ErrorBanner>
         ) : null}
         {!isLoading && error === undefined && sessions.length === 0 ? (
           <p className="muted">还没有练习记录，从「今日该练」或双模入口开始第一题吧。</p>

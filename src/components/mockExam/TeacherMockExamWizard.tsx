@@ -28,6 +28,7 @@ import {
   type SaveMockExamResponse
 } from './mockExamApi'
 import './mockExam.css'
+import { ErrorBanner } from '../../components/Banner'
 
 interface TeacherMockExamWizardProps {
   /** 教师当前可选的教学单元（跨学科时传多个）。 */
@@ -189,9 +190,7 @@ export function TeacherMockExamWizard({
       </div>
 
       {error !== undefined ? (
-        <div className="error-banner" role="alert">
-          <AlertTriangle size={18} /> {error}
-        </div>
+        <ErrorBanner>{error}</ErrorBanner>
       ) : null}
 
       {warnings.length > 0 ? (

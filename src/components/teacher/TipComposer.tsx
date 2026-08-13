@@ -5,6 +5,7 @@ import type {
   TeacherTipSummary
 } from '../../../shared/contracts'
 import { createTeacherTip, listTeacherTips } from '../../lib/api'
+import { ErrorBanner } from '../../components/Banner'
 
 interface TipComposerProps {
   teachingUnitId: string
@@ -175,9 +176,7 @@ export function TipComposer({ teachingUnitId }: TipComposerProps) {
       </button>
 
       {error !== undefined ? (
-        <div className="error-banner" role="alert">
-          <AlertTriangle size={18} /> {error}
-        </div>
+        <ErrorBanner>{error}</ErrorBanner>
       ) : null}
 
       {result !== undefined ? (

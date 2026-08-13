@@ -14,6 +14,7 @@ import {
 } from './weeklyReportApi'
 import { WeeklyReportHeader, WeeklyReportSections } from './WeeklyReportSections'
 import './weeklyReport.css'
+import { ErrorBanner } from '../../components/Banner'
 
 interface StudentWeeklyReportViewProps {
   studentId: string
@@ -78,9 +79,7 @@ export function StudentWeeklyReportView({
       ) : null}
 
       {error !== undefined ? (
-        <div className="error-banner" role="alert">
-          <AlertTriangle size={18} /> {error}
-        </div>
+        <ErrorBanner>{error}</ErrorBanner>
       ) : null}
 
       {report !== undefined ? (

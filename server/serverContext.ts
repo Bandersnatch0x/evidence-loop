@@ -194,8 +194,10 @@ export async function createServerContext(
   }
 
   try {
-    await runners.warm()
-    await knowledge.getGraph()
+    // Boot-critical independent ops: warm the runner pool and load the
+    // knowledge seed share no state — parallelize to cut boot latency
+    // (docker container spawn waits idle behind knowledge JSON.parse otherwise).
+    await Promise.all([runners.warm(), knowledge.getGraph()])
 
     const questionStore = new QuestionStore({ database: productDb })
   const questionBank = new QuestionBankService({ store: questionStore })

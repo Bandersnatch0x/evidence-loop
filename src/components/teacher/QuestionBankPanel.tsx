@@ -14,6 +14,7 @@ import {
 } from '../../lib/labels'
 import { QuestionEditor } from './QuestionEditor'
 import { QuestionCardGrid } from '../questionCard'
+import { ErrorBanner } from '../../components/Banner'
 
 type PanelMode = 'list' | 'create' | 'edit'
 
@@ -126,9 +127,7 @@ export function QuestionBankPanel() {
       </header>
 
       {error !== undefined ? (
-        <div className="error-banner" role="alert">
-          <AlertTriangle size={18} /> {error}
-        </div>
+        <ErrorBanner>{error}</ErrorBanner>
       ) : null}
 
       {isLoading ? <p className="muted">加载题库…</p> : null}

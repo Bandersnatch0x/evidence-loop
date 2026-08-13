@@ -16,6 +16,7 @@ import {
 import { StudyPlanDayColumn } from './StudyPlanDayColumn'
 import { evidenceSummary } from './evidenceSummary'
 import './studyPlan.css'
+import { ErrorBanner } from '../../components/Banner'
 
 interface TeacherStudyPlanPanelProps {
   studentId: string
@@ -107,9 +108,7 @@ export function TeacherStudyPlanPanel({
       {isLoading ? <p className="study-plan-note">加载中…</p> : null}
 
       {error !== undefined ? (
-        <div className="error-banner" role="alert">
-          <AlertTriangle size={18} /> {error}
-        </div>
+        <ErrorBanner>{error}</ErrorBanner>
       ) : null}
 
       {notice !== undefined ? <p className="study-plan-note">{notice}</p> : null}

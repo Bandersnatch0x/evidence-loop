@@ -58,6 +58,7 @@ export class SqliteAttemptStore implements AttemptStore {
   private readonly upsertStmt: Database.Statement
   private readonly getStmt: Database.Statement
   private readonly latestStmt: Database.Statement
+  private readonly latestForStudentStmt: Database.Statement
   private readonly deleteStmt: Database.Statement
   private readonly countStmt: Database.Statement
 
@@ -99,6 +100,9 @@ export class SqliteAttemptStore implements AttemptStore {
     this.getStmt = this.db.prepare('SELECT * FROM attempts WHERE id = ?')
     this.latestStmt = this.db.prepare(
       'SELECT * FROM attempts WHERE question_id = ? ORDER BY created_at DESC LIMIT 1'
+    )
+    this.latestForStudentStmt = this.db.prepare(
+      'SELECT * FROM attempts WHERE question_id = ? AND student_id = ? ORDER BY created_at DESC LIMIT 1'
     )
     this.deleteStmt = this.db.prepare('DELETE FROM attempts WHERE id = ?')
     this.countStmt = this.db.prepare('SELECT COUNT(*) AS count FROM attempts')
@@ -221,6 +225,18 @@ export class SqliteAttemptStore implements AttemptStore {
 
   public latest(assignmentId: string): Promise<EvaluationResult | undefined> {
     const row = this.latestStmt.get(assignmentId) as AttemptRow | undefined
+    return Promise.resolve(
+      row ? ensureEvaluationProvenance(rowToAttempt(row).result) : undefined
+    )
+  }
+
+  public latestForStudent(
+    assignmentId: string,
+    studentId: string
+  ): Promise<EvaluationResult | undefined> {
+    const row = this.latestForStudentStmt.get(assignmentId, studentId) as
+      | AttemptRow
+      | undefined
     return Promise.resolve(
       row ? ensureEvaluationProvenance(rowToAttempt(row).result) : undefined
     )

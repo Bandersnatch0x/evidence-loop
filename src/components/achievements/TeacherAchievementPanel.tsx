@@ -17,6 +17,7 @@ import {
 } from './achievementsApi'
 import { AchievementIcon } from './AchievementIcon'
 import './achievements.css'
+import { ErrorBanner } from '../../components/Banner'
 
 interface TeacherAchievementPanelProps {
   teachingUnitId: string
@@ -73,9 +74,7 @@ export function TeacherAchievementPanel({
       ) : null}
 
       {error !== undefined ? (
-        <div className="error-banner" role="alert">
-          <AlertTriangle size={18} /> {error}
-        </div>
+        <ErrorBanner>{error}</ErrorBanner>
       ) : null}
 
       {data !== undefined && total === 0 ? (

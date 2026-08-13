@@ -18,6 +18,8 @@
  * in that window.
  */
 
+import { detectImageFormat } from './mediaGate'
+
 /** Public contract. `kind` is the gate kind ('image'|'glb'|'video'|'vtt'|'audio'). */
 export interface ParseInput {
   kind: string
@@ -35,10 +37,6 @@ export interface ParseResult {
 
 const MAX_PIXELS = 40_000_000 // spec §9: 40 MP
 const MAX_EDGE = 16_384 // spec §9: 最长边 16,384 px
-
-/** GLB magic: 'glTF' little-endian = 0x46546C67. */
-const GLB_MAGIC = 0x46546c67
-const GLB_VERSION = 2
 const MAX_JSON_CHUNK = 256 * 1024 // research §4: first JSON chunk bounded
 
 function invalid(reason: string): ParseResult {
@@ -61,10 +59,9 @@ function pixelsOk(width: number | undefined, height: number | undefined): ParseR
   return null
 }
 
-/** PNG: 8-byte signature then IHDR at offset 8: width[0..3], height[4..7]. */
+/** PNG: signature verified by detectImageFormat; IHDR at offset 8. */
 function parsePng(sniff: Buffer): ParseResult | null {
-  const PNG_SIG = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])
-  if (sniff.length < 24 || !sniff.subarray(0, 8).equals(PNG_SIG)) return null
+  if (sniff.length < 24) return null
   // IHDR chunk: length(4) 'IHDR'(4) width(4) height(4)
   if (sniff.subarray(12, 16).toString('ascii') !== 'IHDR') {
     return invalid('PNG missing IHDR')
@@ -75,9 +72,9 @@ function parsePng(sniff: Buffer): ParseResult | null {
   return cap ?? { ok: true, width, height }
 }
 
-/** JPEG: scan markers for SOF0/1/2 (C0/C1/C2) → height[5..6], width[7..8]. */
+/** JPEG: signature verified by detectImageFormat; scan markers for SOF. */
 function parseJpeg(sniff: Buffer): ParseResult | null {
-  if (sniff.length < 2 || sniff[0] !== 0xff || sniff[1] !== 0xd8) return null
+  if (sniff.length < 4) return null
   let i = 2
   while (i < sniff.length - 9) {
     if (sniff[i] !== 0xff) {
@@ -108,15 +105,9 @@ function parseJpeg(sniff: Buffer): ParseResult | null {
   return invalid('JPEG missing SOF marker (not a decodable JPEG)')
 }
 
-/**
- * WebP: 'RIFF' / 'WEBP'; VP8X has 24-bit canvas; VP8 (lossy) and VP8L
- * (lossless) carry dimensions in bit-packed fields.
- */
+/** WebP: RIFF/WEBP verified by detectImageFormat; parse VP8/VP8L/VP8X. */
 function parseWebp(sniff: Buffer): ParseResult | null {
   if (sniff.length < 30) return null
-  if (sniff.subarray(0, 4).toString('ascii') !== 'RIFF' || sniff.subarray(8, 12).toString('ascii') !== 'WEBP') {
-    return null
-  }
   const fourcc = sniff.subarray(12, 16).toString('ascii')
   if (fourcc === 'VP8X') {
     // VP8X: canvas width/height are 24-bit at offsets 24..27 / 27..30.
@@ -149,23 +140,22 @@ function parseWebp(sniff: Buffer): ParseResult | null {
 }
 
 function parseImage(sniff: Buffer): ParseResult {
-  // Order: JPEG first (PNG/WebP have their own signatures, no false hits).
-  const jpeg = parseJpeg(sniff)
-  if (jpeg) return jpeg
-  const png = parsePng(sniff)
-  if (png) return png
-  const webp = parseWebp(sniff)
-  if (webp) return webp
-  return invalid('image kind not decodable (PNG/JPEG/WebP header parse failed)')
+  // Format dispatch via the single shared signature source (mediaGate).
+  // This guarantees the gate and parser agree on what counts as each format.
+  switch (detectImageFormat(sniff)) {
+    case 'png': return parsePng(sniff) ?? invalid('PNG header parse failed')
+    case 'jpeg': return parseJpeg(sniff) ?? invalid('JPEG SOF marker not found')
+    case 'webp': return parseWebp(sniff) ?? invalid('WebP chunk parse failed')
+    case 'gif': return invalid('GIF not supported (PNG/JPEG/WebP only)')
+    default: return invalid('image kind not decodable (PNG/JPEG/WebP header parse failed)')
+  }
 }
 
-/** GLB: header + JSON chunk structural checks. */
+/** GLB: header + JSON chunk structural checks. Magic/version verified by detectKind. */
 function parseGlb(sniff: Buffer, declaredBytes: number): ParseResult {
   if (sniff.length < 20) return invalid('GLB header truncated')
-  const magic = sniff.readUInt32LE(0)
-  if (magic !== GLB_MAGIC) return invalid('GLB bad magic (not a glTF binary)')
-  const version = sniff.readUInt32LE(4)
-  if (version !== GLB_VERSION) return invalid(`GLB unsupported version ${version} (expected 2)`)
+  // Magic ('glTF') and version (2) are already verified by detectKind;
+  // re-checking here would duplicate the contract and risk drift.
   const totalLength = sniff.readUInt32LE(8)
   if (totalLength !== declaredBytes) {
     return invalid(`GLB declared length ${totalLength} != uploaded ${declaredBytes}`)

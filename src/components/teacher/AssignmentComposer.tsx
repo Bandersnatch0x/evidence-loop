@@ -1,11 +1,12 @@
 import { useState } from 'react'
-import { AlertTriangle, Send } from 'lucide-react'
+import { Send } from 'lucide-react'
 import type {
   AssignmentKind,
   CreateAssignmentResult,
   SessionMode
 } from '../../../shared/contracts'
 import { createAssignment } from '../../lib/api'
+import { ErrorBanner } from '../../components/Banner'
 
 interface AssignmentComposerProps {
   teachingUnitId: string
@@ -48,11 +49,9 @@ export function AssignmentComposer({ teachingUnitId }: AssignmentComposerProps) 
             ? questionIds.split(',').map((s) => s.trim()).filter(Boolean)
             : undefined,
         kpIds:
-          kind === 'assemble_by_kp'
+          kind === 'assemble_by_kp' || kind === 'by_weakness'
             ? kpIds.split(',').map((s) => s.trim()).filter(Boolean)
-            : kind === 'by_weakness'
-              ? kpIds.split(',').map((s) => s.trim()).filter(Boolean)
-              : undefined,
+            : undefined,
         studentIds:
           studentIds.trim() !== ''
             ? studentIds.split(',').map((s) => s.trim()).filter(Boolean)
@@ -140,9 +139,7 @@ export function AssignmentComposer({ teachingUnitId }: AssignmentComposerProps) 
       </button>
 
       {error !== undefined ? (
-        <div className="error-banner" role="alert">
-          <AlertTriangle size={18} /> {error}
-        </div>
+        <ErrorBanner>{error}</ErrorBanner>
       ) : null}
 
       {result !== undefined ? (

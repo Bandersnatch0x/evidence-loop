@@ -77,44 +77,45 @@ export function validateMedia(kind: MediaKind, byteSize: number): string | null 
  * recognized container. Only the header is read; full validation happens in
  * the worker (real parse, subprocess-isolated per research §5).
  */
+export type ImageFormat = 'png' | 'jpeg' | 'webp' | 'gif'
+
+/**
+ * Sniff the specific image format from magic bytes.
+ * Single source of truth for image signatures — MediaParser reuses this to
+ * dispatch to its format-specific parser, so the gate and the parser can
+ * never disagree on what counts as a valid PNG/JPEG/WebP/GIF.
+ */
+export function detectImageFormat(bytes: Uint8Array | Buffer): ImageFormat | null {
+  const b = bytes instanceof Buffer ? bytes : Buffer.from(bytes)
+  if (b.length >= 8 && b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47) {
+    return 'png'
+  }
+  // JPEG SOI: FF D8 FF (3 bytes — the gate and parser agree on this).
+  if (b.length >= 3 && b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff) return 'jpeg'
+  if (b.length >= 6) {
+    const gif = Buffer.from(b.subarray(0, 6)).toString('latin1')
+    if (gif === 'GIF87a' || gif === 'GIF89a') return 'gif'
+  }
+  if (
+    b.length >= 12 &&
+    Buffer.from(b.subarray(0, 4)).toString('latin1') === 'RIFF' &&
+    Buffer.from(b.subarray(8, 12)).toString('latin1') === 'WEBP'
+  ) {
+    return 'webp'
+  }
+  return null
+}
+
 export function detectKind(bytes: Uint8Array | Buffer): MediaKind | null {
   const b = bytes instanceof Buffer ? bytes : Buffer.from(bytes)
   const head = (offset: number, len: number) =>
     Buffer.from(b.subarray(offset, offset + len))
 
-  // PNG: 89 50 4E 47 0D 0A 1A 0A
-  if (
-    b.length >= 8 &&
-    b[0] === 0x89 &&
-    b[1] === 0x50 &&
-    b[2] === 0x4e &&
-    b[3] === 0x47 &&
-    b[4] === 0x0d &&
-    b[5] === 0x0a &&
-    b[6] === 0x1a &&
-    b[7] === 0x0a
-  ) {
-    return 'image'
-  }
-
-  // JPEG: FF D8 FF
-  if (b.length >= 3 && b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff) return 'image'
-
-  // GIF: GIF87a / GIF89a
-  const gif = head(0, 6).toString('latin1')
-  if (gif === 'GIF87a' || gif === 'GIF89a') return 'image'
-
-  // WebP: RIFF....WEBP
-  if (
-    b.length >= 12 &&
-    head(0, 4).toString('latin1') === 'RIFF' &&
-    head(8, 4).toString('latin1') === 'WEBP'
-  ) {
-    return 'image'
-  }
+  // Images share one signature source via detectImageFormat.
+  if (detectImageFormat(b) !== null) return 'image'
 
   // glTF binary: 'glTF' + version (2.0)
-  if (b.length >= 8 && head(0, 4).toString('latin1') === 'glTF') {
+  if (b.length >= 8 && Buffer.from(b.subarray(0, 4)).toString('latin1') === 'glTF') {
     const version = b[4]
     if (version === 2) return 'glb'
   }
@@ -153,10 +154,13 @@ export function detectExtension(bytes: Uint8Array | Buffer): string | null {
   const head = (offset: number, len: number) =>
     Buffer.from(b.subarray(offset, offset + len))
 
-  if (b.length >= 3 && b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff) return '.jpg'
-  if (b.length >= 6 && (head(0, 6).toString('latin1') === 'GIF87a' || head(0, 6).toString('latin1') === 'GIF89a')) return '.gif'
-  if (b.length >= 12 && head(0, 4).toString('latin1') === 'RIFF' && head(8, 4).toString('latin1') === 'WEBP') return '.webp'
-  if (b.length >= 8 && b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47) return '.png'
+  switch (detectImageFormat(b)) {
+    case 'png': return '.png'
+    case 'jpeg': return '.jpg'
+    case 'gif': return '.gif'
+    case 'webp': return '.webp'
+    default: break
+  }
   if (b.length >= 8 && head(0, 4).toString('latin1') === 'glTF' && b[4] === 2) return '.glb'
   if (b.length >= 4 && b[0] === 0x1a && b[1] === 0x45 && b[2] === 0xdf && b[3] === 0xa3) return '.webm'
   if (b.length >= 12 && head(4, 4).toString('latin1') === 'ftyp') return '.mp4'

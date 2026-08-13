@@ -146,6 +146,22 @@ export class JsonAttemptStore implements AttemptStore {
     return found ? ensureEvaluationProvenance(found.result) : undefined
   }
 
+  /**
+   * Latest evaluation for a student on an assignment — single round-trip
+   * (avoids the N+1 list-then-get the student submit path used to do).
+   */
+  public async latestForStudent(
+    assignmentId: string,
+    studentId: string
+  ): Promise<EvaluationResult | undefined> {
+    const attempts = await this.listAttempts({
+      questionId: assignmentId,
+      studentId
+    })
+    const found = attempts[0]
+    return found ? ensureEvaluationProvenance(found.result) : undefined
+  }
+
   public async list(
     filters?: EvaluationListFilters | string
   ): Promise<EvaluationHistoryItem[]> {

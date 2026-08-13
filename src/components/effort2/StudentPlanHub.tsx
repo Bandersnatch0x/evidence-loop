@@ -27,6 +27,7 @@ import { PortfolioExportPanel } from '../portfolio'
 import { StudentWeeklyReportView } from '../reports'
 import { StudyPlanTimeline } from '../studyPlan'
 import type { MockExamPlan } from '../../../shared/mockExam'
+import { ErrorBanner } from '../../components/Banner'
 
 const DEMO_UNIT = 'tu-demo'
 
@@ -105,7 +106,7 @@ export function StudentPlanHub({ onStartMockExam }: StudentPlanHubProps) {
           </div>
         ) : (
           <div className="effort2-mock-actions">
-            {mockExamError ? <div className="error-banner" role="alert">{mockExamError}</div> : null}
+            {mockExamError ? <ErrorBanner>{mockExamError}</ErrorBanner> : null}
             {mockExamPlans.map((plan) => (
               <div key={plan.id}>
                 <StudentMockExamEntry plan={plan} onStart={onStartMockExam} />

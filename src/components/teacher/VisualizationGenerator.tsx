@@ -10,8 +10,9 @@
  * scores. The "已确认" / "待确认" badge makes the authority grade visible.
  */
 import { Suspense, lazy, useState, type ReactNode } from 'react'
-import { AlertTriangle, Sparkles, FileJson } from 'lucide-react'
+import { Sparkles, FileJson } from 'lucide-react'
 import type { Question, Visualization } from '../../../shared/contracts'
+import { ErrorBanner } from '../../components/Banner'
 import {
   adoptVisualization,
   previewVisualization
@@ -195,9 +196,7 @@ export function VisualizationGenerator({
       </button>
 
       {error !== undefined ? (
-        <div className="error-banner" role="alert">
-          <AlertTriangle size={18} /> {error}
-        </div>
+        <ErrorBanner>{error}</ErrorBanner>
       ) : null}
 
       {warnings.length > 0 ? (
