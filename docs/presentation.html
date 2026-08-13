@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8" />
+<title>循证环 · EvidenceRing — 功能演示</title>
+<style>
+  @page { size: landscape; margin: 0; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: "Inter", "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: #f8f8f6;
+    color: #1a1a2e;
+  }
+  .slide {
+    width: 1280px;
+    height: 800px;
+    padding: 40px 60px;
+    page-break-after: always;
+    display: flex;
+    flex-direction: column;
+    background: #fff;
+    position: relative;
+    overflow: hidden;
+  }
+  .slide:last-child { page-break-after: auto; }
+
+  /* Cover */
+  .cover {
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    color: #e2e8f0;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+  }
+  .cover h1 {
+    font-size: 3rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin-bottom: 16px;
+  }
+  .cover .subtitle { font-size: 1.25rem; color: #94a3b8; margin-bottom: 32px; }
+  .cover .tagline {
+    font-size: 1rem;
+    color: #64748b;
+    border-top: 1px solid #334155;
+    padding-top: 20px;
+    margin-top: 20px;
+  }
+  .cover .badge {
+    display: inline-block;
+    background: oklch(52% 0.13 252);
+    color: #fff;
+    padding: 6px 16px;
+    border-radius: 999px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    margin-bottom: 24px;
+  }
+
+  /* Content slides */
+  .slide-header {
+    margin-bottom: 24px;
+    border-bottom: 2px solid oklch(52% 0.13 252);
+    padding-bottom: 12px;
+  }
+  .slide-header h2 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: oklch(42% 0.12 252);
+  }
+  .slide-header .desc {
+    font-size: 0.95rem;
+    color: #64748b;
+    margin-top: 6px;
+  }
+  .slide-body {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 24px;
+  }
+  .screenshot {
+    max-width: 100%;
+    max-height: 580px;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+  }
+  .slide-body.vertical { flex-direction: column; }
+  .slide-body .notes {
+    max-width: 380px;
+    font-size: 0.9rem;
+    line-height: 1.7;
+    color: #475569;
+  }
+  .notes ul { padding-left: 18px; }
+  .notes li { margin-bottom: 8px; }
+
+  .slide-footer {
+    position: absolute;
+    bottom: 16px;
+    right: 60px;
+    font-size: 0.75rem;
+    color: #94a3b8;
+  }
+
+  /* Grid slide */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; width: 100%; }
+  .grid-item { text-align: center; }
+  .grid-item img { max-width: 100%; max-height: 280px; border: 1px solid #e2e8f0; border-radius: 8px; }
+  .grid-item p { font-size: 0.85rem; margin-top: 8px; color: #64748b; }
+</style>
+</head>
+<body>
+
+<!-- Cover -->
+<section class="slide cover">
+  <div class="badge">AI+教育 · 循证实训 Agent</div>
+  <h1>循证环 · EvidenceRing</h1>
+  <p class="subtitle">用可验证证据驱动评分、诊断和再训练</p>
+  <p class="tagline">分数由测试与量规确定，模型不参与改分 · 每条结论旁边站着它的证据</p>
+</section>
+
+<!-- Student: Workspace -->
+<section class="slide">
+  <div class="slide-header">
+    <h2>学生工作台 · 五步闭环</h2>
+    <p class="desc">提交 → 受限运行 → 量规评分 → 知识匹配 → 反馈生成</p>
+  </div>
+  <div class="slide-body">
+    <img class="screenshot" src="screenshots/pages/student-workspace.png" alt="学生工作台" />
+    <div class="notes">
+      <ul>
+        <li>PipelineBar 常驻顶部，运行时逐步点亮</li>
+        <li>提交后自动切到评估结果 Tab</li>
+        <li>练习态开放 AI 辅导，测评态裸做</li>
+      </ul>
+    </div>
+  </div>
+  <div class="slide-footer">EvidenceRing · 学生端</div>
+</section>
+
+<!-- Student: Mastery + Intervention -->
+<section class="slide">
+  <div class="slide-header">
+    <h2>掌握度画像 + 干预闭环</h2>
+    <p class="desc">诊断 → 干预 → 再练，循证环前端连通</p>
+  </div>
+  <div class="slide-body">
+    <img class="screenshot" src="screenshots/pages/student-mastery-intervention.png" alt="掌握度+干预" />
+    <div class="notes">
+      <ul>
+        <li>热力图 + 趋势图 + 证据溯源</li>
+        <li>选中知识点 → 调 getNextIntervention</li>
+        <li>干预卡「立即再练」直达练习</li>
+      </ul>
+    </div>
+  </div>
+  <div class="slide-footer">ADR-0006 · 硬事实隔离</div>
+</section>
+
+<!-- Student: Practice dual-mode -->
+<section class="slide">
+  <div class="slide-header">
+    <h2>今日该练 · 双模入口</h2>
+    <p class="desc">FSRS 到期 ∩ 依赖薄弱 ∩ 已教进度</p>
+  </div>
+  <div class="slide-body">
+    <img class="screenshot" src="screenshots/pages/student-practice-dualmode.png" alt="双模练习" />
+    <div class="notes">
+      <ul>
+        <li>薄弱补链题支持练习/测评二选一</li>
+        <li>D1 双模在 UI 明确标识</li>
+        <li>练习态不计入正式掌握度</li>
+      </ul>
+    </div>
+  </div>
+  <div class="slide-footer">T07 · 学生刷题体验</div>
+</section>
+
+<!-- Student: Plan Hub -->
+<section class="slide">
+  <div class="slide-header">
+    <h2>我的循证计划</h2>
+    <p class="desc">7 日计划 · 模拟考 · 周报 · 成就 · 作品集</p>
+  </div>
+  <div class="slide-body">
+    <img class="screenshot" src="screenshots/pages/student-plan-hub.png" alt="循证计划" />
+    <div class="notes">
+      <ul>
+        <li>计划由硬事实生成（可追溯）</li>
+        <li>成就只由确定性规则判定</li>
+        <li>模拟考入口透传 paperId（P0 修复）</li>
+      </ul>
+    </div>
+  </div>
+  <div class="slide-footer">T15-T23 · Effort 2</div>
+</section>
+
+<!-- Student: Review -->
+<section class="slide">
+  <div class="slide-header">
+    <h2>今日复习 · FSRS 间隔重复</h2>
+    <p class="desc">ts-fsrs 5.4 调度 · 仅连续测评态判对才移出活跃本</p>
+  </div>
+  <div class="slide-body">
+    <img class="screenshot" src="screenshots/pages/student-review.png" alt="今日复习" />
+  </div>
+  <div class="slide-footer">ADR-0007 · 记忆层选型</div>
+</section>
+
+<!-- Teacher: Workbench -->
+<section class="slide">
+  <div class="slide-header">
+    <h2>教师工作台 · 线性出题流</h2>
+    <p class="desc">选/建单元 → 题库 → 名单 → 布置 → 批改</p>
+  </div>
+  <div class="slide-body">
+    <img class="screenshot" src="screenshots/pages/teacher-workbench.png" alt="教师工作台" />
+    <div class="notes">
+      <ul>
+        <li>requiresUnit 门控：题库可先录</li>
+        <li>主观题终裁不折叠、不批量</li>
+        <li>种子题只读（预置库 · system-builtin）</li>
+      </ul>
+    </div>
+  </div>
+  <div class="slide-footer">T08 · 教师工作流</div>
+</section>
+
+<!-- Teacher: Cohort tabs -->
+<section class="slide">
+  <div class="slide-header">
+    <h2>班级学情 · 双 Tab 合并</h2>
+    <p class="desc">概览（完成率/中位分）+ 掌握度矩阵（知识点×学生）</p>
+  </div>
+  <div class="slide-body">
+    <img class="screenshot" src="screenshots/pages/teacher-cohort-tabs.png" alt="班级学情双 Tab" />
+    <div class="notes">
+      <ul>
+        <li>导航层合并，组件层各自数据获取</li>
+        <li>正式中位分排除待终裁主观题</li>
+        <li>reviewer 角色隔离不读教学数据</li>
+      </ul>
+    </div>
+  </div>
+  <div class="slide-footer">P1 · 圆桌动线深化</div>
+</section>
+
+<!-- Transparency -->
+<section class="slide">
+  <div class="slide-header">
+    <h2>项目透明度 · Agent 名册</h2>
+    <p class="desc">每个 Agent 的职责、输入输出、是否触碰评分</p>
+  </div>
+  <div class="slide-body">
+    <img class="screenshot" src="screenshots/pages/transparency-view.png" alt="透明度" />
+  </div>
+  <div class="slide-footer">ADR-0001 · 证据优先</div>
+</section>
+
+<!-- Mobile -->
+<section class="slide">
+  <div class="slide-header">
+    <h2>移动端适配</h2>
+    <p class="desc">≤980px 转抽屉 · 桌面/平板/手机同一份场景文档</p>
+  </div>
+  <div class="slide-body">
+    <div class="grid-2">
+      <div class="grid-item">
+        <img src="screenshots/pages/mobile-sidebar.png" alt="移动侧栏" />
+        <p>侧栏抽屉 · 响应式导航</p>
+      </div>
+      <div class="grid-item">
+        <img src="screenshots/pages/mobile-teacher-workbench.png" alt="移动教师台" />
+        <p>教师工作台 · 移动端</p>
+      </div>
+    </div>
+  </div>
+  <div class="slide-footer">WCAG AA · 跨端一致</div>
+</section>
+
+<!-- Architecture -->
+<section class="slide cover">
+  <h1>架构铁律</h1>
+  <div style="text-align: left; max-width: 800px; margin-top: 40px;">
+    <p style="font-size: 1.1rem; line-height: 2; color: #cbd5e1;">
+      <strong style="color: #e2e8f0;">① 证据优先</strong> — 分数只来自 Runner 产出的 Evidence，LLM 不得改分<br/>
+      <strong style="color: #e2e8f0;">② 题型切分</strong> — 按题型不按学科，7 引擎 × 9 学科同构<br/>
+      <strong style="color: #e2e8f0;">③ 双聚合根隔离</strong> — MasteryProfile（硬事实）∥ LearnerNarrative（软语义）<br/>
+      <strong style="color: #e2e8f0;">④ Provenance 必填</strong> — evidence / llm_inference / self_report / teacher_annotation<br/>
+      <strong style="color: #e2e8f0;">⑤ 多模态红线</strong> — feature flag 一键关，主评分闭环不因语音回归<br/>
+      <strong style="color: #e2e8f0;">⑥ 评分路径零耦合</strong> — 评分模块不读演示表，架构测试守护
+    </p>
+  </div>
+  <div class="slide-footer" style="color: #64748b;">17 ADR · 1412 tests · 6 docker-skipped</div>
+</section>
+
+</body>
+</html>
