@@ -15,7 +15,8 @@ const points: KnowledgePoint[] = [
 function mockMasteryApi(): void {
   vi.doMock('../src/lib/api', () => ({
     getMasteryProfile: vi.fn(() => Promise.resolve({ 'kp.bio.photo': { masteryLevel: 3, evidenceIds: [] } })),
-    getMasteryTimeline: vi.fn(() => Promise.resolve([]))
+    getMasteryTimeline: vi.fn(() => Promise.resolve([])),
+    getNextIntervention: vi.fn(() => Promise.reject(new Error('no intervention in test')))
   }))
 }
 

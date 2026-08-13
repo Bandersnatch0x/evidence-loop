@@ -157,6 +157,8 @@ const evaluation: EvaluationResult = {
 describe('App', () => {
   beforeEach(() => {
     window.localStorage.clear()
+    // P0 hash router: clear hash so tests start from a clean state (role/view).
+    window.history.replaceState(null, '', ' ')
     vi.mocked(isMultimodalEnabled).mockReturnValue(false)
     vi.mocked(api.getActiveDemoRole).mockReturnValue('student')
     vi.mocked(api.setActiveDemoRole).mockImplementation(() => undefined)
@@ -178,6 +180,7 @@ describe('App', () => {
     vi.mocked(api.getKnowledgeGraph).mockResolvedValue({ points: [], edges: [] })
     vi.mocked(api.listDueReviews).mockResolvedValue([])
     vi.mocked(api.getMasteryProfile).mockResolvedValue({})
+    vi.mocked(api.getNextIntervention).mockRejectedValue(new Error('none in test'))
     vi.mocked(api.assignmentIdToQuestionId).mockImplementation((id) =>
       id.startsWith('seed:') ? id : `seed:${id}`
     )
