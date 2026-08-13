@@ -106,7 +106,7 @@ export function StudyPlanTimeline({
       {isLoading ? <p className="study-plan-note">正在按硬输入重算计划…</p> : null}
 
       {error !== undefined ? (
-        <div className="error-banner">
+        <div className="error-banner" role="alert">
           <AlertTriangle size={18} /> {error}
         </div>
       ) : null}

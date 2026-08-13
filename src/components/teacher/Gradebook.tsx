@@ -75,7 +75,7 @@ export function Gradebook({ teachingUnitId }: GradebookProps) {
   if (isLoading) return <p className="muted">加载批改队列…</p>
   if (error !== undefined) {
     return (
-      <div className="error-banner">
+      <div className="error-banner" role="alert">
         <AlertTriangle size={18} /> {error}
         <button type="button" onClick={() => void reload()}>
           重试
@@ -295,7 +295,7 @@ function GradingRow({ item, onGraded }: GradingRowProps) {
       )}
 
       {error !== undefined ? (
-        <div className="error-banner">
+        <div className="error-banner" role="alert">
           <AlertTriangle size={16} /> {error}
         </div>
       ) : null}

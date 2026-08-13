@@ -42,7 +42,7 @@ function formatActivity(value: string): string {
 
 export function CohortView({ cohort, isLoading }: CohortViewProps) {
   if (isLoading || !cohort) {
-    return <div className="view-loading"><span className="loading-bar" />正在汇总班级证据...</div>
+    return <div className="view-loading" role="status" aria-live="polite"><span className="loading-bar" />正在汇总班级证据...</div>
   }
 
   return (

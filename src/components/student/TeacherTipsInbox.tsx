@@ -74,7 +74,7 @@ export function TeacherTipsInbox({ refreshKey = 0, onStartQuestion }: TeacherTip
 
       {loading ? <p className="muted">加载中…</p> : null}
       {error !== undefined ? (
-        <div className="error-banner">
+        <div className="error-banner" role="alert">
           <AlertTriangle size={18} /> {error}
         </div>
       ) : null}

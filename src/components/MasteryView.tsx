@@ -136,7 +136,7 @@ export function MasteryView({ studentId, points, onStartQuestion }: MasteryViewP
 
   if (isLoading) {
     return (
-      <div className="view-loading"><span className="loading-bar" />正在读取掌握度证据...</div>
+      <div className="view-loading" role="status" aria-live="polite"><span className="loading-bar" />正在读取掌握度证据...</div>
     )
   }
 

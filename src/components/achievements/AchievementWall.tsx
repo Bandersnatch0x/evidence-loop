@@ -135,13 +135,13 @@ export function AchievementWall({
       ) : null}
 
       {error !== undefined ? (
-        <div className="error-banner">
+        <div className="error-banner" role="alert">
           <AlertTriangle size={18} /> {error}
         </div>
       ) : null}
 
       {unbacked.length > 0 ? (
-        <div className="error-banner">
+        <div className="error-banner" role="alert">
           <AlertTriangle size={18} /> 检测到缺少证据链的徽章（
           {unbacked.join('、')}），已拒绝展示。
         </div>

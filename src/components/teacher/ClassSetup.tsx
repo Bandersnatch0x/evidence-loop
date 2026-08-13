@@ -189,7 +189,7 @@ export function ClassSetup({ onSelected, onCreated }: ClassSetupProps) {
         创建
       </button>
       {error !== undefined ? (
-        <div className="error-banner">
+        <div className="error-banner" role="alert">
           <AlertTriangle size={18} /> {error}
         </div>
       ) : null}

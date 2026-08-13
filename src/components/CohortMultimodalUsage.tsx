@@ -74,7 +74,7 @@ export function CohortMultimodalUsage({ classId }: CohortMultimodalUsageProps) {
       </header>
 
       {loading ? (
-        <div className="view-loading">
+        <div className="view-loading" role="status" aria-live="polite">
           <span className="loading-bar" />
           正在汇总语音使用…
         </div>

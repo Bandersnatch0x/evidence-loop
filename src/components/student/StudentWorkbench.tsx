@@ -98,7 +98,7 @@ export function StudentWorkbench({
       </header>
 
       {actionError !== undefined ? (
-        <div className="error-banner">
+        <div className="error-banner" role="alert">
           <AlertTriangle size={18} /> {actionError}
         </div>
       ) : null}
@@ -162,7 +162,7 @@ export function StudentWorkbench({
         </h3>
         {isLoading ? <p className="muted">加载中…</p> : null}
         {error !== undefined ? (
-          <div className="error-banner">
+          <div className="error-banner" role="alert">
             <AlertTriangle size={18} /> {error}
           </div>
         ) : null}

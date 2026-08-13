@@ -126,7 +126,7 @@ export function TodayPractice({
 
       {isLoading ? <p className="muted">正在生成今日队列…</p> : null}
       {error !== undefined ? (
-        <div className="error-banner">
+        <div className="error-banner" role="alert">
           <AlertTriangle size={18} /> {error}
         </div>
       ) : null}

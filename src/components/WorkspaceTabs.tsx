@@ -187,7 +187,7 @@ export function WorkspaceTabs({
                 : undefined
             }
           >
-            <Suspense fallback={<div className="view-loading">正在加载演示…</div>}>
+            <Suspense fallback={<div className="view-loading" role="status" aria-live="polite">正在加载演示…</div>}>
               <StudentDemonstration
                 refs={assignment.demonstrations ?? []}
                 expanded={evaluation !== undefined}

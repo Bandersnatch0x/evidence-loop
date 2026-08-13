@@ -143,6 +143,8 @@ export function ResultsPanel({
                       : 'score-low'
                   : ''
               }`}
+              role="img"
+              aria-label={`得分 ${displayScore} / 100`}
               style={
                 evaluation.status === 'completed'
                   ? ({
@@ -208,7 +210,9 @@ export function ResultsPanel({
                     </div>
                     <p>{item.message}</p>
                     {item.state === 'failed' && (item.expected || item.actual) && (
-                      <code>期望 {item.expected ?? '通过'} · 实际 {item.actual ?? '未通过'}</code>
+                      <code aria-label={`期望 ${item.expected ?? '通过'}，实际 ${item.actual ?? '未通过'}`}>
+                        期望 {item.expected ?? '通过'} · 实际 {item.actual ?? '未通过'}
+                      </code>
                     )}
                   </div>
                   <b>{item.state === 'passed' ? `+${item.weight}` : '0'}</b>

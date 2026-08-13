@@ -175,13 +175,13 @@ export function TipComposer({ teachingUnitId }: TipComposerProps) {
       </button>
 
       {error !== undefined ? (
-        <div className="error-banner">
+        <div className="error-banner" role="alert">
           <AlertTriangle size={18} /> {error}
         </div>
       ) : null}
 
       {result !== undefined ? (
-        <div className="success-banner">
+        <div className="success-banner" role="status">
           已投递 {result.deliveryCount} 人（tip {result.tip.id}）
         </div>
       ) : null}

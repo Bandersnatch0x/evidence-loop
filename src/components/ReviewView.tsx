@@ -59,7 +59,7 @@ export function ReviewView({ studentId, points }: ReviewViewProps) {
 
   if (isLoading) {
     return (
-      <div className="view-loading"><span className="loading-bar" />正在读取复习队列...</div>
+      <div className="view-loading" role="status" aria-live="polite"><span className="loading-bar" />正在读取复习队列...</div>
     )
   }
 

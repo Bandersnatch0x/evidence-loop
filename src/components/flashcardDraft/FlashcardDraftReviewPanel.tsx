@@ -194,12 +194,12 @@ export function FlashcardDraftReviewPanel({
       <p className="flashcard-draft-gate">{gateNotice}</p>
 
       {error !== undefined ? (
-        <div className="error-banner">
+        <div className="error-banner" role="alert">
           <AlertTriangle size={18} /> {error}
         </div>
       ) : null}
       {notice !== undefined ? (
-        <div className="success-banner">{notice}</div>
+        <div className="success-banner" role="status">{notice}</div>
       ) : null}
 
       <div className="flashcard-draft-input">

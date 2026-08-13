@@ -55,7 +55,7 @@ export function MistakeBook({
   if (isLoading) return <p className="muted">加载错题本…</p>
   if (error !== undefined) {
     return (
-      <div className="error-banner">
+      <div className="error-banner" role="alert">
         <AlertTriangle size={18} /> {error}
       </div>
     )

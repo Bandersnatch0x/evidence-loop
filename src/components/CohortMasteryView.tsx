@@ -85,7 +85,7 @@ export function CohortMasteryView({ learners }: CohortMasteryViewProps) {
       )}
 
       {isLoading || !data ? (
-        <div className="view-loading"><span className="loading-bar" />正在汇总班级掌握度证据...</div>
+        <div className="view-loading" role="status" aria-live="polite"><span className="loading-bar" />正在汇总班级掌握度证据...</div>
       ) : (
         <section className="mastery-section">
           <div className="mastery-section-head">

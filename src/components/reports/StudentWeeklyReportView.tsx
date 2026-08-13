@@ -78,7 +78,7 @@ export function StudentWeeklyReportView({
       ) : null}
 
       {error !== undefined ? (
-        <div className="error-banner">
+        <div className="error-banner" role="alert">
           <AlertTriangle size={18} /> {error}
         </div>
       ) : null}

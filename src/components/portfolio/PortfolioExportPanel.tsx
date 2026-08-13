@@ -105,11 +105,11 @@ export function PortfolioExportPanel({
       ) : null}
 
       {error !== undefined ? (
-        <div className="error-banner">
+        <div className="error-banner" role="alert">
           <AlertTriangle size={18} /> {error}
         </div>
       ) : null}
-      {done !== undefined ? <div className="success-banner">{done}</div> : null}
+      {done !== undefined ? <div className="success-banner" role="status">{done}</div> : null}
 
       <div className="portfolio-actions">
         <button

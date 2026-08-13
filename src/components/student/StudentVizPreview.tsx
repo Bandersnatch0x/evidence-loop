@@ -78,6 +78,7 @@ export function StudentVizPreview() {
         结构描述
         <textarea
           rows={2}
+          aria-label="场景描述"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           placeholder="如：水分子；磁场螺旋；串联电路"
@@ -93,7 +94,7 @@ export function StudentVizPreview() {
         <Sparkles size={14} /> 生成预览
       </button>
       {error !== undefined ? (
-        <div className="error-banner">
+        <div className="error-banner" role="alert">
           <AlertTriangle size={18} /> {error}
         </div>
       ) : null}

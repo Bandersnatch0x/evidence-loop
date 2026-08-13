@@ -140,6 +140,7 @@ export function TeacherMockExamWizard({
           <label key={unitId} className="mock-exam-unit">
             <input
               type="checkbox"
+              aria-label={`选择教学单元 ${unitId}`}
               checked={selectedUnitIds.includes(unitId)}
               onChange={() => {
                 toggleUnit(unitId)
@@ -155,6 +156,7 @@ export function TeacherMockExamWizard({
           题量
           <input
             type="number"
+            aria-label="题量"
             min={1}
             max={60}
             value={count}
@@ -167,6 +169,7 @@ export function TeacherMockExamWizard({
           时长（分钟）
           <input
             type="number"
+            aria-label="考试时长（分钟）"
             min={5}
             max={300}
             value={duration}
@@ -186,7 +189,7 @@ export function TeacherMockExamWizard({
       </div>
 
       {error !== undefined ? (
-        <div className="error-banner">
+        <div className="error-banner" role="alert">
           <AlertTriangle size={18} /> {error}
         </div>
       ) : null}

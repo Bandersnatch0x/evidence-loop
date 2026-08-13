@@ -105,7 +105,7 @@ export function StudentPlanHub({ onStartMockExam }: StudentPlanHubProps) {
           </div>
         ) : (
           <div className="effort2-mock-actions">
-            {mockExamError ? <div className="error-banner">{mockExamError}</div> : null}
+            {mockExamError ? <div className="error-banner" role="alert">{mockExamError}</div> : null}
             {mockExamPlans.map((plan) => (
               <div key={plan.id}>
                 <StudentMockExamEntry plan={plan} onStart={onStartMockExam} />

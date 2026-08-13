@@ -57,7 +57,7 @@ export function MockExamReport({
   if (isLoading) return <p className="mock-exam-note">加载中…</p>
   if (error !== undefined) {
     return (
-      <div className="error-banner">
+      <div className="error-banner" role="alert">
         <AlertTriangle size={18} /> {error}
       </div>
     )

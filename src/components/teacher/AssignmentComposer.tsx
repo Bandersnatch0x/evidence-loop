@@ -74,7 +74,7 @@ export function AssignmentComposer({ teachingUnitId }: AssignmentComposerProps) 
       <div className="form-row">
         <label>
           类型：
-          <select value={kind} onChange={(e) => setKind(e.target.value as AssignmentKind)}>
+          <select aria-label="布置类型" value={kind} onChange={(e) => setKind(e.target.value as AssignmentKind)}>
             <option value="handpick">手选题</option>
             <option value="assemble_by_kp">按知识点组卷</option>
             <option value="by_weakness">按全班薄弱点</option>
@@ -82,7 +82,7 @@ export function AssignmentComposer({ teachingUnitId }: AssignmentComposerProps) 
         </label>
         <label>
           模式：
-          <select value={mode} onChange={(e) => setMode(e.target.value as SessionMode)}>
+          <select aria-label="练习模式" value={mode} onChange={(e) => setMode(e.target.value as SessionMode)}>
             <option value="practice">练习态</option>
             <option value="assessment">测评态</option>
           </select>
@@ -140,13 +140,13 @@ export function AssignmentComposer({ teachingUnitId }: AssignmentComposerProps) 
       </button>
 
       {error !== undefined ? (
-        <div className="error-banner">
+        <div className="error-banner" role="alert">
           <AlertTriangle size={18} /> {error}
         </div>
       ) : null}
 
       {result !== undefined ? (
-        <div className="success-banner">
+        <div className="success-banner" role="status">
           已布置 {result.attemptIds.length} 个占位尝试（paper {result.paperId}
           {result.dueAt !== undefined ? ` · 截止 ${result.dueAt}` : ''}）
         </div>

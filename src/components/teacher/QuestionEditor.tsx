@@ -382,12 +382,12 @@ export function QuestionEditor({
       ) : null}
 
       {error !== undefined ? (
-        <div className="error-banner">
+        <div className="error-banner" role="alert">
           <AlertTriangle size={18} /> {error}
         </div>
       ) : null}
       {success !== undefined ? (
-        <div className="success-banner">
+        <div className="success-banner" role="status">
           <CheckCircle2 size={18} /> {success}
         </div>
       ) : null}
