@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
-import { AlertTriangle, RefreshCw } from 'lucide-react'
+import { AlertTriangle, RefreshCw, ShieldCheck } from 'lucide-react'
 import type {
   Assignment,
   AssignmentSummary,
@@ -12,7 +12,7 @@ import type {
 } from '../shared/contracts'
 import { AssignmentPicker } from './components/AssignmentPicker'
 import { CohortMasteryView } from './components/CohortMasteryView'
-import { CohortView } from './components/CohortView'
+import { CohortShell } from './components/CohortShell'
 import { MathProblem } from './components/MathProblem'
 import { MasteryView } from './components/MasteryView'
 import { OverlayLayer } from './components/OverlayLayer'
@@ -46,6 +46,7 @@ import {
   readStoredDemoRole,
   writeStoredDemoRole
 } from './lib/demoRole'
+import { useHashRoute, useHashWriter } from './lib/useHashRoute'
 
 interface LoadedData {
   assignments: AssignmentSummary[]
@@ -108,7 +109,8 @@ const TEACHER_ONLY_VIEWS: readonly AppView[] = [
   'cohort',
   'cohort-mastery',
   'teaching',
-  'teacher-tools'
+  'teacher-tools',
+  'reviewer'
 ]
 
 const STUDENT_ONLY_VIEWS: readonly AppView[] = [
@@ -128,14 +130,37 @@ function isStudentOnlyView(view: AppView): boolean {
 
 export function App() {
   const multimodalEnabled = isMultimodalEnabled()
-  const [activeView, setActiveView] = useState<AppView>('workspace')
+  const hashRoute = useHashRoute()
+  const writeHash = useHashWriter()
+  const [activeView, setActiveView] = useState<AppView>(
+    () => hashRoute.view ?? 'workspace'
+  )
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [voiceOpen, setVoiceOpen] = useState(false)
   const [demoRole, setDemoRole] = useState<DemoRole>(() => {
-    const role = readStoredDemoRole()
+    const role = hashRoute.role ?? readStoredDemoRole()
     setActiveDemoRole(role)
     return role
   })
+  // P0: keep hash in sync when view/role change (idempotent).
+  useEffect(() => {
+    writeHash({ view: activeView, role: demoRole })
+  }, [activeView, demoRole, writeHash])
+  // P0: respond to back/forward (hashchange from buttons / popstate).
+  useEffect(() => {
+    if (hashRoute.view && hashRoute.view !== activeView) {
+      setActiveView(hashRoute.view)
+    }
+    if (hashRoute.role && hashRoute.role !== demoRole) {
+      const role = hashRoute.role
+      writeStoredDemoRole(role)
+      setActiveDemoRole(role)
+      setDemoRole(role)
+    }
+    // hashRoute is read on each hashchange; we intentionally do not depend on
+    // activeView/demoRole here to avoid write loops.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hashRoute])
   const [assignments, setAssignments] = useState<AssignmentSummary[]>([])
   const [assignment, setAssignment] = useState<Assignment>()
   const [history, setHistory] = useState<EvaluationHistoryItem[]>([])
@@ -445,7 +470,13 @@ export function App() {
         allow={['student']}
         deniedMessage="掌握度画像仅对学生角色开放。请切换到学生。"
       >
-        <MasteryView studentId={DEMO_STUDENT_ID} points={knowledgePoints} />
+        <MasteryView
+          studentId={DEMO_STUDENT_ID}
+          points={knowledgePoints}
+          onStartQuestion={(questionId, mode) => {
+            void handleStartQuestion(questionId, mode)
+          }}
+        />
       </RoleGate>
     )
   } else if (activeView === 'review') {
@@ -496,21 +527,38 @@ export function App() {
         allow={['teacher', 'admin']}
         deniedMessage="学生角色无法访问班级学情。请切换到教师或管理员。"
       >
-        <CohortView cohort={cohort} isLoading={false} />
+        <CohortShell
+          cohort={cohort}
+          renderMastery={() => (
+            <CohortMasteryView
+              learners={(cohort?.learners ?? []).map((learner) => ({
+                id: learner.id,
+                displayName: learner.displayName
+              }))}
+            />
+          )}
+        />
       </RoleGate>
     )
   } else if (activeView === 'cohort-mastery') {
+    // P1: merged into cohort entry; legacy hash lands on the mastery tab.
     mainBody = (
       <RoleGate
         role={demoRole}
         allow={['teacher', 'admin']}
         deniedMessage="班级掌握度矩阵仅对教师/管理员开放。"
       >
-        <CohortMasteryView
-          learners={(cohort?.learners ?? []).map((learner) => ({
-            id: learner.id,
-            displayName: learner.displayName
-          }))}
+        <CohortShell
+          cohort={cohort}
+          initialTab="mastery"
+          renderMastery={() => (
+            <CohortMasteryView
+              learners={(cohort?.learners ?? []).map((learner) => ({
+                id: learner.id,
+                displayName: learner.displayName
+              }))}
+            />
+          )}
         />
       </RoleGate>
     )
@@ -521,7 +569,13 @@ export function App() {
         allow={['student']}
         deniedMessage="我的循证计划仅对学生角色开放。请切换到学生。"
       >
-        <StudentPlanHub onStartMockExam={() => setActiveView('practice')} />
+        <StudentPlanHub
+          onStartMockExam={(paperId) => {
+            // P0: persist paperId + land on practice so the paper session shows.
+            writeHash({ view: 'practice', paperId })
+            setActiveView('practice')
+          }}
+        />
       </RoleGate>
     )
   } else if (activeView === 'teacher-tools') {
@@ -532,6 +586,20 @@ export function App() {
         deniedMessage="循证工具仅对教师/管理员开放。"
       >
         <TeacherToolsHub />
+      </RoleGate>
+    )
+  } else if (activeView === 'reviewer') {
+    // P2: public-library reviewer entry (read-only queue placeholder).
+    mainBody = (
+      <RoleGate
+        role={demoRole}
+        allow={['teacher', 'admin']}
+        deniedMessage="公共库审核仅对教师/管理员开放。"
+      >
+        <div className="view-loading" role="status">
+          <ShieldCheck size={18} />
+          公共库审核队列。访问 <code>/api/reviewer/queue</code> 查看待审版本。
+        </div>
       </RoleGate>
     )
   } else {

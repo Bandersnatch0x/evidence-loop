@@ -103,7 +103,12 @@ export function StudentWorkbench({
         </div>
       ) : null}
 
-      <TeacherTipsInbox refreshKey={refreshKey} />
+      <TeacherTipsInbox
+        refreshKey={refreshKey}
+        onStartQuestion={(qid, mode) => {
+          void startQuestion(qid, mode)
+        }}
+      />
 
       <hr />
 
@@ -112,8 +117,8 @@ export function StudentWorkbench({
         teachingUnitId={teachingUnitId}
         refreshKey={refreshKey}
         busy={busy}
-        onStartQuestion={(qid) => {
-          void startQuestion(qid, 'practice')
+        onStartQuestion={(qid, mode) => {
+          void startQuestion(qid, mode)
         }}
       />
 

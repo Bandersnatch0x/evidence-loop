@@ -17,8 +17,8 @@ interface TodayPracticeProps {
   studentId: string
   teachingUnitId: string
   refreshKey: number
-  /** Start a practice attempt for a bank question (may be seed:assignmentId). */
-  onStartQuestion: (questionId: string) => void
+  /** Start an attempt for a bank question (may be seed:assignmentId). */
+  onStartQuestion: (questionId: string, mode: 'practice' | 'assessment') => void
   busy?: boolean
 }
 
@@ -97,10 +97,20 @@ export function TodayPractice({
         lastScore,
         evidenceLabel: lastScore !== undefined ? '查看上次证据' : undefined,
         onEvidence:
-          lastScore !== undefined ? () => onStartQuestion(question.id) : undefined,
-        onOpen: () => onStartQuestion(question.id),
+          lastScore !== undefined ? () => onStartQuestion(question.id, 'practice') : undefined,
+        onOpen: () => onStartQuestion(question.id, 'practice'),
         openLabel: '开始练',
-        openDisabled: busy
+        openDisabled: busy,
+        secondaryActions:
+          item.source === 'dependency_gap'
+            ? [
+                {
+                  label: '测评态',
+                  onClick: () => onStartQuestion(question.id, 'assessment'),
+                  disabled: busy
+                }
+              ]
+            : undefined
       }
     })
   )

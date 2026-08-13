@@ -6,13 +6,15 @@ import { listStudentTips, markStudentTipRead } from '../../lib/api'
 interface TeacherTipsInboxProps {
   /** Bump from parent to re-fetch after practice actions. */
   refreshKey?: number
+  /** P0: replay a tip-bound question in practice mode. */
+  onStartQuestion?: (questionId: string, mode: 'practice' | 'assessment') => void
 }
 
 /**
  * T14 — student inbox for teacher tips (站内消息).
  * Unread first; mark-read is per-student delivery only.
  */
-export function TeacherTipsInbox({ refreshKey = 0 }: TeacherTipsInboxProps) {
+export function TeacherTipsInbox({ refreshKey = 0, onStartQuestion }: TeacherTipsInboxProps) {
   const [items, setItems] = useState<StudentTipItem[]>([])
   const [error, setError] = useState<string>()
   const [loading, setLoading] = useState(true)
@@ -112,6 +114,15 @@ export function TeacherTipsInbox({ refreshKey = 0 }: TeacherTipsInboxProps) {
                 ) : (
                   <span className="muted tip-read">已读 {item.readAt}</span>
                 )}
+                {item.questionId && onStartQuestion ? (
+                  <button
+                    type="button"
+                    className="ghost tip-replay"
+                    onClick={() => onStartQuestion(item.questionId!, 'practice')}
+                  >
+                    立即重练
+                  </button>
+                ) : null}
               </li>
             )
           })}

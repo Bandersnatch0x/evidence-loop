@@ -19,6 +19,12 @@ export interface QuestionCardProps {
   openLabel?: string
   /** Disable the primary action (e.g. while a start is in flight). */
   openDisabled?: boolean
+  /** P1: secondary mode buttons (e.g. 测评态 alongside default 练习态). */
+  secondaryActions?: ReadonlyArray<{
+    label: string
+    onClick: () => void
+    disabled?: boolean
+  }>
   /** Footer actions (teacher edit / delete). */
   footer?: ReactNode
 }
@@ -47,6 +53,7 @@ export function QuestionCard({
   onOpen,
   openLabel = '查看',
   openDisabled = false,
+  secondaryActions,
   footer
 }: QuestionCardProps) {
   return (
@@ -91,6 +98,17 @@ export function QuestionCard({
             {openLabel}
           </button>
         ) : null}
+        {secondaryActions?.map((action) => (
+          <button
+            key={action.label}
+            type="button"
+            className="secondary-button"
+            onClick={action.onClick}
+            disabled={action.disabled}
+          >
+            {action.label}
+          </button>
+        ))}
         {footer}
       </div>
     </article>

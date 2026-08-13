@@ -3,7 +3,6 @@
   CalendarClock,
   ClipboardList,
   GraduationCap,
-  Grid3x3,
   Layers,
   Menu,
   NotebookPen,
@@ -26,6 +25,7 @@ export type AppView =
   | 'transparency'
   | 'student-plan'
   | 'teacher-tools'
+  | 'reviewer'
 
 interface SidebarProps {
   activeView: AppView
@@ -57,9 +57,9 @@ const navigation = [
   },
   { id: 'cohort', label: '班级学情', icon: UsersRound, roles: ['teacher', 'admin'] },
   {
-    id: 'cohort-mastery',
-    label: '班级掌握度矩阵',
-    icon: Grid3x3,
+    id: 'reviewer',
+    label: '公共库审核',
+    icon: ShieldCheck,
     roles: ['teacher', 'admin']
   },
   { id: 'transparency', label: '项目透明度', icon: ShieldCheck },
@@ -171,13 +171,26 @@ export function Sidebar({
                 ? true
                 : item.roles.some((role) => role === demoRole)
             )
-            .map(({ id, label, icon: Icon }) => (
+            .map(({ id, label, icon: Icon }, index, arr) => (
             <button
               key={id}
               type="button"
               className={activeView === id ? 'is-active' : ''}
               aria-current={activeView === id ? 'page' : undefined}
+              // P2: roving tabindex — only the active item (or first) is tabbable.
+              tabIndex={activeView === id || (index === 0 && !arr.some((i) => i.id === activeView)) ? 0 : -1}
               onClick={() => navigate(id)}
+              onKeyDown={(event) => {
+                if (event.key === 'ArrowDown' || event.key === 'ArrowRight') {
+                  event.preventDefault()
+                  const next = arr[(index + 1) % arr.length]
+                  ;(event.currentTarget.parentElement?.children[index + 1 < arr.length ? index + 1 : 0] as HTMLElement | undefined)?.focus()
+                  void next
+                } else if (event.key === 'ArrowUp' || event.key === 'ArrowLeft') {
+                  event.preventDefault()
+                  ;(event.currentTarget.parentElement?.children[index > 0 ? index - 1 : arr.length - 1] as HTMLElement | undefined)?.focus()
+                }
+              }}
             >
               <Icon size={18} />
               <span>{label}</span>

@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState, lazy, Suspense } from 'react'
-import { AlertTriangle, PlayCircle, ShieldCheck } from 'lucide-react'
+import { AlertTriangle, PlayCircle, ShieldCheck, Target } from 'lucide-react'
 import type {
   DemonstrationReferenceView,
+  InterventionSuggestion,
   KnowledgePoint,
   MasteryProfileMap,
   MasteryTimelineEntry
 } from '../../shared/contracts'
-import { getMasteryProfile, getMasteryTimeline } from '../lib/api'
+import { getNextIntervention, getMasteryProfile, getMasteryTimeline } from '../lib/api'
 import { buildKpNameMap, kpName } from '../lib/masteryView'
 import { MasteryHeatmap } from './MasteryHeatmap'
 import { MasteryTimeline } from './MasteryTimeline'
@@ -28,6 +29,8 @@ async function fetchKpDemonstrations(kpId: string): Promise<DemonstrationReferen
 interface MasteryViewProps {
   studentId: string
   points: KnowledgePoint[]
+  /** P0: open a practice attempt for the intervention's target question. */
+  onStartQuestion?: (questionId: string, mode: 'practice' | 'assessment') => void
 }
 
 /**
@@ -36,12 +39,13 @@ interface MasteryViewProps {
  * Loads the evidence-derived profile plus a per-knowledge-point timeline. The
  * heatmap selects which knowledge point the trend chart renders.
  */
-export function MasteryView({ studentId, points }: MasteryViewProps) {
+export function MasteryView({ studentId, points, onStartQuestion }: MasteryViewProps) {
   const [profile, setProfile] = useState<MasteryProfileMap>({})
   const [selectedKpId, setSelectedKpId] = useState<string>()
   const [timeline, setTimeline] = useState<MasteryTimelineEntry[]>([])
   const [demos, setDemos] = useState<DemonstrationReferenceView[] | null>(null)
   const [demosLoading, setDemosLoading] = useState(false)
+  const [intervention, setIntervention] = useState<InterventionSuggestion>()
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string>()
 
@@ -110,6 +114,26 @@ export function MasteryView({ studentId, points }: MasteryViewProps) {
     }
   }, [selectedKpId])
 
+  // P0: fetch the next intervention for the selected knowledge point — closes
+  // the "diagnosis → intervention" gap. ADR-0006: suggestions only, never score.
+  useEffect(() => {
+    if (!selectedKpId) {
+      setIntervention(undefined)
+      return
+    }
+    let cancelled = false
+    getNextIntervention(studentId, selectedKpId)
+      .then((suggestion) => {
+        if (!cancelled) setIntervention(suggestion)
+      })
+      .catch(() => {
+        if (!cancelled) setIntervention(undefined)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [studentId, selectedKpId])
+
   if (isLoading) {
     return (
       <div className="view-loading"><span className="loading-bar" />正在读取掌握度证据...</div>
@@ -147,6 +171,35 @@ export function MasteryView({ studentId, points }: MasteryViewProps) {
           entries={timeline}
         />
       </section>
+
+      {selectedKpId && intervention && intervention.chain.length > 0 ? (
+        <section className="mastery-section" aria-label="干预建议">
+          <div className="section-heading">
+            <Target size={16} />
+            <h2>下一步干预 · {kpName(kpNames, selectedKpId)}</h2>
+          </div>
+          <div className="intervention-card">
+            <p className="intervention-meta">
+              薄弱知识点：{kpName(kpNames, intervention.weakKp)} →
+              目标：{kpName(kpNames, intervention.targetKp)}
+            </p>
+            <ol className="intervention-chain">
+              {intervention.chain.map((kpId) => (
+                <li key={kpId}>{kpName(kpNames, kpId)}</li>
+              ))}
+            </ol>
+            {onStartQuestion ? (
+              <button
+                type="button"
+                className="primary-button intervention-replay"
+                onClick={() => onStartQuestion(intervention.targetKp, 'practice')}
+              >
+                立即再练
+              </button>
+            ) : null}
+          </div>
+        </section>
+      ) : null}
 
       {selectedKpId && demos !== null && demos.length > 0 ? (
         <section className="mastery-section" aria-label="知识点教学演示">
