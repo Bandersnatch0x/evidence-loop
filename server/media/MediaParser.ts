@@ -151,11 +151,15 @@ function parseImage(sniff: Buffer): ParseResult {
   }
 }
 
-/** GLB: header + JSON chunk structural checks. Magic/version verified by detectKind. */
+/** GLB: header + JSON chunk structural checks. Magic/version share the
+ * same logic as mediaGate.detectKind (latin1 'glTF' + b[4]===2) so the two
+ * never disagree, but parseGlb re-checks because it is a public entry point
+ * that callers can reach without going through detectKind first. */
 function parseGlb(sniff: Buffer, declaredBytes: number): ParseResult {
   if (sniff.length < 20) return invalid('GLB header truncated')
-  // Magic ('glTF') and version (2) are already verified by detectKind;
-  // re-checking here would duplicate the contract and risk drift.
+  const magic = sniff.subarray(0, 4).toString('latin1')
+  if (magic !== 'glTF') return invalid('GLB bad magic (not a glTF binary)')
+  if (sniff[4] !== 2) return invalid(`GLB unsupported version ${sniff[4]} (expected 2)`)
   const totalLength = sniff.readUInt32LE(8)
   if (totalLength !== declaredBytes) {
     return invalid(`GLB declared length ${totalLength} != uploaded ${declaredBytes}`)

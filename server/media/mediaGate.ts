@@ -90,8 +90,9 @@ export function detectImageFormat(bytes: Uint8Array | Buffer): ImageFormat | nul
   if (b.length >= 8 && b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47) {
     return 'png'
   }
-  // JPEG SOI: FF D8 FF (3 bytes — the gate and parser agree on this).
-  if (b.length >= 3 && b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff) return 'jpeg'
+  // JPEG SOI: FF D8 (2 bytes — the gate and parser agree; the third byte
+  // FF D8 FF is common but not required by the SOI definition).
+  if (b.length >= 2 && b[0] === 0xff && b[1] === 0xd8) return 'jpeg'
   if (b.length >= 6) {
     const gif = Buffer.from(b.subarray(0, 6)).toString('latin1')
     if (gif === 'GIF87a' || gif === 'GIF89a') return 'gif'
