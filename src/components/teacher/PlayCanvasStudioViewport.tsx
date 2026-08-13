@@ -259,7 +259,7 @@ export function PlayCanvasStudioViewport({ document, selectedNodeId }: PlayCanva
   return (
     <div
       aria-label="PlayCanvas 3D 创作视口"
-      style={{ position: 'relative', width: '100%', height: VIEWPORT_HEIGHT, overflow: 'hidden', background: '#0e1116' }}
+      style={{ position: 'relative', width: '100%', height: VIEWPORT_HEIGHT, overflow: 'hidden', background: 'var(--code-bg)' }}
     >
       <canvas
         ref={canvasRef}
@@ -292,7 +292,7 @@ export function PlayCanvasStudioViewport({ document, selectedNodeId }: PlayCanva
       {state !== 'ready' || renderableCount === 0 || message ? (
         <div
           role={state === 'error' ? 'alert' : 'status'}
-          style={{ position: 'absolute', left: 12, bottom: 12, color: '#e7edf5', background: 'rgba(14,17,22,0.82)', padding: '6px 8px' }}
+          style={{ position: 'absolute', left: 12, bottom: 12, color: 'var(--code-ink)', background: 'oklch(24% 0.025 252 / 0.82)', padding: '6px 8px' }}
         >
           {message || (renderableCount === 0 ? '场景暂无 3D 对象' : '')}
         </div>

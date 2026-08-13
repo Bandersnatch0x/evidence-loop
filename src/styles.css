@@ -227,7 +227,7 @@ ol {
 
 .role-switcher small {
   color: var(--warn-deep);
-  font-size: 0.625rem;
+  font-size: 0.6875rem;
   line-height: 1.4;
 }
 
@@ -1848,8 +1848,6 @@ td > b {
   color: var(--ink-muted);
   font-size: 0.75rem;
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
 }
 
 .evidence-flow-nodes {
@@ -2645,7 +2643,7 @@ td > b {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #fbbf24;
+  background: var(--warn);
   box-shadow: 0 0 0 3px oklch(80% 0.12 85 / 0.35);
 }
 
@@ -2921,7 +2919,6 @@ td > b {
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
-  box-shadow: var(--float-shadow);
 }
 
 .math-problem-header h3 {
@@ -3012,7 +3009,6 @@ td > b {
   max-width: 260px;
   padding: 12px;
   background: var(--surface);
-  border: 1px solid var(--line-strong);
   border-radius: var(--radius-md);
   box-shadow: var(--float-shadow);
 }
@@ -3140,7 +3136,7 @@ td > b {
   background: var(--surface);
   border: 1px solid oklch(88% 0.03 252);
   border-radius: 999px;
-  font-size: 0.625rem;
+  font-size: 0.6875rem;
   font-weight: 650;
 }
 
@@ -3149,7 +3145,7 @@ td > b {
   color: var(--warn-deep);
   background: var(--warn-wash);
   border-radius: 999px;
-  font-size: 0.625rem;
+  font-size: 0.6875rem;
   font-weight: 650;
 }
 
@@ -3477,7 +3473,7 @@ td > b {
   color: var(--ink-muted);
   background: oklch(92% 0.004 252);
   border-radius: 999px;
-  font-size: 0.625rem;
+  font-size: 0.6875rem;
   font-weight: 600;
 }
 
@@ -3558,7 +3554,7 @@ td > b {
 
 .tutoring-ai-badge-compact {
   padding: 2px 8px;
-  font-size: 0.625rem;
+  font-size: 0.6875rem;
 }
 
 .tutoring-layer {
@@ -3654,7 +3650,7 @@ td > b {
 
 .tutoring-source {
   color: var(--ink-faint);
-  font-size: 0.625rem;
+  font-size: 0.6875rem;
   font-weight: 600;
 }
 
@@ -3977,9 +3973,9 @@ td > b {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  border: 1px solid var(--indigo-deep, #3730a3);
-  background: var(--indigo-wash, #eef2ff);
-  color: var(--indigo-deep, #3730a3);
+  border: 1px solid var(--indigo-deep);
+  background: var(--indigo-wash);
+  color: var(--indigo-deep);
   border-radius: var(--radius-sm, 8px);
   padding: 6px 10px;
   font-size: 0.85rem;
@@ -3996,7 +3992,7 @@ td > b {
 .mid-problem-help {
   margin-top: 12px;
   padding-top: 8px;
-  border-top: 1px dashed var(--line-strong, #d4d4d8);
+  border-top: 1px dashed var(--line-strong);
 }
 .mid-problem-help-caption {
   margin: 0 0 8px;
@@ -4665,8 +4661,8 @@ td > b {
 }
 
 .tip-row.unread {
-  border-color: var(--accent, #4f46e5);
-  box-shadow: inset 3px 0 0 var(--accent, #4f46e5);
+  border-color: var(--indigo);
+  box-shadow: inset 3px 0 0 var(--indigo);
 }
 
 .tip-meta,
@@ -4683,8 +4679,8 @@ td > b {
   margin-left: 8px;
   padding: 0 6px;
   border-radius: 999px;
-  background: var(--accent, #4f46e5);
-  color: #fff;
+  background: var(--indigo);
+  color: var(--surface);
   font-size: 0.75rem;
   font-weight: 600;
   vertical-align: middle;
@@ -4694,8 +4690,8 @@ td > b {
   margin: 10px 0 0;
   padding: 8px 12px;
   border-radius: var(--radius-md);
-  background: color-mix(in srgb, #16a34a 12%, transparent);
-  color: #166534;
+  background: color-mix(in srgb, var(--pass) 12%, transparent);
+  color: var(--pass-deep);
   font-size: 0.8125rem;
 }
 
@@ -4820,8 +4816,8 @@ td > b {
 }
 
 .tip-row.unread {
-  border-color: var(--accent, #3b82f6);
-  background: color-mix(in srgb, var(--accent, #3b82f6) 8%, var(--surface));
+  border-color: var(--indigo);
+  background: color-mix(in srgb, var(--indigo) 8%, var(--surface));
 }
 
 .tip-body {
@@ -4846,8 +4842,8 @@ td > b {
   min-width: 1.25rem;
   padding: 0 6px;
   border-radius: 999px;
-  background: var(--warn, #f59e0b);
-  color: #111;
+  background: var(--warn);
+  color: var(--ink);
   font-size: 0.75rem;
   font-weight: 700;
   vertical-align: middle;
@@ -4879,12 +4875,12 @@ td > b {
 }
 
 .paper-exam-shell.status-submitted {
-  border-color: color-mix(in srgb, var(--pass-deep, #15803d) 45%, var(--line));
-  background: color-mix(in srgb, var(--pass-wash, #dcfce7) 55%, var(--surface));
+  border-color: color-mix(in srgb, var(--pass-deep) 45%, var(--line));
+  background: color-mix(in srgb, var(--pass-wash) 55%, var(--surface));
 }
 
 .paper-exam-shell.status-expired {
-  border-color: color-mix(in srgb, var(--warn-deep, #b45309) 45%, var(--line));
+  border-color: color-mix(in srgb, var(--warn-deep) 45%, var(--line));
 }
 
 .paper-exam-shell-main {
@@ -4896,7 +4892,7 @@ td > b {
 .paper-exam-icon {
   display: inline-flex;
   margin-top: 2px;
-  color: var(--warn-deep, #b45309);
+  color: var(--warn-deep);
 }
 
 .paper-exam-copy {
@@ -4938,22 +4934,22 @@ td > b {
   border-radius: 999px;
   font-size: 0.75rem;
   font-weight: 600;
-  background: var(--surface-sunken, #f4f4f5);
+  background: var(--surface-sunken);
 }
 
 .paper-exam-status-badge.running {
-  background: var(--warn-wash, #ffedd5);
-  color: var(--warn-deep, #b45309);
+  background: var(--warn-wash);
+  color: var(--warn-deep);
 }
 
 .paper-exam-status-badge.submitted {
-  background: var(--pass-wash, #dcfce7);
-  color: var(--pass-deep, #15803d);
+  background: var(--pass-wash);
+  color: var(--pass-deep);
 }
 
 .paper-exam-status-badge.expired {
-  background: color-mix(in srgb, var(--warn-wash, #ffedd5) 70%, #fff);
-  color: var(--warn-deep, #b45309);
+  background: color-mix(in srgb, var(--warn-wash) 70%, var(--surface));
+  color: var(--warn-deep);
 }
 
 .paper-submit-btn {
@@ -4991,7 +4987,7 @@ td > b {
   appearance: none;
   border: none;
   background: transparent;
-  color: var(--accent, #2563eb);
+  color: var(--indigo);
   padding: 0;
   font-size: 0.8125rem;
   cursor: pointer;
@@ -5024,8 +5020,8 @@ td > b {
 }
 
 .tip-student-chip.selected {
-  border-color: var(--accent, #3b82f6);
-  background: color-mix(in srgb, var(--accent, #3b82f6) 10%, var(--surface));
+  border-color: var(--indigo);
+  background: color-mix(in srgb, var(--indigo) 10%, var(--surface));
 }
 
 .tip-student-chip input {

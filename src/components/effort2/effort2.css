@@ -176,7 +176,7 @@
   font-size: 0.75rem;
   font-weight: 650;
   padding: 4px 10px;
-  color: #fff;
+  color: var(--surface);
   background: var(--indigo-deep);
   border: 1px solid var(--indigo-deep);
   border-radius: 8px;
@@ -198,11 +198,11 @@
   margin: 0;
   font-size: 0.75rem;
   font-weight: 650;
-  color: var(--green-deep, #1a7f37);
+  color: var(--pass-deep);
 }
 
 .task-template-error {
   margin: 0;
   font-size: 0.8rem;
-  color: var(--red-deep, #b42318);
+  color: var(--fail-deep);
 }
