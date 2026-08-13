@@ -27,7 +27,8 @@ const summary: QuestionSummary = {
   kpIds: ['kp.math.arith'],
   difficulty: 1,
   source: 'authored_key',
-  hasSolution: false
+  hasSolution: false,
+  authorId: 'teacher-demo'
 }
 
 const fullQuestion: Question = {

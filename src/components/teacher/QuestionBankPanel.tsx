@@ -160,7 +160,9 @@ export function QuestionBankPanel() {
                 )}
               </>
             ),
-            footer: (
+            footer: item.authorId === 'system-builtin' ? (
+              <span className="muted">预置库 · 只读</span>
+            ) : (
               <>
                 <button
                   type="button"

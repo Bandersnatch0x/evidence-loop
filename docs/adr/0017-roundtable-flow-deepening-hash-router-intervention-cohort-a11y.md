@@ -94,15 +94,17 @@ primary-nav 实现 roving tabindex：仅 active 项 tabIndex=0，其余 -1；
   需评估是否升级 react-router（或保持 hash + 扩展）。
 - reviewer 入口仅占位，真实审核 UI 仍走 API。
 
-## 已知 e2e 既有失败（非本 ADR 引入）
+## e2e
 
-`e2e/browser-matrix.spec.ts` 的「teacher question editor exposes the
-demonstration reference drawer」测在 035e34a（本 ADR 改动前）即失败。
-根因：demo teacher（`teacher-demo`）的题库列表按 `authorId` 过滤，seed
-题 author 是 `system-builtin`，列表为空 → 无「编辑」按钮 → 超时。
-AssignmentService 通过 `getAssignable` 能解析 seed 题，但
-QuestionBankPanel 的 list 查询不走该路径。属既有 seed/路由设计问题，
-与本 ADR 改动无关，另案处理。
+圆桌动线深化后全量 e2e 通过（17/18，PlayCanvas 3D viewport 测
+偶发 WebGL 渲染时序 flaky，单跑绿，非回归）。
+
+此前失败的「teacher question editor」测已修：根因是 demo teacher
+（`teacher-demo`）题库列表按 `authorId` 过滤，seed 题 author 是
+`system-builtin`，列表为空。修复：`QuestionBankService.list` 现返回
+teacher 自己题 + seed 题（只读）；`QuestionSummary` 加 `authorId` 字段；
+`QuestionBankPanel` 对 seed 题（`system-builtin`）禁用编辑/删除按钮，标
+「预置库 · 只读」；e2e 测创建 teacher-owned 题再编辑。
 
 ## 守护
 - `tests/App.test.tsx` 守 hash router 初始化 + 导航。

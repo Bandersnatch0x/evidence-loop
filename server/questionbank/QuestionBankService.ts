@@ -133,13 +133,27 @@ export class QuestionBankService {
     )
   }
 
-  /** List questions owned by `authorId`, with optional filters. */
+  /**
+   * List questions the teacher can see: own private bank + system seed bank
+   * (T03 预置库). Seed questions are read-only — edit/delete use get() which
+   * refuses seed rows via assertOwner. This closes the "demo teacher sees an
+   * empty bank" gap: seed questions are visible (and assignable) but not
+   * editable.
+   */
   public list(
     authorId: string,
     filters: Omit<QuestionQuery, 'authorId'> = {}
   ): QuestionSummary[] {
-    return this.store
-      .list({ ...filters, authorId })
+    const own = this.store.list({ ...filters, authorId })
+    const seed = this.store.list({ ...filters, authorId: SEED_AUTHOR_ID })
+    // De-dup by id (a question is owned by exactly one author).
+    const seen = new Set<string>()
+    return [...own, ...seed]
+      .filter((q) => {
+        if (seen.has(q.id)) return false
+        seen.add(q.id)
+        return true
+      })
       .map(toSummary)
   }
 
@@ -366,6 +380,7 @@ function toSummary(question: Question): QuestionSummary {
     kpIds: question.kpIds,
     difficulty: question.difficulty,
     source: question.source,
-    hasSolution: question.solution !== undefined
+    hasSolution: question.solution !== undefined,
+    authorId: question.authorId
   }
 }

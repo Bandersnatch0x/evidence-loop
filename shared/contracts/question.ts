@@ -96,6 +96,8 @@ export interface QuestionSummary {
   source: EvidenceSource
   /** True when a T09 standard solution is present (else marked 待补). */
   hasSolution: boolean
+  /** Author id — 'system-builtin' marks read-only seed questions. */
+  authorId: string
 }
 
 /**

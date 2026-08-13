@@ -279,6 +279,7 @@ function toSummary(question: Question): QuestionSummary {
     kpIds: question.kpIds,
     difficulty: question.difficulty,
     source: question.source,
-    hasSolution: question.solution !== undefined
+    hasSolution: question.solution !== undefined,
+    authorId: question.authorId
   }
 }

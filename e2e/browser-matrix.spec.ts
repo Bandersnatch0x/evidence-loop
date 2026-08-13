@@ -100,9 +100,25 @@ test.describe('T-M browser matrix', () => {
     expect(overflowX).toBeLessThanOrEqual(0)
   })
 
-  test('teacher question editor exposes the demonstration reference drawer', async ({ page }) => {
+  test('teacher question editor exposes the demonstration reference drawer', async ({ page, request }) => {
     // T-J/T-17 business loop: 题库 → 编辑题 → 教学演示引用抽屉挂载（检索/已引用）。
+    // Seed questions are read-only; create a teacher-owned question so the
+    // 编辑 button renders, then exercise the reference drawer on it.
     await gotoApp(page)
+    await page.getByLabel('演示角色切换').selectOption('teacher')
+    await request.post('/api/questions', {
+      headers: { 'X-Demo-Role': 'teacher' },
+      data: {
+        questionBankId: 'seed-demo-bank',
+        subject: 'math',
+        questionType: 'choice',
+        stem: 'e2e 演示引用题',
+        payload: { kind: 'choice', correctOptionIds: ['A'] },
+        kpIds: [],
+        difficulty: 1
+      }
+    })
+    await page.reload({ waitUntil: 'networkidle' })
     await page.getByLabel('演示角色切换').selectOption('teacher')
     await page.getByRole('button', { name: '教师工作台' }).click()
     await page.getByRole('tab', { name: /题库录入/i }).click()
