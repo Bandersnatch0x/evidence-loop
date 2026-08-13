@@ -269,3 +269,46 @@ evidence-loop/
 ├── docker/python-runner/# Docker runner 镜像
 └── data/                # 媒体 blob + seed
 ```
+
+## 13. 页面截图
+
+> 截图由 `scripts/capture-screenshots.mjs` 自动捕获（`npm run dev:no-watch` 后运行）。
+
+### 学生端
+
+| 截图 | 页面 | 说明 |
+|---|---|---|
+| ![学生工作台](screenshots/pages/student-workspace.png) | 学习工作台 | 五步闭环条 + 提交面板（默认落地页） |
+| ![掌握度+干预](screenshots/pages/student-mastery-intervention.png) | 我的掌握度 | 热力图 + 趋势 + 干预卡（P0 闭环） |
+| ![今日复习](screenshots/pages/student-review.png) | 今日复习 | FSRS 到期队列 |
+| ![双模练习](screenshots/pages/student-practice-dualmode.png) | 我的练习 | 今日该练 + 双模卡片（P1） |
+| ![循证计划](screenshots/pages/student-plan-hub.png) | 我的循证计划 | 7 日计划 + 模拟考 + 周报 + 成就 |
+
+### 教师端
+
+| 截图 | 页面 | 说明 |
+|---|---|---|
+| ![教师工作台](screenshots/pages/teacher-workbench.png) | 教师工作台 | 单元 → 题库 → 名单 → 布置 → 批改 |
+| ![班级学情双 Tab](screenshots/pages/teacher-cohort-tabs.png) | 班级学情 | 概览 + 掌握度矩阵（P1 合并） |
+| ![透明度](screenshots/pages/transparency-view.png) | 项目透明度 | Agent 名册 + 证据流 |
+
+### 移动端
+
+| 截图 | 页面 | 说明 |
+|---|---|---|
+| ![移动侧栏](screenshots/pages/mobile-sidebar.png) | 侧栏抽屉 | 响应式 ≤980px |
+| ![移动教师台](screenshots/pages/mobile-teacher-workbench.png) | 教师工作台 | 移动端适配 |
+
+### 演示视频片段
+
+现有素材在 `docs/screenshots/demo-videos/`：开场反差（code/fallback/math）+ 实录（evidence/fallback/math/teacher/tutoring）。
+
+### 截图脚本
+
+```bash
+# 1. 起服务
+npm run dev:no-watch &
+# 2. 截图（需 playwright 已装）
+node scripts/capture-screenshots.mjs
+# 输出到 docs/screenshots/pages/*.png
+```
