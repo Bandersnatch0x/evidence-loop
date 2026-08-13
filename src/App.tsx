@@ -18,6 +18,8 @@ import { MasteryView } from './components/MasteryView'
 import { OverlayLayer } from './components/OverlayLayer'
 import { PipelineBar } from './components/PipelineBar'
 import { ReviewView } from './components/ReviewView'
+import { RoleGate } from './components/RoleGate'
+import { isStudentRole, isTeacherRole } from './components/rolePredicates'
 import { MobileHeader, Sidebar, type AppView } from './components/Sidebar'
 import { StudentWorkbench } from './components/student'
 import { StudentPlanHub, TeacherToolsHub } from './components/effort2'
@@ -102,22 +104,26 @@ function ErrorState({ message, onRetry }: { message: string; onRetry: () => void
   )
 }
 
+const TEACHER_ONLY_VIEWS: readonly AppView[] = [
+  'cohort',
+  'cohort-mastery',
+  'teaching',
+  'teacher-tools'
+]
+
+const STUDENT_ONLY_VIEWS: readonly AppView[] = [
+  'mastery',
+  'review',
+  'practice',
+  'student-plan'
+]
+
 function isTeacherOnlyView(view: AppView): boolean {
-  return (
-    view === 'cohort' ||
-    view === 'cohort-mastery' ||
-    view === 'teaching' ||
-    view === 'teacher-tools'
-  )
+  return TEACHER_ONLY_VIEWS.includes(view)
 }
 
 function isStudentOnlyView(view: AppView): boolean {
-  return (
-    view === 'mastery' ||
-    view === 'review' ||
-    view === 'practice' ||
-    view === 'student-plan'
-  )
+  return STUDENT_ONLY_VIEWS.includes(view)
 }
 
 export function App() {
@@ -212,10 +218,10 @@ export function App() {
     setEvaluation(undefined)
     setActiveAttempt(undefined)
     setError(undefined)
-    if (role === 'student' && isTeacherOnlyView(activeView)) {
+    if (isStudentRole(role) && isTeacherOnlyView(activeView)) {
       setActiveView('workspace')
     }
-    if ((role === 'teacher' || role === 'admin') && isStudentOnlyView(activeView)) {
+    if (isTeacherRole(role) && isStudentOnlyView(activeView)) {
       setActiveView('workspace')
     }
     setDemoRole(role)
@@ -433,28 +439,32 @@ export function App() {
       </div>
     )
   } else if (activeView === 'mastery') {
-    mainBody =
-      demoRole === 'student' ? (
+    mainBody = (
+      <RoleGate
+        role={demoRole}
+        allow={['student']}
+        deniedMessage="掌握度画像仅对学生角色开放。请切换到学生。"
+      >
         <MasteryView studentId={DEMO_STUDENT_ID} points={knowledgePoints} />
-      ) : (
-        <div className="view-loading role-denied" role="status">
-          <AlertTriangle size={18} />
-          掌握度画像仅对学生角色开放。请切换到学生。
-        </div>
-      )
+      </RoleGate>
+    )
   } else if (activeView === 'review') {
-    mainBody =
-      demoRole === 'student' ? (
+    mainBody = (
+      <RoleGate
+        role={demoRole}
+        allow={['student']}
+        deniedMessage="今日复习仅对学生角色开放。请切换到学生。"
+      >
         <ReviewView studentId={DEMO_STUDENT_ID} points={knowledgePoints} />
-      ) : (
-        <div className="view-loading role-denied" role="status">
-          <AlertTriangle size={18} />
-          今日复习仅对学生角色开放。请切换到学生。
-        </div>
-      )
+      </RoleGate>
+    )
   } else if (activeView === 'practice') {
-    mainBody =
-      demoRole === 'student' ? (
+    mainBody = (
+      <RoleGate
+        role={demoRole}
+        allow={['student']}
+        deniedMessage="我的练习仅对学生角色开放。请切换到学生。"
+      >
         <StudentWorkbench
           questionId={assignmentIdToQuestionId(assignment.id)}
           teachingUnitId="tu-demo"
@@ -467,67 +477,63 @@ export function App() {
           }}
           onStartQuestion={handleStartQuestion}
         />
-      ) : (
-        <div className="view-loading role-denied" role="status">
-          <AlertTriangle size={18} />
-          我的练习仅对学生角色开放。请切换到学生。
-        </div>
-      )
+      </RoleGate>
+    )
   } else if (activeView === 'teaching') {
-    mainBody =
-      demoRole === 'teacher' || demoRole === 'admin' ? (
+    mainBody = (
+      <RoleGate
+        role={demoRole}
+        allow={['teacher', 'admin']}
+        deniedMessage="教师工作台仅对教师/管理员开放。"
+      >
         <TeacherWorkbench />
-      ) : (
-        <div className="view-loading role-denied" role="status">
-          <AlertTriangle size={18} />
-          教师工作台仅对教师/管理员开放。
-        </div>
-      )
+      </RoleGate>
+    )
   } else if (activeView === 'cohort') {
-    mainBody =
-      demoRole === 'student' ? (
-        <div className="view-loading role-denied" role="status">
-          <AlertTriangle size={18} />
-          学生角色无法访问班级学情。请切换到教师或管理员。
-        </div>
-      ) : (
+    mainBody = (
+      <RoleGate
+        role={demoRole}
+        allow={['teacher', 'admin']}
+        deniedMessage="学生角色无法访问班级学情。请切换到教师或管理员。"
+      >
         <CohortView cohort={cohort} isLoading={false} />
-      )
+      </RoleGate>
+    )
   } else if (activeView === 'cohort-mastery') {
-    mainBody =
-      demoRole === 'student' ? (
-        <div className="view-loading role-denied" role="status">
-          <AlertTriangle size={18} />
-          班级掌握度矩阵仅对教师/管理员开放。
-        </div>
-      ) : (
+    mainBody = (
+      <RoleGate
+        role={demoRole}
+        allow={['teacher', 'admin']}
+        deniedMessage="班级掌握度矩阵仅对教师/管理员开放。"
+      >
         <CohortMasteryView
           learners={(cohort?.learners ?? []).map((learner) => ({
             id: learner.id,
             displayName: learner.displayName
           }))}
         />
-      )
+      </RoleGate>
+    )
   } else if (activeView === 'student-plan') {
-    mainBody =
-      demoRole === 'student' ? (
+    mainBody = (
+      <RoleGate
+        role={demoRole}
+        allow={['student']}
+        deniedMessage="我的循证计划仅对学生角色开放。请切换到学生。"
+      >
         <StudentPlanHub onStartMockExam={() => setActiveView('practice')} />
-      ) : (
-        <div className="view-loading role-denied" role="status">
-          <AlertTriangle size={18} />
-          我的循证计划仅对学生角色开放。请切换到学生。
-        </div>
-      )
+      </RoleGate>
+    )
   } else if (activeView === 'teacher-tools') {
-    mainBody =
-      demoRole === 'teacher' || demoRole === 'admin' ? (
+    mainBody = (
+      <RoleGate
+        role={demoRole}
+        allow={['teacher', 'admin']}
+        deniedMessage="循证工具仅对教师/管理员开放。"
+      >
         <TeacherToolsHub />
-      ) : (
-        <div className="view-loading role-denied" role="status">
-          <AlertTriangle size={18} />
-          循证工具仅对教师/管理员开放。
-        </div>
-      )
+      </RoleGate>
+    )
   } else {
     mainBody = <TransparencyView />
   }

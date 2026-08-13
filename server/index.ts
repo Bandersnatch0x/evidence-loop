@@ -1,25 +1,29 @@
+/**
+ * EvidenceRing HTTP entry + pure route dispatcher.
+ *
+ * Architecture deepening C2: inline routes (cohort / audit / mastery / review /
+ * multimodal / assignments / knowledge) extracted behind the same
+ * `handle*Api → boolean` seam as evaluationRoutes. This file owns transport
+ * (listener, Vite, static assets, error envelope) and ordered dispatch only.
+ */
 import { createReadStream } from 'node:fs'
 import { readFile, stat } from 'node:fs/promises'
 import { createServer } from 'node:http'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { extname, isAbsolute, join, normalize, relative, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { z } from 'zod'
 import type { ViteDevServer } from 'vite'
 import { createServerContext } from './serverContext'
 import type { ApiContext, EvidenceRingServerOptions } from './serverTypes'
-import { HttpError, readJsonBody, respondJson } from './http/httpUtils'
-import type { ApiError, InterventionSuggestion } from '../shared/contracts'
-import { createRouteAuditor } from './audit/routeAudit'
-import { authorizeAccess } from './auth/authorization'
+import { HttpError, respondJson } from './http/httpUtils'
 import { tryHandleAuthRoute } from './auth/authRoutes'
 import { AuthError, authStatusCode } from './auth/errors'
-import { isMultimodalEnabled } from './config/features'
 import { handleAdaptiveApi } from './adaptive'
-import { createCohortSnapshot } from './data/cohort'
+import { handleAssignmentApi } from './data/assignmentRoutes'
+import { handleCohortApi } from './data/cohortRoutes'
+import { handleKnowledgeApi } from './data/knowledgeRoutes'
 import { handleEvaluationApi } from './domain/evaluationRoutes'
 import { tryHandleImportRoute } from './import'
-import { projectQuestionToAssignment } from './questionbank/projectQuestionAssignment'
 import { handleTeacherApi } from './teacher'
 import { handleStudentApi } from './student'
 import { handleTutoringApi } from './tutoring'
@@ -41,40 +45,15 @@ import { handleTaskTemplateApi } from './taskTemplate'
 import { handleDialogueApi } from './dialogue/dialogueRoutes'
 import { tryHandleFlashcardDraftRoute } from './flashcardDraft'
 import { handlePortfolioApi } from './portfolio/portfolioRoutes'
-import { respondMultimodalAsk } from './multimodal/askRoute'
-import { respondSTTFinalize, respondSTTStart } from './multimodal/sttRoute'
-import { PIIError, findPIIInText } from './pii/PIIDetector'
-import type { ReviewRating } from './review/ReviewScheduler'
+import { handleMultimodalApi } from './multimodal/multimodalRoutes'
+import { handleMasteryApi } from './mastery/masteryRoutes'
+import { handleReviewApi } from './review/reviewRoutes'
+import { handleAuditApi } from './audit/auditRoutes'
+import { PIIError } from './pii/PIIDetector'
 
 const projectRoot = resolve(fileURLToPath(new URL('..', import.meta.url)))
 const isProduction = process.argv.includes('--production')
 const port = Number(process.env.PORT ?? 4180)
-
-
-const multimodalAskSchema = z.object({
-  text: z.string().min(1).max(2000),
-  /** Client-reported recording duration in ms (metadata only; never stored as audio). */
-  durationMs: z.number().int().nonnegative().max(600_000).optional()
-})
-
-const sttStartSchema = z.object({
-  sessionId: z.string().min(1).max(128).optional(),
-  language: z.string().min(2).max(32).optional()
-})
-
-const sttFinalizeSchema = z.object({
-  text: z.string().min(1).max(4000),
-  sessionId: z.string().min(1).max(128).optional()
-})
-
-const reviewCompleteSchema = z.object({
-  rating: z.union([
-    z.literal(1),
-    z.literal(2),
-    z.literal(3),
-    z.literal(4)
-  ])
-})
 
 export async function createEvidenceRingServer(
   options: EvidenceRingServerOptions = {}
@@ -223,57 +202,22 @@ async function handleApi(
 
   const user = sessions.resolve(request)
 
-  if (request.method === 'GET' && requestUrl.pathname === '/api/assignments') {
-    respondJson(response, 200, assignments.list())
+  // Core presentation / evaluation / mastery routes (hot path).
+  if (
+    handleAssignmentApi(request, response, requestUrl, {
+      assignments,
+      questionBank: context.questionBank,
+      // Presentation-only reference lookup stays outside AssignmentRegistry
+      // so EvaluationAgent/scoring never reads demonstration tables.
+      listStudentReferencesForAssignment: (assignmentId) =>
+        context.demonstration.references.listStudentReferencesForAssignment(
+          assignmentId
+        )
+    })
+  ) {
     return
   }
 
-  const assignmentMatch = requestUrl.pathname.match(/^\/api\/assignments\/([^/]+)$/)
-  if (request.method === 'GET' && assignmentMatch?.[1]) {
-    const requestedId = decodeURIComponent(assignmentMatch[1])
-    // Presentation-only reference lookup. This stays outside AssignmentRegistry
-    // so EvaluationAgent/scoring never reads demonstration tables.
-    const demonstrations = context.demonstration.references.listStudentReferencesForAssignment(requestedId)
-    // Question-backed registry: demo hit or private/seed
-    // projection. Presentation fields only — never expose runner/criteria.
-    const assignment = assignments.get(requestedId)
-    if (!assignment) {
-      // Scoring projection may fail on bad payload; still serve presentation shell.
-      const bankQuestion = context.questionBank.peek(requestedId)
-      if (!bankQuestion) {
-        respondJson(response, 404, { error: 'Assignment not found' })
-        return
-      }
-      const projected = projectQuestionToAssignment(bankQuestion)
-      if (demonstrations.length > 0) projected.demonstrations = demonstrations
-      respondJson(response, 200, projected)
-      return
-    }
-
-    const publicAssignment = {
-      id: assignment.id,
-      title: assignment.title,
-      module: assignment.module,
-      language: assignment.language,
-      questionType: assignment.questionType,
-      estimatedMinutes: assignment.estimatedMinutes,
-      status: assignment.status,
-      objective: assignment.objective,
-      scenario: assignment.scenario,
-      requirements: assignment.requirements,
-      constraints: assignment.constraints,
-      functionSignature: assignment.functionSignature,
-      rubric: assignment.rubric,
-      demoVariants: assignment.demoVariants,
-      ...(demonstrations.length > 0 ? { demonstrations } : {})
-    }
-    respondJson(response, 200, publicAssignment)
-    return
-  }
-
-  // Evaluation lifecycle (GET list / POST submit / DELETE erase) is delegated
-  // to the domain handler behind the same seam as the other module routers
-  // (C1 deepening #36).
   if (
     await handleEvaluationApi(request, response, requestUrl, {
       store,
@@ -290,475 +234,63 @@ async function handleApi(
     return
   }
 
-
-  if (request.method === 'GET' && requestUrl.pathname === '/api/cohort') {
-    const access = authorizeAccess(context.productDb, user, {
-      purpose: 'teaching'
+  if (
+    await handleCohortApi(request, response, requestUrl, {
+      db: context.productDb,
+      store,
+      audit,
+      user
     })
-    if (!access.allowed) {
-      createRouteAuditor(audit, user, {
-        action: 'view',
-        resourceType: 'cohort'
-      }).record({
-        result: 'denied',
-        metadata:
-          access.reason === 'reviewer-isolated'
-            ? { reason: 'reviewer-isolated' }
-            : undefined
-      })
-      respondJson(response, 403, {
-        error:
-          access.reason === 'reviewer-isolated'
-            ? 'Forbidden: public-library reviewers may not view cohort data'
-            : 'Forbidden: cohort view requires teacher or admin role'
-      })
-      return
-    }
-
-    createRouteAuditor(audit, user, {
-      action: 'view',
-      resourceType: 'cohort'
-    }).record({
-      result: 'success'
-    })
-    // Pass full results so T11 P4 can gate formal metrics on teacherAnnotation.
-    const [history, results] = await Promise.all([
-      store.list(),
-      store.listResults()
-    ])
-    respondJson(response, 200, createCohortSnapshot(history, results))
+  ) {
     return
   }
 
   if (
-    request.method === 'GET'
-    && requestUrl.pathname === '/api/cohort/multimodal-usage'
+    await handleKnowledgeApi(request, response, requestUrl, { knowledge })
   ) {
-    const access = authorizeAccess(context.productDb, user, {
-      purpose: 'teaching'
-    })
-    if (!access.allowed) {
-      createRouteAuditor(audit, user, {
-        action: 'view',
-        resourceType: 'cohort'
-      }).record({
-        result: 'denied',
-        metadata: {
-          resource: 'multimodal-usage',
-          ...(access.reason === 'reviewer-isolated'
-            ? { reason: 'reviewer-isolated' }
-            : {})
-        }
-      })
-      respondJson(response, 403, {
-        error:
-          access.reason === 'reviewer-isolated'
-            ? 'Forbidden: public-library reviewers may not view cohort data'
-            : 'Forbidden: multimodal usage requires teacher or admin role'
-      })
-      return
-    }
-
-    const classId = requestUrl.searchParams.get('classId')
-    if (classId === null || classId.trim() === '') {
-      respondJson(response, 400, {
-        error: 'classId query parameter is required'
-      })
-      return
-    }
-
-    // Demo is a single cohort; accept any non-empty classId and return
-    // aggregate counts only (no transcript content).
-    const usage = await audit.getMultimodalUsage()
-    createRouteAuditor(audit, user, {
-      action: 'view',
-      resourceType: 'cohort'
-    }).record({
-      result: 'success',
-      metadata: {
-        resource: 'multimodal-usage',
-        classId,
-        count: usage.length
-      }
-    })
-    respondJson(response, 200, usage)
-    return
-  }
-
-  if (request.method === 'GET' && requestUrl.pathname === '/api/knowledge-points') {
-    respondJson(response, 200, await knowledge.getGraph())
-    return
-  }
-
-  if (request.method === 'GET' && requestUrl.pathname === '/api/audit') {
-    const access = authorizeAccess(context.productDb, user, {
-      purpose: 'teaching'
-    })
-    if (!access.allowed) {
-      createRouteAuditor(audit, user, {
-        action: 'view',
-        resourceType: 'audit'
-      }).record({
-        result: 'denied',
-        metadata:
-          access.reason === 'reviewer-isolated'
-            ? { reason: 'reviewer-isolated' }
-            : undefined
-      })
-      respondJson(response, 403, {
-        error:
-          access.reason === 'reviewer-isolated'
-            ? 'Forbidden: public-library reviewers may not view audit data'
-            : 'Forbidden: audit log requires teacher or admin role'
-      })
-      return
-    }
-
-    const studentId = requestUrl.searchParams.get('studentId') ?? undefined
-    const from = requestUrl.searchParams.get('from') ?? undefined
-    const to = requestUrl.searchParams.get('to') ?? undefined
-    const limitRaw = requestUrl.searchParams.get('limit')
-    const limit =
-      limitRaw !== null && limitRaw.trim() !== ''
-        ? Number(limitRaw)
-        : undefined
-
-    const records = await audit.query({
-      studentId,
-      from,
-      to,
-      limit:
-        limit !== undefined && Number.isFinite(limit) ? Math.trunc(limit) : undefined
-    })
-
-    createRouteAuditor(audit, user, {
-      action: 'view',
-      resourceType: 'audit'
-    }).record({
-      studentId,
-      result: 'success',
-      metadata: { count: records.length }
-    })
-
-    respondJson(
-      response,
-      200,
-      records.map((record) => ({
-        id: record.id,
-        sequence: record.sequence,
-        timestamp: record.timestamp,
-        actorRole: record.actorRole,
-        actorId: record.actorId,
-        action: record.action,
-        resourceType: record.resourceType,
-        resourceId: record.resourceId,
-        studentId: record.studentId,
-        containerId: record.containerId,
-        result: record.result,
-        modality: record.modality,
-        // Metadata is counts-only for voice events; still omit free-text fields
-        // from the public audit API surface.
-        metadata: sanitizeAuditMetadata(record.metadata)
-      }))
-    )
-    return
-  }
-
-  if (request.method === 'POST' && requestUrl.pathname === '/api/multimodal/ask') {
-    const parsed = multimodalAskSchema.safeParse(await readJsonBody(request))
-    if (!parsed.success) {
-      respondJson(response, 400, {
-        error: 'Invalid multimodal ask request'
-      })
-      return
-    }
-
-    const featureEnabled = isMultimodalEnabled()
-    const transcript = parsed.data.text
-    const piiHits = findPIIInText('voice_transcript', transcript)
-    const studentId = user.studentId ?? user.userId
-
-    // ADR-0005 §7: audit metadata only — duration, char count, PII hit count.
-    // Never persist the transcript body or raw audio bytes.
-    if (featureEnabled) {
-      createRouteAuditor(audit, user, {
-        action: 'view',
-        resourceType: 'system'
-      }).record({
-        resourceId: 'multimodal-ask',
-        studentId,
-        result: 'success',
-        modality: 'voice',
-        metadata: {
-          durationMs: parsed.data.durationMs ?? null,
-          transcriptChars: transcript.length,
-          piiHitCount: piiHits.length
-        }
-      })
-    }
-
-    respondMultimodalAsk(response, featureEnabled)
     return
   }
 
   if (
-    request.method === 'POST'
-    && requestUrl.pathname === '/api/multimodal/stt/start'
+    await handleAuditApi(request, response, requestUrl, {
+      db: context.productDb,
+      audit,
+      user
+    })
   ) {
-    const parsed = sttStartSchema.safeParse(await readJsonBody(request))
-    if (!parsed.success) {
-      respondJson(response, 400, {
-        error: 'Invalid STT start request'
-      })
-      return
-    }
-    await respondSTTStart(
-      response,
-      isMultimodalEnabled(),
+    return
+  }
+
+  if (
+    await handleMultimodalApi(request, response, requestUrl, {
+      audit,
       stt,
-      parsed.data
-    )
+      user
+    })
+  ) {
     return
   }
 
   if (
-    request.method === 'POST'
-    && requestUrl.pathname === '/api/multimodal/stt/finalize'
-  ) {
-    const parsed = sttFinalizeSchema.safeParse(await readJsonBody(request))
-    if (!parsed.success) {
-      respondJson(response, 400, {
-        error: 'Invalid STT finalize request'
-      })
-      return
-    }
-    await respondSTTFinalize(
-      response,
-      isMultimodalEnabled(),
-      stt,
-      parsed.data
-    )
-    return
-  }
-
-  const masteryMatch = requestUrl.pathname.match(
-    /^\/api\/mastery\/([^/]+)(?:\/([^/]+)\/timeline)?$/
-  )
-  if (request.method === 'GET' && masteryMatch?.[1]) {
-    const studentId = decodeURIComponent(masteryMatch[1])
-    const kpId = masteryMatch[2]
-      ? decodeURIComponent(masteryMatch[2])
-      : undefined
-
-    if (!authorizeAccess(context.productDb, user, { purpose: 'student-data', studentId: studentId }).allowed) {
-      createRouteAuditor(audit, user, {
-        action: 'view',
-        resourceType: 'knowledge'
-      }).record({
-        studentId,
-        result: 'denied',
-        metadata: { resource: 'mastery' }
-      })
-      respondJson(response, 403, {
-        error: 'Forbidden: cannot view mastery for this student'
-      })
-      return
-    }
-
-    if (kpId !== undefined) {
-      const timeline = memory.mastery.getTimeline(studentId, kpId)
-      createRouteAuditor(audit, user, {
-        action: 'view',
-        resourceType: 'knowledge'
-      }).record({
-        studentId,
-        result: 'success',
-        metadata: { resource: 'mastery-timeline', kpId, count: timeline.length }
-      })
-      respondJson(response, 200, timeline)
-      return
-    }
-
-    const profile = memory.mastery.getProfile(studentId)
-    createRouteAuditor(audit, user, {
-      action: 'view',
-      resourceType: 'knowledge'
-    }).record({
-      studentId,
-      result: 'success',
-      metadata: {
-        resource: 'mastery-profile',
-        count: Object.keys(profile).length
-      }
+    await handleMasteryApi(request, response, requestUrl, {
+      db: context.productDb,
+      audit,
+      mastery: memory.mastery,
+      interventions,
+      user
     })
-    respondJson(response, 200, profile)
+  ) {
     return
   }
 
   if (
-    request.method === 'GET' &&
-    requestUrl.pathname === '/api/interventions/next'
+    await handleReviewApi(request, response, requestUrl, {
+      db: context.productDb,
+      audit,
+      review: memory.review,
+      user
+    })
   ) {
-    const studentIdParam = requestUrl.searchParams.get('studentId')
-    const kpIdParam = requestUrl.searchParams.get('kpId')
-    if (!studentIdParam || studentIdParam.trim() === '') {
-      respondJson(response, 400, { error: 'studentId query parameter is required' })
-      return
-    }
-    if (!kpIdParam || kpIdParam.trim() === '') {
-      respondJson(response, 400, { error: 'kpId query parameter is required' })
-      return
-    }
-    const studentId = studentIdParam
-
-    if (!authorizeAccess(context.productDb, user, { purpose: 'student-data', studentId: studentId }).allowed) {
-      createRouteAuditor(audit, user, {
-        action: 'view',
-        resourceType: 'knowledge'
-      }).record({
-        studentId,
-        result: 'denied',
-        metadata: { resource: 'intervention-next' }
-      })
-      respondJson(response, 403, {
-        error: 'Forbidden: cannot view interventions for this student'
-      })
-      return
-    }
-
-    let suggestion: InterventionSuggestion
-    try {
-      suggestion = await interventions.suggestNextIntervention(
-        studentId,
-        kpIdParam
-      )
-    } catch (error) {
-      createRouteAuditor(audit, user, {
-        action: 'view',
-        resourceType: 'knowledge'
-      }).record({
-        studentId,
-        result: 'error',
-        metadata: { resource: 'intervention-next', kpId: kpIdParam }
-      })
-      respondJson(response, 500, {
-        error: 'Failed to diagnose intervention chain',
-        details: [error instanceof Error ? error.message : String(error)]
-      } satisfies ApiError)
-      return
-    }
-
-    createRouteAuditor(audit, user, {
-      action: 'view',
-      resourceType: 'knowledge'
-    }).record({
-      studentId,
-      result: 'success',
-      metadata: {
-        resource: 'intervention-next',
-        weakKp: suggestion.weakKp,
-        targetKp: suggestion.targetKp,
-        chainLength: suggestion.chain.length
-      }
-    })
-    respondJson(response, 200, suggestion)
-    return
-  }
-
-  if (request.method === 'GET' && requestUrl.pathname === '/api/review/next') {
-    const studentIdParam = requestUrl.searchParams.get('studentId')
-    if (!studentIdParam || studentIdParam.trim() === '') {
-      respondJson(response, 400, { error: 'studentId query parameter is required' })
-      return
-    }
-    const studentId = studentIdParam
-
-    if (!authorizeAccess(context.productDb, user, { purpose: 'student-data', studentId: studentId }).allowed) {
-      createRouteAuditor(audit, user, {
-        action: 'view',
-        resourceType: 'knowledge'
-      }).record({
-        studentId,
-        result: 'denied',
-        metadata: { resource: 'review-next' }
-      })
-      respondJson(response, 403, {
-        error: 'Forbidden: cannot view review queue for this student'
-      })
-      return
-    }
-
-    const cards = memory.review.listDue(studentId)
-    createRouteAuditor(audit, user, {
-      action: 'view',
-      resourceType: 'knowledge'
-    }).record({
-      studentId,
-      result: 'success',
-      metadata: { resource: 'review-next', count: cards.length }
-    })
-    respondJson(response, 200, cards)
-    return
-  }
-
-  const reviewCompleteMatch = requestUrl.pathname.match(
-    /^\/api\/review\/([^/]+)\/complete$/
-  )
-  if (request.method === 'POST' && reviewCompleteMatch?.[1]) {
-    const cardId = decodeURIComponent(reviewCompleteMatch[1])
-    const parsed = reviewCompleteSchema.safeParse(await readJsonBody(request))
-    if (!parsed.success) {
-      respondJson(response, 400, {
-        error: 'Invalid review complete request',
-        details: parsed.error.issues.map((issue) => issue.message)
-      } satisfies ApiError)
-      return
-    }
-
-    const existing = memory.review.getById(cardId)
-    if (!existing) {
-      respondJson(response, 404, { error: 'Review card not found' })
-      return
-    }
-
-    if (!authorizeAccess(context.productDb, user, { purpose: 'student-data', studentId: existing.studentId }).allowed) {
-      createRouteAuditor(audit, user, {
-        action: 'evaluate',
-        resourceType: 'knowledge'
-      }).record({
-        studentId: existing.studentId,
-        resourceId: cardId,
-        result: 'denied',
-        metadata: { resource: 'review-complete' }
-      })
-      respondJson(response, 403, {
-        error: 'Forbidden: cannot complete review for this student'
-      })
-      return
-    }
-
-    const rating: ReviewRating = parsed.data.rating
-    const updated = memory.review.complete(cardId, rating)
-    if (!updated) {
-      respondJson(response, 404, { error: 'Review card not found' })
-      return
-    }
-
-    createRouteAuditor(audit, user, {
-      action: 'evaluate',
-      resourceType: 'knowledge'
-    }).record({
-      studentId: updated.studentId,
-      resourceId: updated.id,
-      result: 'success',
-      metadata: {
-        resource: 'review-complete',
-        kpId: updated.kpId,
-        rating,
-        dueAt: updated.scheduling.dueAt
-      }
-    })
-    respondJson(response, 200, updated)
     return
   }
 
@@ -1023,31 +555,6 @@ async function handleApi(
   }
 
   respondJson(response, 404, { error: 'API route not found' })
-}
-
-/**
- * Strip any accidental free-text keys from audit metadata before API exposure.
- * Voice events must only ever carry counts / durations (ADR-0005 §7).
- */
-function sanitizeAuditMetadata(
-  metadata: Record<string, string | number | boolean | null> | null
-): Record<string, string | number | boolean | null> | null {
-  if (metadata === null) return null
-  const blocked = new Set([
-    'text',
-    'transcript',
-    'content',
-    'audio',
-    'audioPath',
-    'rawAudio',
-    'utterance'
-  ])
-  const sanitized: Record<string, string | number | boolean | null> = {}
-  for (const [key, value] of Object.entries(metadata)) {
-    if (blocked.has(key)) continue
-    sanitized[key] = value
-  }
-  return sanitized
 }
 
 async function serveProductionAsset(

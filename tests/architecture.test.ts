@@ -229,8 +229,9 @@ describe('architecture guard: T05 tutoring physical isolation', () => {
   })
 
   it('TutoringMessage interface has no score/evidence/weight fields', () => {
+    // C3: TutoringMessage lives in the tutoring contracts module.
     const source = readFileSync(
-      resolve(projectRoot, 'shared/contracts.ts'),
+      resolve(projectRoot, 'shared/contracts/tutoring.ts'),
       'utf8'
     )
     const start = source.indexOf('export interface TutoringMessage')
@@ -507,13 +508,22 @@ describe('architecture guard: #29 reference resolution stays in the display laye
   })
 
   it('assignment display layer serves demonstrations; legacy visualization fallback is removed', () => {
-    const source = readFileSync(resolve(projectRoot, 'server/index.ts'), 'utf8')
+    // C2 deepening: assignment presentation lives in assignmentRoutes.ts;
+    // dispatcher still wires listStudentReferencesForAssignment.
+    const routeSource = readFileSync(
+      resolve(projectRoot, 'server/data/assignmentRoutes.ts'),
+      'utf8'
+    )
+    const indexSource = readFileSync(resolve(projectRoot, 'server/index.ts'), 'utf8')
     // New-reference-first: the display layer resolves demonstration references.
-    expect(source).toMatch(/listStudentReferencesForAssignment/)
+    expect(routeSource).toMatch(/listStudentReferencesForAssignment/)
+    expect(indexSource).toMatch(/listStudentReferencesForAssignment/)
     // Phase C (#30): the legacy visualization fallback is deleted — the
     // assignment projection must no longer spread `assignment.visualization`.
-    expect(source).not.toMatch(/!hasPrimaryDemonstration && assignment.visualization/)
-    expect(source).not.toMatch(/assignment\.visualization\s*}/)
+    expect(routeSource).not.toMatch(/!hasPrimaryDemonstration && assignment.visualization/)
+    expect(routeSource).not.toMatch(/assignment\.visualization\s*}/)
+    expect(indexSource).not.toMatch(/!hasPrimaryDemonstration && assignment.visualization/)
+    expect(indexSource).not.toMatch(/assignment\.visualization\s*}/)
   })
 
   it('student-facing demonstration read endpoints never write demonstration tables', () => {
