@@ -25,6 +25,7 @@ import type {
   MockExamCandidate,
   MockExamKpCoverage,
   MockExamPaperReport,
+  MockExamPaperSubmitResult,
   MockExamPlan,
   MockExamPlanView,
   MockExamQuestionView,
@@ -396,7 +397,11 @@ export class MockExamService {
       studentId,
       mode: 'assessment'
     })
-    const scoped = rows.filter((attempt) => attempt.paperId === paperId)
+    // D1 双保险：即便数据源忽略 mode 过滤（如测试桩），练习态也绝不入卷。
+    const scoped = rows.filter(
+      (attempt) =>
+        attempt.paperId === paperId && attempt.mode === 'assessment'
+    )
     if (scoped.length === 0) {
       throw new MockExamPlanNotFoundError(paperId)
     }
@@ -423,6 +428,81 @@ export class MockExamService {
       attempts: scoped,
       questionMeta
     })
+  }
+
+  /**
+   * 学生交卷（成套）。服务端确认动作：
+   *   1. 校验卷面存在且已布置（assigned）；
+   *   2. 取该学生 mode='assessment' 且 paperId 匹配的 Attempt（D1：练习态不入卷）；
+   *   3. 统计已答 / 未答，并复用 report() 做只读投影。
+   *
+   * 铁律边界：本方法不判分、不写 score / evidence / MasteryProfile——
+   * 每题分数仍来自各 Attempt 自己的评价（Q3.4 口径：Attempt 才是聚合根）。
+   * 返回的未答题列表供前端提示补答或确认交卷。
+   */
+  public async submitPaper(
+    paperId: string,
+    studentId: string
+  ): Promise<MockExamPaperSubmitResult> {
+    if (!this.attempts) {
+      throw new MockExamInputError(
+        'Mock exam submit is not configured on this server (attempt reader missing)'
+      )
+    }
+    const plan = this.plans.findByPaperId(paperId)
+    if (!plan || plan.status !== 'assigned') {
+      throw new MockExamPlanNotFoundError(paperId)
+    }
+    const rows = await this.attempts.listAttempts({
+      studentId,
+      mode: 'assessment'
+    })
+    // D1 双保险：即便数据源忽略 mode 过滤（如测试桩），练习态也绝不入卷。
+    const scoped = rows.filter(
+      (attempt) =>
+        attempt.paperId === paperId && attempt.mode === 'assessment'
+    )
+    const answered = scoped.filter(
+      (attempt) => attempt.result?.status === 'completed'
+    )
+    const answeredQuestionIds = new Set(
+      answered.map((attempt) => attempt.questionId)
+    )
+    const unansweredQuestionIds = plan.questionIds.filter(
+      (questionId) => !answeredQuestionIds.has(questionId)
+    )
+    // 报告投影：元数据以卷面全题为准（含未答题的学科/KP 标记），
+    // 分数仍只来自已提交 Attempt（buildPaperReport 不判分）。
+    const questionMeta: Record<string, ReportQuestionMeta> = {}
+    for (const questionId of plan.questionIds) {
+      const question = this.questions.get(questionId)
+      if (question) {
+        questionMeta[questionId] = {
+          subject: question.subject,
+          kpIds: [...question.kpIds]
+        }
+      }
+    }
+    const report = buildPaperReport({
+      paperId,
+      studentId,
+      title: plan.title,
+      planId: plan.id,
+      generatedAt: this.now().toISOString(),
+      algorithm: MOCK_EXAM_REPORT_ALGORITHM,
+      attempts: scoped,
+      questionMeta
+    })
+    return {
+      paperId,
+      planId: plan.id,
+      submittedAt: this.now().toISOString(),
+      answeredCount: answeredQuestionIds.size,
+      totalQuestions: plan.questionIds.length,
+      unansweredQuestionIds,
+      attemptIds: scoped.map((attempt) => attempt.id),
+      report
+    }
   }
 
   // -------------------------------------------------------------------------

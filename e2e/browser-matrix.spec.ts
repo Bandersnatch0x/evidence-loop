@@ -54,7 +54,8 @@ test.describe('T-M browser matrix', () => {
   // Heavy case: cold engine import + WebGL2 context under load can exceed the
   // default poll budget, so the engine-boot poll gets an explicit timeout (see
   // tests/App.test.tsx for the same resource-contention budget pattern).
-  test('PlayCanvas studio viewport builds the 3D scene and runs the render loop', { timeout: 60_000 }, async ({ page }) => {
+  test('PlayCanvas studio viewport builds the 3D scene and runs the render loop', async ({ page }) => {
+    test.setTimeout(60_000)
     await gotoApp(page)
     await selectDemoRole(page, 'teacher')
     await page.getByRole('button', { name: '教师工作台' }).click()

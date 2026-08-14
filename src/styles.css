@@ -5211,6 +5211,11 @@ td > b {
   font-size: 0.75rem;
 }
 
+.paper-exam-error {
+  font-size: 0.75rem;
+  color: var(--warn-deep);
+}
+
 /* ── T14 tip multi-select ── */
 .tip-student-picker {
   border: 1px solid var(--line);

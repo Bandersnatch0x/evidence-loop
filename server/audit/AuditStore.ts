@@ -16,6 +16,7 @@ export type AuditAction =
   | 'report'
   | 'upgrade_reference'
   | 'appeal'
+  | 'paper-submit'
 export type AuditResourceType =
   | 'evaluation'
   | 'cohort'
@@ -27,6 +28,7 @@ export type AuditResourceType =
   | 'publication'
   | 'media'
   | 'portfolio'
+  | 'mock-exam-paper'
 /**
  * Interaction modality for audit events (ADR-0005 §7).
  * `'canvas'` is reserved for Phase 2 handwriting — do not emit yet.

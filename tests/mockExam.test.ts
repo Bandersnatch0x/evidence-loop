@@ -11,6 +11,7 @@
  *   3. save 对教师改过的题号列表重新跑一遍闸门 —— 前端不能替服务端放行；
  *   4. 组卷 / 报告路径不写任何 score / evidence / mastery。
  */
+import { createHash } from 'node:crypto'
 import { createServer } from 'node:http'
 import type { AddressInfo } from 'node:net'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -646,6 +647,95 @@ describe('MockExamService：编排与闸门 (T16)', () => {
     expect(report.answeredCount).toBe(1)
     expect(report.algorithm).toBe('mockexam.report.v1')
   })
+
+  it('submitPaper 统计已答/未答，不判分、不写分数', async () => {
+    // makeService 固定 newId='mock-plan-1' → stablePaperId 可预先算出，
+    // 于是 Attempt 可以在构造期就带上正确 paperId。
+    const paperId = `paper_${createHash('sha256')
+      .update('mock-plan-1')
+      .digest('hex')
+      .slice(0, 24)}`
+    const attempts: Attempt[] = [
+      {
+        id: 'attempt-1',
+        studentId: STUDENT,
+        questionId: 'q1',
+        teachingUnitId: UNIT_A,
+        termId: TERM_ID,
+        mode: 'assessment',
+        createdAt: '2026-08-05T08:00:00.000Z',
+        paperId,
+        result: {
+          id: 'ev-1',
+          assignmentId: paperId,
+          attempt: 1,
+          createdAt: '2026-08-05T08:00:00.000Z',
+          status: 'completed',
+          score: 80,
+          summary: '',
+          evidence: [],
+          dimensions: [],
+          diagnoses: [],
+          trace: [],
+          mastery: [],
+          feedbackSource: 'local-policy',
+          provenance: { kind: 'evidence', evidenceIds: [], algorithm: 'simple.v1' }
+        }
+      },
+      // 练习态 Attempt 不入卷（D1）：即使 paperId 相同也不计入已答。
+      {
+        id: 'attempt-practice',
+        studentId: STUDENT,
+        questionId: 'q2',
+        teachingUnitId: UNIT_A,
+        termId: TERM_ID,
+        mode: 'practice',
+        createdAt: '2026-08-05T08:01:00.000Z',
+        paperId,
+        result: {
+          id: 'ev-p',
+          assignmentId: paperId,
+          attempt: 1,
+          createdAt: '2026-08-05T08:01:00.000Z',
+          status: 'completed',
+          score: 100,
+          summary: '',
+          evidence: [],
+          dimensions: [],
+          diagnoses: [],
+          trace: [],
+          mastery: [],
+          feedbackSource: 'local-policy',
+          provenance: { kind: 'evidence', evidenceIds: [], algorithm: 'simple.v1' }
+        }
+      }
+    ]
+    const questions = [
+      formalQuestion('q1', { kpIds: ['kp-A1'] }),
+      formalQuestion('q2', { kpIds: ['kp-A2'] })
+    ]
+    const { service } = makeService({ questions, attempts, studentIds: [STUDENT] })
+    await service.save({
+      teacherId: TEACHER,
+      teachingUnitIds: [UNIT_A],
+      questionIds: ['q1', 'q2'],
+      studentIds: [STUDENT],
+      publish: true
+    })
+    const submit = await service.submitPaper(paperId, STUDENT)
+    expect(submit.answeredCount).toBe(1) // q1 only; practice attempt excluded
+    expect(submit.totalQuestions).toBe(2)
+    expect(submit.unansweredQuestionIds).toEqual(['q2'])
+    expect(submit.report.mode).toBe('assessment')
+    expect(submit.report.answeredCount).toBe(1)
+  })
+
+  it('submitPaper 对未布置卷面抛 not-found（不确认交卷）', async () => {
+    const { service } = makeService({ questions: [] })
+    await expect(service.submitPaper('paper-unknown', STUDENT)).rejects.toThrow(
+      /not found/
+    )
+  })
 })
 
 // ---------------------------------------------------------------------------
@@ -792,6 +882,61 @@ describe('模拟考 HTTP 端点 (T16)', () => {
       `${server.url}/api/student/papers/paper-mock-1/report?studentId=someone-else`
     )
     expect(other.status).toBe(403)
+  })
+
+  it('POST submit：学生可交卷，返回已答/未答与报告投影', async () => {
+    const questions = [formalQuestion('q1', { kpIds: ['kp-A1'] })]
+    const { service } = makeService({ questions, studentIds: [STUDENT] })
+    const saved = await service.save({
+      teacherId: TEACHER,
+      teachingUnitIds: [UNIT_A],
+      questionIds: ['q1'],
+      studentIds: [STUDENT],
+      publish: true
+    })
+    const paperId = saved.plan.paperId as string
+    const server = await startServer(service, {
+      userId: STUDENT,
+      role: 'student',
+      displayName: 'S',
+      studentId: STUDENT
+    })
+    // 未布置卷 → 404（不确认交卷）
+    const missing = await fetch(
+      `${server.url}/api/student/papers/paper-unknown/submit`,
+      { method: 'POST' }
+    )
+    expect(missing.status).toBe(404)
+    // 已布置卷 → 200 + 契约形状（0 题已答，全部未答）
+    const response = await fetch(
+      `${server.url}/api/student/papers/${paperId}/submit`,
+      { method: 'POST' }
+    )
+    expect(response.status).toBe(200)
+    const body = (await response.json()) as {
+      paperId: string
+      answeredCount: number
+      totalQuestions: number
+      unansweredQuestionIds: string[]
+      report: { mode: string; answeredCount: number }
+      gateNotice: string
+    }
+    expect(body.paperId).toBe(paperId)
+    expect(body.totalQuestions).toBe(1)
+    expect(body.answeredCount).toBe(0)
+    expect(body.unansweredQuestionIds).toEqual(['q1'])
+    expect(body.report.mode).toBe('assessment')
+    expect(body.gateNotice).toBeTruthy()
+  })
+
+  it('POST submit：非学生身份 → 403', async () => {
+    const { service } = makeService()
+    const server = await startServer(service, teacherUser())
+    const response = await fetch(
+      `${server.url}/api/student/papers/paper-whatever/submit`,
+      { method: 'POST' }
+    )
+    expect(response.status).toBe(403)
   })
 
   it('默认题量与时长符合契约常量', () => {

@@ -306,6 +306,19 @@ export interface MockExamPaperReport {
   notStartedCount: number
 }
 
+/** 学生交卷动作的服务端确认结果（提交记录 + 只读报告投影）。 */
+export interface MockExamPaperSubmitResult {
+  paperId: string
+  planId: string
+  submittedAt: string
+  answeredCount: number
+  totalQuestions: number
+  unansweredQuestionIds: string[]
+  attemptIds: string[]
+  /** 只读投影，不重新判分（与 GET report 同源）。 */
+  report: MockExamPaperReport
+}
+
 // ---------------------------------------------------------------------------
 // 纯投影 helpers（前后端共用，避免口径漂移）
 // ---------------------------------------------------------------------------

@@ -144,7 +144,7 @@ export function StudentWorkbench({
             <ListChecks size={18} style={{ verticalAlign: 'middle' }} /> 成套测评
           </h3>
           <p className="muted">
-            倒计时与交卷为仪式壳：不改写分数 / 证据 / 掌握度；各题仍按 Attempt 评价。
+            倒计时为仪式壳；交卷由服务端确认（仍不改写分数 / 证据 / 掌握度），各题按 Attempt 评价。
           </p>
           <div className="paper-exam-list">
             {paperSessions.map((session) => (

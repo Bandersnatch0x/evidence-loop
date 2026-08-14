@@ -1,12 +1,19 @@
 ﻿import { useEffect, useMemo, useState } from 'react'
 import { Clock3, FileStack, Flag } from 'lucide-react'
 import type { PracticeSession } from '../../../shared/contracts'
+import { submitPaperExam } from '../mockExam/mockExamApi'
 
 interface PaperExamShellProps {
   session: PracticeSession
 }
 
 type ShellStatus = 'running' | 'submitted' | 'expired'
+
+type SubmitState =
+  | { phase: 'idle' }
+  | { phase: 'submitting' }
+  | { phase: 'done'; answeredCount: number; totalQuestions: number; unanswered: number }
+  | { phase: 'error'; message: string }
 
 const STORAGE_PREFIX = 'evidenceloop.paper-exam-submitted.'
 
@@ -58,6 +65,7 @@ export function PaperExamShell({ session }: PaperExamShellProps) {
 
   const [now, setNow] = useState(() => Date.now())
   const [submitted, setSubmitted] = useState(() => readSubmitted(session.id))
+  const [submitState, setSubmitState] = useState<SubmitState>({ phase: 'idle' })
 
   useEffect(() => {
     setSubmitted(readSubmitted(session.id))
@@ -76,9 +84,26 @@ export function PaperExamShell({ session }: PaperExamShellProps) {
       ? 'expired'
       : 'running'
 
-  const submitPaper = () => {
-    writeSubmitted(session.id)
-    setSubmitted(true)
+  const submitPaper = async () => {
+    if (submitState.phase === 'submitting' || !session.paperId) return
+    setSubmitState({ phase: 'submitting' })
+    try {
+      const result = await submitPaperExam(session.paperId)
+      writeSubmitted(session.id)
+      setSubmitted(true)
+      setSubmitState({
+        phase: 'done',
+        answeredCount: result.answeredCount,
+        totalQuestions: result.totalQuestions,
+        unanswered: result.unansweredQuestionIds.length
+      })
+    } catch (submitError: unknown) {
+      setSubmitState({
+        phase: 'error',
+        message:
+          submitError instanceof Error ? submitError.message : '交卷失败'
+      })
+    }
   }
 
   const statusLabel =
@@ -113,18 +138,45 @@ export function PaperExamShell({ session }: PaperExamShellProps) {
       <div className="paper-exam-actions">
         <span className={`paper-exam-status-badge ${status}`}>{statusLabel}</span>
         {status === 'running' ? (
-          <button type="button" className="primary-button" onClick={submitPaper}>
-            <Flag size={14} /> 交卷
+          <button
+            type="button"
+            className="primary-button"
+            onClick={() => void submitPaper()}
+            disabled={submitState.phase === 'submitting'}
+          >
+            <Flag size={14} />{' '}
+            {submitState.phase === 'submitting' ? '交卷中…' : '交卷'}
           </button>
         ) : null}
         {status === 'expired' && !submitted ? (
-          <button type="button" className="primary-button" onClick={submitPaper}>
-            <Flag size={14} /> 确认交卷
+          <button
+            type="button"
+            className="primary-button"
+            onClick={() => void submitPaper()}
+            disabled={submitState.phase === 'submitting'}
+          >
+            <Flag size={14} />
+            {submitState.phase === 'submitting' ? '交卷中…' : '确认交卷'}
           </button>
         ) : null}
         {status === 'submitted' ? (
           <span className="muted paper-exam-note">
-            仪式交卷完成；各题分数仍以 Attempt 评价为准（不计分写回）。
+            {submitState.phase === 'done' ? (
+              <>
+                已交卷：{submitState.answeredCount}/{submitState.totalQuestions} 题已评分
+                {submitState.unanswered > 0
+                  ? `，${submitState.unanswered} 题未答`
+                  : ''}
+                。分数以各题 Attempt 评价为准。
+              </>
+            ) : (
+              <>已交卷；分数以各题 Attempt 评价为准。</>
+            )}
+          </span>
+        ) : null}
+        {submitState.phase === 'error' ? (
+          <span className="paper-exam-error" role="alert">
+            交卷失败：{submitState.message}
           </span>
         ) : null}
       </div>

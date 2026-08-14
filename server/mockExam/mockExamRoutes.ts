@@ -18,6 +18,7 @@
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import type { Database } from 'better-sqlite3'
 import { HttpError, readJsonBody, respondJson } from '../http/httpUtils'
+import { actorFields, type AuditEventInput } from '../audit/AuditStore'
 import {
   authorizeAccess,
   authorizeStudentInUnit,
@@ -39,6 +40,8 @@ export interface MockExamRouteContext {
   user: SessionUser
   /** Required for report AuthZ (unit ownership + enrollment). */
   org: UnitScopeOrg
+  /** Optional: when present, paper-submit writes an audit event. */
+  audit?: Pick<{ enqueue(event: AuditEventInput): void }, 'enqueue'>
 }
 
 const SUGGEST_PATH = '/api/teacher/mock-exams/suggest'
@@ -46,6 +49,7 @@ const PLANS_PATH = '/api/teacher/mock-exams'
 const STUDENT_PLANS_PATH = '/api/student/mock-exams'
 const PLAN_PATTERN = /^\/api\/teacher\/mock-exams\/([^/]+)$/
 const REPORT_PATTERN = /^\/api\/student\/papers\/([^/]+)\/report$/
+const SUBMIT_PATTERN = /^\/api\/student\/papers\/([^/]+)\/submit$/
 
 /** 返回 true 表示请求已被消费。路径判定是精确匹配，挂载顺序无关。 */
 export async function handleMockExamApi(
@@ -57,13 +61,15 @@ export async function handleMockExamApi(
   const { pathname } = requestUrl
   const planMatch = PLAN_PATTERN.exec(pathname)
   const reportMatch = REPORT_PATTERN.exec(pathname)
+  const submitMatch = SUBMIT_PATTERN.exec(pathname)
 
   const isMockExamPath =
     pathname === SUGGEST_PATH ||
     pathname === PLANS_PATH ||
     pathname === STUDENT_PLANS_PATH ||
     planMatch !== null ||
-    reportMatch !== null
+    reportMatch !== null ||
+    submitMatch !== null
   if (!isMockExamPath) return false
 
   try {
@@ -92,6 +98,14 @@ export async function handleMockExamApi(
       await handleReport(
         decodeURIComponent(reportMatch[1]),
         requestUrl,
+        response,
+        context
+      )
+      return true
+    }
+    if (request.method === 'POST' && submitMatch?.[1] !== undefined) {
+      await handleSubmit(
+        decodeURIComponent(submitMatch[1]),
         response,
         context
       )
@@ -295,6 +309,68 @@ async function handleReport(
 
   const report = await context.mockExam.report(paperId, studentId)
   respondJson(response, 200, { report, gateNotice: MOCK_EXAM_GATE_NOTICE })
+}
+
+/**
+ * 学生交卷（成套）。只做服务端确认 + 只读报告投影：
+ *   1. 学生只能交自己的卷；
+ *   2. 卷面存在且已布置（assigned），否则 404；
+ *   3. 复用 submitPaper() 统计已答/未答并投影报告（不判分、不写分数）；
+ *   4. 若审计端口可用，记一条 paper-submit 事件（resourceId=paperId）。
+ */
+async function handleSubmit(
+  paperId: string,
+  response: ServerResponse,
+  context: MockExamRouteContext
+): Promise<void> {
+  if (context.user.role !== 'student') {
+    respondJson(response, 403, {
+      error: 'Forbidden: only students submit paper exams'
+    })
+    return
+  }
+  const studentId = context.user.studentId ?? context.user.userId
+  const plan = context.mockExam.findByPaperId(paperId)
+  if (!plan || plan.status !== 'assigned') {
+    respondJson(response, 404, {
+      error: `Mock exam paper not found or not assigned: ${paperId}`
+    })
+    return
+  }
+  if (plan.teachingUnitIds.length > 0) {
+    const enrolledSomewhere = plan.teachingUnitIds.some((unitId) => {
+      const decision = authorizeStudentInUnit(
+        context.db,
+        context.user,
+        context.org,
+        { studentId, teachingUnitId: unitId }
+      )
+      return decision.allowed
+    })
+    if (!enrolledSomewhere) {
+      respondJson(response, 403, {
+        error: 'Forbidden: not enrolled in this mock exam teaching unit'
+      })
+      return
+    }
+  }
+
+  const result = await context.mockExam.submitPaper(paperId, studentId)
+  context.audit?.enqueue({
+    ...actorFields(context.user),
+    action: 'paper-submit',
+    resourceType: 'mock-exam-paper',
+    resourceId: paperId,
+    studentId,
+    result: 'success',
+    metadata: {
+      planId: result.planId,
+      answeredCount: result.answeredCount,
+      totalQuestions: result.totalQuestions,
+      unansweredCount: result.unansweredQuestionIds.length
+    }
+  })
+  respondJson(response, 200, { ...result, gateNotice: MOCK_EXAM_GATE_NOTICE })
 }
 
 // ---------------------------------------------------------------------------

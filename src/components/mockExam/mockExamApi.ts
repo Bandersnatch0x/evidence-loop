@@ -8,6 +8,7 @@
 import type { ApiError } from '../../../shared/contracts'
 import type {
   MockExamPaperReport,
+  MockExamPaperSubmitResult,
   MockExamPlan,
   MockExamPlanView,
   MockExamSuggestion,
@@ -102,5 +103,18 @@ export function getMockExamReport(
   const query = params.toString()
   return requestJson(
     `/api/student/papers/${encodeURIComponent(paperId)}/report${query === '' ? '' : `?${query}`}`
+  )
+}
+
+/**
+ * 学生交卷（成套）。服务端确认 + 只读报告投影，不重新判分——
+ * 每题分数仍来自各 Attempt 自己的评价（Q3.4 口径：Attempt 才是聚合根）。
+ */
+export function submitPaperExam(
+  paperId: string
+): Promise<MockExamPaperSubmitResult> {
+  return requestJson(
+    `/api/student/papers/${encodeURIComponent(paperId)}/submit`,
+    { method: 'POST' }
   )
 }

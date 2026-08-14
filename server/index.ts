@@ -335,7 +335,8 @@ async function handleApi(
       db: context.productDb,
       mockExam: context.mockExam,
       user,
-      org: context.org
+      org: context.org,
+      audit: context.audit
     })
   ) {
     return
