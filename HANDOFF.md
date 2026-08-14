@@ -13,7 +13,7 @@ T11–T13 评审扫尾 + **T14 教师批量发提示（站内消息）** 已落�
 
 ## Status (2026-08-14)
 
-**十票 + T11–T23 IMPLEMENTED；复赛 5/5 落地并验收；决赛交付件已提交；当前处于 UI 收口与决赛演练准备阶段。`master` 比 `origin/master` 领先 90 个提交，工作区仍有并行 UI WIP，远端同步前必须先分范围提交并跑全量验收。**
+**十票 + T11–T23 IMPLEMENTED；复赛 5/5 落地并验收；决赛交付件已提交；UI 收口与决赛加码全部完成并同步远端。** `master` == `origin/master`（工作区 clean），提交材料已刷新（zip 重打至 `af133f1`）。
 
 | 波次 | 内容 | commit |
 |------|------|--------|
@@ -41,7 +41,7 @@ T11–T13 评审扫尾 + **T14 教师批量发提示（站内消息）** 已落�
 - 2026-08-14 Playwright 桌面（1440×1000）与移动端（390×844）复验：角色菜单、Pipeline 工具名换行、侧栏遮罩与键盘选择均通过
 - 2026-08-14 全量验收 `dd7c6cc`：lint + **1408 passed / 6 skipped** + `tsc --noEmit` + Vite build + 体积预算 ok + Playwright E2E **18/18**（chromium/firefox/webkit）
 - 2026-08-14 决赛演练第一轮：`scripts/e2e-demo-loops.mjs` **21/21**（铁律①②③⑤ + T14 闭环）；演练中服务器挂掉，按 D1 走 18473 备用端口重启；脚本 `setRole` 随角色选择器改 listbox 同步更新
-- 当前工作区仍有未提交并行改动（user 的 reviewer/AssignmentPicker 等），以上结果只覆盖已提交内容
+- 工作区已 clean（并行 UI WIP 已分范围提交 `a631c14`–`9624dea`，加码 `95765ea`–`1edf3b9`）
 - `tests/productDataModel.test.ts` **9/9**（legacy bare EvaluationResult + 混合坏行读兼容）
 - 本地 `.data/evaluations.json` 实读 **22/22** 条保留
 - E2E 真机复验（2026-07-26）：`PORT=5280` → `node scripts/e2e-demo-loops.mjs http://127.0.0.1:5280` → **16 passed, 0 failed**
