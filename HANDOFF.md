@@ -11,9 +11,9 @@ T11–T13 评审扫尾 + **T14 教师批量发提示（站内消息）** 已落�
 
 **Authoritative root:** `D:/code_space/evidence-loop`(Node 20,better-sqlite3 ^11)
 
-## Status (2026-08-12)
+## Status (2026-08-14)
 
-**十票 + T11–T14 IMPLEMENTED；复赛 5/5 落地并验收；决赛交付件已收口；工作区 clean（3 份决赛文档待 commit）。**
+**十票 + T11–T23 IMPLEMENTED；复赛 5/5 落地并验收；决赛交付件已提交；当前处于 UI 收口与决赛演练准备阶段。`master` 比 `origin/master` 领先 90 个提交，工作区仍有并行 UI WIP，远端同步前必须先分范围提交并跑全量验收。**
 
 | 波次 | 内容 | commit |
 |------|------|--------|
@@ -32,10 +32,14 @@ T11–T13 评审扫尾 + **T14 教师批量发提示（站内消息）** 已落�
 | **复赛 4** | 2-3 分钟演示视频（补录核心铁律路径 + 混剪包） | `666036c` |
 | **复赛 5** | 一键复现脚本 + 部署文档（`scripts/reproduce.mjs` + `docs/DEPLOYMENT.md`） | `d327ab5` |
 | 修复 | `StudentDemonstration` 载荷加载失败降级，消除未处理 rejection | `ac1f664` |
-| 决赛交付 | 现场 SOP `DEMO-final-preflight.md` + 专家问答库 `DEMO-expert-qa.md` + 弱网演练 `DEMO-weaknetwork-drill.md`（待 commit） | — |
+| 决赛交付 | 现场 SOP `DEMO-final-preflight.md` + 专家问答库 `DEMO-expert-qa.md` + 弱网演练 `DEMO-weaknetwork-drill.md` | `035e34a` |
+| 架构与 UI 加固 | 深模块拆分、hash router、干预闭环、a11y 与 DESIGN.md 收口 | `3e454ca` → `208d638` |
 
 验证快照（交付准备）：
-- `npm run check` **PASS**：lint + 全量 vitest **481 passed + 1 skipped** + `tsc --noEmit` + Vite build
+- 最近一次已提交基线 `npm run check` **PASS**：lint + 全量 vitest **481 passed + 1 skipped** + `tsc --noEmit` + Vite build
+- 2026-08-14 UI WIP 定向验收：`App` 角色选择器 **2/2**，Pipeline / 掌握度 / 参考资料 / 今日复习 **18/18**；`tsc --noEmit` PASS；触及文件 ESLint PASS
+- 2026-08-14 Playwright 桌面（1440×1000）与移动端（390×844）复验：角色菜单、Pipeline 工具名换行、侧栏遮罩与键盘选择均通过
+- 当前工作区仍有未提交并行改动，以上定向结果不能替代同步前的全量 `npm run check`
 - `tests/productDataModel.test.ts` **9/9**（legacy bare EvaluationResult + 混合坏行读兼容）
 - 本地 `.data/evaluations.json` 实读 **22/22** 条保留
 - E2E 真机复验（2026-07-26）：`PORT=5280` → `node scripts/e2e-demo-loops.mjs http://127.0.0.1:5280` → **16 passed, 0 failed**
@@ -94,14 +98,16 @@ T11–T13 评审扫尾 + **T14 教师批量发提示（站内消息）** 已落�
 
 ## Next
 
-复赛 5/5 已落地，代码与 E2E 闭环齐。剩余全是**交付准备**（非功能缺口）：
+复赛 5/5 已落地，代码与 E2E 闭环齐。剩余全是**交付准备**（非功能缺口），按以下顺序推进：
 
-1. **现场演练**：按 `docs/DEMO-final-preflight.md`（决赛固化 SOP）+ `docs/DEMO-weaknetwork-drill.md`（弱网演练）走一遍，掐节奏
-2. **专家问答脱口**：`docs/DEMO-expert-qa.md` 5 维度 37 问 + 铁律快答卡（评分边界 / 安全 / 开源复用）
-3. **演讲打磨**：口播稿 / 卡点 / 10min 逐字稿按决赛 SOP 对齐（开场句 / 收束三句 / 多 Agent 插播 30s）
-4. **决赛加码（YAGNI，除非评分明确要求）**：Excel/PDF 教务导出、成套 Attempt 批量提交 API、家长端
+1. **UI WIP 收口**：完成分范围提交，确认没有把并行改动混入同一提交；跑全量 `npm run check`
+2. **远端同步**：当前 `master` 比 `origin/master` 领先 90 个提交；全量验收通过后推送并复核远端 HEAD
+3. **现场演练**：按 `docs/DEMO-final-preflight.md` + `docs/DEMO-weaknetwork-drill.md` 走一遍，记录实际耗时、故障分支和口播偏差
+4. **专家问答脱口**：`docs/DEMO-expert-qa.md` 5 维度 37 问 + 铁律快答卡（评分边界 / 安全 / 开源复用）
+5. **演讲打磨**：口播稿 / 卡点 / 10min 逐字稿按决赛 SOP 对齐（开场句 / 收束三句 / 多 Agent 插播 30s）
+6. **决赛加码（YAGNI，除非评分明确要求）**：Excel/PDF 教务导出、成套 Attempt 批量提交 API、家长端
 
-不要在没拿到评分细则前开建 #4。
+不要在没拿到评分细则前开建 #6。
 
 ## Key docs
 

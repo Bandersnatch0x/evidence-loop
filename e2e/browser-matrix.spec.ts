@@ -7,9 +7,22 @@
 import { test, expect, type Page } from '@playwright/test'
 
 const BASE = process.env.BASE_URL ?? 'http://localhost:4180'
+const ROLE_LABELS = {
+  student: '学生',
+  teacher: '教师',
+  admin: '管理员'
+} as const
 
 async function gotoApp(page: Page): Promise<void> {
-  await page.goto(BASE, { waitUntil: 'networkidle' })
+  await page.goto(BASE, { waitUntil: 'domcontentloaded' })
+}
+
+async function selectDemoRole(
+  page: Page,
+  role: keyof typeof ROLE_LABELS
+): Promise<void> {
+  await page.getByLabel('演示角色切换').click()
+  await page.getByRole('option', { name: ROLE_LABELS[role], exact: true }).click()
 }
 
 test.describe('T-M browser matrix', () => {
@@ -22,7 +35,7 @@ test.describe('T-M browser matrix', () => {
 
   test('student role has no teacher studio or demo-authoring entry', async ({ page }) => {
     await gotoApp(page)
-    await page.getByLabel('演示角色切换').selectOption('student')
+    await selectDemoRole(page, 'student')
     await expect(page.getByRole('button', { name: '教师工作台' })).toHaveCount(0)
     await expect(page.getByText('教学演示创作台', { exact: true })).toHaveCount(0)
     await expect(page.getByText('生成演示', { exact: false })).toHaveCount(0)
@@ -30,7 +43,7 @@ test.describe('T-M browser matrix', () => {
 
   test('teacher workbench exposes and loads the studio tab', async ({ page }) => {
     await gotoApp(page)
-    await page.getByLabel('演示角色切换').selectOption('teacher')
+    await selectDemoRole(page, 'teacher')
     await page.getByRole('button', { name: '教师工作台' }).click()
     const studioTab = page.getByRole('tab', { name: /教学演示创作台/i })
     await expect(studioTab).toBeVisible()
@@ -38,9 +51,12 @@ test.describe('T-M browser matrix', () => {
     await expect(page.getByText('教学演示创作台', { exact: true })).toBeVisible()
   })
 
-  test('PlayCanvas studio viewport builds the 3D scene and runs the render loop', async ({ page }) => {
+  // Heavy case: cold engine import + WebGL2 context under load can exceed the
+  // default poll budget, so the engine-boot poll gets an explicit timeout (see
+  // tests/App.test.tsx for the same resource-contention budget pattern).
+  test('PlayCanvas studio viewport builds the 3D scene and runs the render loop', { timeout: 60_000 }, async ({ page }) => {
     await gotoApp(page)
-    await page.getByLabel('演示角色切换').selectOption('teacher')
+    await selectDemoRole(page, 'teacher')
     await page.getByRole('button', { name: '教师工作台' }).click()
     await page.getByRole('tab', { name: /教学演示创作台/i }).click()
     await page.getByRole('button', { name: '空白 3D 场景' }).click()
@@ -51,12 +67,14 @@ test.describe('T-M browser matrix', () => {
 
     // Scene graph must be built from the SceneDocument (box + camera + lights).
     await expect
-      .poll(() =>
-        page.evaluate(() => {
-          const w = window as unknown as Record<string, unknown>
-          const debug = w.__pcDebug as { built?: number } | undefined
-          return debug?.built ?? 0
-        })
+      .poll(
+        () =>
+          page.evaluate(() => {
+            const w = window as unknown as Record<string, unknown>
+            const debug = w.__pcDebug as { built?: number } | undefined
+            return debug?.built ?? 0
+          }),
+        { timeout: 20_000, intervals: [500, 1000, 1000, 2000] }
       )
       .toBeGreaterThan(0)
 
@@ -105,7 +123,7 @@ test.describe('T-M browser matrix', () => {
     // Seed questions are read-only; create a teacher-owned question so the
     // 编辑 button renders, then exercise the reference drawer on it.
     await gotoApp(page)
-    await page.getByLabel('演示角色切换').selectOption('teacher')
+    await selectDemoRole(page, 'teacher')
     await request.post('/api/questions', {
       headers: { 'X-Demo-Role': 'teacher' },
       data: {
@@ -118,8 +136,8 @@ test.describe('T-M browser matrix', () => {
         difficulty: 1
       }
     })
-    await page.reload({ waitUntil: 'networkidle' })
-    await page.getByLabel('演示角色切换').selectOption('teacher')
+    await page.reload({ waitUntil: 'domcontentloaded' })
+    await selectDemoRole(page, 'teacher')
     await page.getByRole('button', { name: '教师工作台' }).click()
     await page.getByRole('tab', { name: /题库录入/i }).click()
     await page.getByRole('button', { name: /编辑/i }).first().click()

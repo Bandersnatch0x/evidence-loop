@@ -1,6 +1,8 @@
 ﻿import {
   BookOpenCheck,
   CalendarClock,
+  Check,
+  ChevronDown,
   ClipboardList,
   GraduationCap,
   Layers,
@@ -11,6 +13,7 @@
   UsersRound,
   X
 } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
 import type { DemoRole } from '../../shared/contracts'
 import { DEMO_ROLE_OPTIONS } from '../lib/demoRole'
 
@@ -105,6 +108,83 @@ export function Sidebar({
   onDemoRoleChange,
   onClose
 }: SidebarProps) {
+  const [isRoleMenuOpen, setIsRoleMenuOpen] = useState(false)
+  const [highlightedRoleIndex, setHighlightedRoleIndex] = useState(() =>
+    Math.max(
+      0,
+      DEMO_ROLE_OPTIONS.findIndex((option) => option.value === demoRole)
+    )
+  )
+  const roleSwitcherRef = useRef<HTMLDivElement>(null)
+  const roleTriggerRef = useRef<HTMLButtonElement>(null)
+
+  const selectedRoleIndex = Math.max(
+    0,
+    DEMO_ROLE_OPTIONS.findIndex((option) => option.value === demoRole)
+  )
+  const selectedRole = DEMO_ROLE_OPTIONS[selectedRoleIndex]!
+
+  useEffect(() => {
+    setHighlightedRoleIndex(selectedRoleIndex)
+  }, [selectedRoleIndex])
+
+  useEffect(() => {
+    if (!isRoleMenuOpen) return
+
+    const handlePointerDown = (event: PointerEvent) => {
+      if (!roleSwitcherRef.current?.contains(event.target as Node)) {
+        setIsRoleMenuOpen(false)
+      }
+    }
+
+    document.addEventListener('pointerdown', handlePointerDown)
+    return () => document.removeEventListener('pointerdown', handlePointerDown)
+  }, [isRoleMenuOpen])
+
+  const closeRoleMenu = () => {
+    setIsRoleMenuOpen(false)
+    roleTriggerRef.current?.focus()
+  }
+
+  const selectRole = (role: DemoRole) => {
+    onDemoRoleChange(role)
+    setIsRoleMenuOpen(false)
+    roleTriggerRef.current?.focus()
+  }
+
+  const handleRoleTriggerKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>) => {
+    if (event.key === 'Escape') {
+      if (isRoleMenuOpen) {
+        event.preventDefault()
+        closeRoleMenu()
+      }
+      return
+    }
+
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault()
+      if (isRoleMenuOpen) {
+        const option = DEMO_ROLE_OPTIONS[highlightedRoleIndex]
+        if (option) selectRole(option.value)
+      } else {
+        setHighlightedRoleIndex(selectedRoleIndex)
+        setIsRoleMenuOpen(true)
+      }
+      return
+    }
+
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp' || event.key === 'Home' || event.key === 'End') {
+      event.preventDefault()
+      if (!isRoleMenuOpen) setIsRoleMenuOpen(true)
+      setHighlightedRoleIndex((current) => {
+        if (event.key === 'Home') return 0
+        if (event.key === 'End') return DEMO_ROLE_OPTIONS.length - 1
+        const offset = event.key === 'ArrowDown' ? 1 : -1
+        return (current + offset + DEMO_ROLE_OPTIONS.length) % DEMO_ROLE_OPTIONS.length
+      })
+    }
+  }
+
   const navigate = (view: AppView) => {
     onNavigate(view)
     onClose()
@@ -143,26 +223,54 @@ export function Sidebar({
           AI+教育赛道 Demo
         </div>
 
-        <label className="role-switcher">
+        <div className="role-switcher" ref={roleSwitcherRef}>
           <span>演示角色</span>
-          <select
-            aria-label="演示角色切换"
-            value={demoRole}
-            onChange={(event) => {
-              const next = event.target.value
-              if (next === 'student' || next === 'teacher' || next === 'admin') {
-                onDemoRoleChange(next)
-              }
-            }}
-          >
-            {DEMO_ROLE_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
+          <div className="role-switcher-control">
+            <button
+              ref={roleTriggerRef}
+              className="role-switcher-trigger"
+              type="button"
+              aria-label="演示角色切换"
+              aria-haspopup="listbox"
+              aria-expanded={isRoleMenuOpen}
+              aria-controls={isRoleMenuOpen ? 'demo-role-options' : undefined}
+              onClick={() => {
+                setHighlightedRoleIndex(selectedRoleIndex)
+                setIsRoleMenuOpen((open) => !open)
+              }}
+              onKeyDown={handleRoleTriggerKeyDown}
+            >
+              <span>{selectedRole.label}</span>
+              <ChevronDown size={16} aria-hidden="true" />
+            </button>
+            {isRoleMenuOpen ? (
+              <div
+                id="demo-role-options"
+                className="role-switcher-menu"
+                role="listbox"
+                aria-label="演示角色选项"
+                aria-activedescendant={`demo-role-option-${DEMO_ROLE_OPTIONS[highlightedRoleIndex]?.value}`}
+              >
+                {DEMO_ROLE_OPTIONS.map((option, index) => (
+                  <button
+                    key={option.value}
+                    id={`demo-role-option-${option.value}`}
+                    className={index === highlightedRoleIndex ? 'is-highlighted' : ''}
+                    type="button"
+                    role="option"
+                    aria-selected={option.value === demoRole}
+                    onMouseEnter={() => setHighlightedRoleIndex(index)}
+                    onClick={() => selectRole(option.value)}
+                  >
+                    <span>{option.label}</span>
+                    {option.value === demoRole ? <Check size={15} aria-hidden="true" /> : null}
+                  </button>
+                ))}
+              </div>
+            ) : null}
+          </div>
           <small>Demo 假多租户 · 无真实身份认证</small>
-        </label>
+        </div>
 
         <nav className="primary-nav" aria-label="主导航">
           {navigation

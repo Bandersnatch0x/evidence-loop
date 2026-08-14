@@ -4,13 +4,43 @@
  * and lazy-mounts StudentDemonstration (expanded); shows graceful empty.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import type { KnowledgePoint } from '../shared/contracts'
+import { MasteryHeatmap } from '../src/components/MasteryHeatmap'
 
 const points: KnowledgePoint[] = [
   { id: 'kp.bio.photo', name: '光合作用', weight: 1 },
   { id: 'kp.empty', name: '空知识点', weight: 1 }
 ]
+
+describe('MasteryHeatmap evidence controls', () => {
+  it('keeps mastery selection and evidence disclosure as sibling buttons', () => {
+    const onSelectKp = vi.fn()
+    render(
+      <MasteryHeatmap
+        points={[points[0]!]}
+        profile={{
+          'kp.bio.photo': {
+            score: 0.8,
+            evidenceIds: ['evidence-1'],
+            computedAt: '2026-08-14T00:00:00.000Z',
+            algorithmVersion: 'mastery-v1'
+          }
+        }}
+        onSelectKp={onSelectKp}
+      />
+    )
+
+    const cell = screen.getByRole('listitem')
+    const cellButtons = within(cell).getAllByRole('button')
+    expect(cellButtons).toHaveLength(2)
+    expect(cell.querySelector('button button')).toBeNull()
+
+    fireEvent.click(screen.getByRole('button', { name: '基于 1 条证据' }))
+    expect(onSelectKp).not.toHaveBeenCalled()
+    expect(screen.getByRole('dialog')).not.toBeNull()
+  })
+})
 
 function mockMasteryApi(): void {
   vi.doMock('../src/lib/api', () => ({

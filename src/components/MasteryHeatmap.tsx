@@ -51,30 +51,34 @@ export function MasteryHeatmap({
         } as CSSProperties
 
         return (
-          <button
+          <div
             key={point.id}
-            type="button"
             role="listitem"
             className={`mastery-cell band-${band.id} ${isSelected ? 'is-selected' : ''}`}
             style={style}
-            aria-pressed={isSelected}
-            onClick={() => onSelectKp(point.id)}
           >
-            <span className="mastery-cell-name">{point.name}</span>
-            <span className="mastery-cell-score">
-              {score === undefined ? '—' : `${toPercent(score)}%`}
-            </span>
-            <span className="mastery-cell-foot">
+            <button
+              type="button"
+              className="mastery-cell-select"
+              aria-pressed={isSelected}
+              onClick={() => onSelectKp(point.id)}
+            >
+              <span className="mastery-cell-name">{point.name}</span>
+              <span className="mastery-cell-score">
+                {score === undefined ? '—' : `${toPercent(score)}%`}
+              </span>
               <span className="mastery-cell-band">{band.label}</span>
-              {snapshot && (
+            </button>
+            {snapshot && (
+              <span className="mastery-cell-evidence">
                 <EvidenceShieldBadge
                   evidenceIds={snapshot.evidenceIds}
                   algorithm={snapshot.algorithmVersion}
                   size={13}
                 />
-              )}
-            </span>
-          </button>
+              </span>
+            )}
+          </div>
         )
       })}
     </div>

@@ -1,4 +1,4 @@
-import { useId, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { ShieldCheck } from 'lucide-react'
 
 interface EvidenceShieldBadgeProps {
@@ -23,20 +23,48 @@ export function EvidenceShieldBadge({
   size = 15
 }: EvidenceShieldBadgeProps) {
   const [isOpen, setIsOpen] = useState(false)
+  const containerRef = useRef<HTMLSpanElement>(null)
   const panelId = useId()
   const count = evidenceIds.length
   const tooltip = `基于 ${count} 条证据`
 
+  useEffect(() => {
+    if (!isOpen) return
+    const handlePointerDown = (event: PointerEvent) => {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(event.target as Node)
+      ) {
+        setIsOpen(false)
+      }
+    }
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsOpen(false)
+      }
+    }
+    document.addEventListener('pointerdown', handlePointerDown)
+    document.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown)
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [isOpen])
+
   return (
-    <span className="evidence-shield">
+    <span className="evidence-shield" ref={containerRef}>
       <button
         type="button"
         className="evidence-shield-trigger"
         aria-label={tooltip}
         title={tooltip}
+        aria-haspopup="dialog"
         aria-expanded={isOpen}
         aria-controls={panelId}
-        onClick={() => setIsOpen((open) => !open)}
+        onClick={(e) => {
+          e.stopPropagation()
+          setIsOpen((open) => !open)
+        }}
       >
         <ShieldCheck size={size} />
         <span className="evidence-shield-count">{count}</span>

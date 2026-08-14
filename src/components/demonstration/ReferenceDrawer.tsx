@@ -213,7 +213,7 @@ export function ReferenceDrawer({ questionId, kpId, api }: ReferenceDrawerProps)
           placeholder="检索公共库演示…"
           aria-label="检索"
         />
-        <button type="button" onClick={() => void search()}>检索</button>
+        <button type="button" className="secondary-button" onClick={() => void search()}>检索</button>
       </div>
 
       <div className="ref-results">
@@ -230,17 +230,17 @@ export function ReferenceDrawer({ questionId, kpId, api }: ReferenceDrawerProps)
               <span>{card.subject}/{card.grade}</span> · 被引用 {card.citationCount}
             </div>
             <div className="ref-card-actions">
-              <button type="button" onClick={() => void previewCard(card)}>预览</button>
-              <button type="button" onClick={() => void bindPrimary(card)}>设为主演示</button>
-              <button type="button" onClick={() => void addSupplementary(card)} disabled={!canAddSupplementary}>
+              <button type="button" className="ghost-button" onClick={() => void previewCard(card)}>预览</button>
+              <button type="button" className="secondary-button" onClick={() => void bindPrimary(card)}>设为主演示</button>
+              <button type="button" className="ghost-button" onClick={() => void addSupplementary(card)} disabled={!canAddSupplementary}>
                 加入补充
               </button>
             </div>
             {confirmReplace === card.id && (
               <div className="ref-confirm">
                 <span>替换当前主演示？</span>
-                <button type="button" onClick={() => void confirmReplaceNow(card)}>确认替换</button>
-                <button type="button" onClick={() => setConfirmReplace(null)}>取消</button>
+                <button type="button" className="secondary-button" onClick={() => void confirmReplaceNow(card)}>确认替换</button>
+                <button type="button" className="ghost-button" onClick={() => setConfirmReplace(null)}>取消</button>
               </div>
             )}
           </div>
@@ -251,7 +251,7 @@ export function ReferenceDrawer({ questionId, kpId, api }: ReferenceDrawerProps)
         <div className="ref-preview">
           <div className="ref-preview-head">
             <span>预览（懒加载）</span>
-            <button type="button" onClick={() => setPreview(null)}>✕</button>
+            <button type="button" className="ghost-button" onClick={() => setPreview(null)}>✕</button>
           </div>
           <StudentPlayer
             payload={{
@@ -286,17 +286,17 @@ export function ReferenceDrawer({ questionId, kpId, api }: ReferenceDrawerProps)
               <span className="ref-title">{card?.title ?? entry.demoVersionId.slice(0, 8)}</span>
               {card && card.health !== 'healthy' && <span className="ref-unavailable">源不可用（继续播放）</span>}
               {card && entry.demoVersionId !== card.latestVersionId && (
-                <button type="button" onClick={() => void upgrade(entry, card)}>
+                <button type="button" className="secondary-button" onClick={() => void upgrade(entry, card)}>
                   {confirmUpgrade === entry.id ? `确认升级到 v${card.versionSeq}` : `升级到 v${card.versionSeq}`}
                 </button>
               )}
               {!isPrimary && (
-                <button type="button" aria-label="上移" onClick={() => void move(i - 1, -1)} disabled={i === 0}>▲</button>
+                <button type="button" className="ghost-button" aria-label="上移" onClick={() => void move(i - 1, -1)} disabled={i === 0}>▲</button>
               )}
               {!isPrimary && (
-                <button type="button" aria-label="下移" onClick={() => void move(i - 1, 1)} disabled={i === supplementary.length}>▼</button>
+                <button type="button" className="ghost-button" aria-label="下移" onClick={() => void move(i - 1, 1)} disabled={i === supplementary.length}>▼</button>
               )}
-              <button type="button" onClick={() => void remove(entry)}>
+              <button type="button" className="ghost-button" onClick={() => void remove(entry)}>
                 {confirmRemove === entry.id ? '确认移除' : '移除'}
               </button>
             </div>

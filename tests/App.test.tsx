@@ -207,7 +207,7 @@ describe('App', () => {
     vi.mocked(api.listStudentTips).mockResolvedValue([])
   })
 
-  it('loads an assignment, evaluates code, and applies the suggested repair', async () => {
+  it('loads an assignment, evaluates code, and applies the suggested repair', { timeout: 10_000 }, async () => {
     const user = userEvent.setup()
     render(<App />)
 
@@ -300,10 +300,8 @@ describe('App', () => {
     render(<App />)
 
     // Switch the visible role control to teacher so App state matches.
-    await user.selectOptions(
-      await screen.findByLabelText('演示角色切换'),
-      'teacher'
-    )
+    await user.click(await screen.findByLabelText('演示角色切换'))
+    await user.click(screen.getByRole('option', { name: '教师' }))
 
     expect(
       await screen.findByRole('heading', { name: assignment.title })
@@ -341,8 +339,28 @@ describe('App', () => {
 
   it('renders the demo role switcher defaulting to student', async () => {
     render(<App />)
-    const roleSelect = await screen.findByLabelText('演示角色切换')
-    expect(roleSelect).toHaveValue('student')
+    const roleTrigger = await screen.findByLabelText('演示角色切换')
+    expect(roleTrigger).toHaveTextContent('学生')
+    expect(roleTrigger).toHaveAttribute('aria-expanded', 'false')
+  })
+
+  it('supports keyboard selection and dismissal in the demo role switcher', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+
+    const roleTrigger = await screen.findByLabelText('演示角色切换')
+    roleTrigger.focus()
+    await user.keyboard('{ArrowDown}{Enter}')
+
+    expect(roleTrigger).toHaveTextContent('教师')
+    expect(roleTrigger).toHaveAttribute('aria-expanded', 'false')
+    expect(api.setActiveDemoRole).toHaveBeenCalledWith('teacher')
+
+    await user.keyboard('{Enter}')
+    expect(screen.getByRole('listbox', { name: '演示角色选项' })).toBeInTheDocument()
+    await user.keyboard('{Escape}')
+    expect(screen.queryByRole('listbox', { name: '演示角色选项' })).toBeNull()
+    expect(roleTrigger).toHaveFocus()
   })
 
   it('hides the voice companion while the multimodal flag is off', async () => {

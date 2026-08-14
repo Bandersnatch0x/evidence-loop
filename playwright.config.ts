@@ -42,7 +42,8 @@ export default defineConfig({
     // safe only when this exact health route is available.
     url: `${e2eBaseUrl}/api/health`,
     env: {
-      PORT: String(e2ePort)
+      PORT: String(e2ePort),
+      VITE_HMR_PORT: String(e2ePort + 1)
     },
     reuseExistingServer: true,
     timeout: 120_000
