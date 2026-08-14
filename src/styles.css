@@ -4680,16 +4680,25 @@ td > b {
   margin-top: 12px;
 }
 
+.teacher-tabs-container {
+  position: relative;
+  margin: 16px 0;
+}
+
 .teacher-tabs {
   display: flex;
   gap: 6px;
-  margin: 16px 0;
-  flex-wrap: wrap;
+  overflow-x: auto;
+  flex-wrap: nowrap;
   border-bottom: 1px solid var(--line);
   padding-bottom: 10px;
+  scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
 }
 
 .teacher-tabs .tab {
+  white-space: nowrap;
+  flex-shrink: 0;
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -4700,6 +4709,12 @@ td > b {
   color: var(--ink-muted);
   cursor: pointer;
   font-size: 0.8125rem;
+  transition: all 0.15s ease;
+}
+
+.teacher-tabs .tab:hover:not(:disabled) {
+  border-color: var(--indigo);
+  color: var(--ink);
 }
 
 .teacher-tabs .tab.active {

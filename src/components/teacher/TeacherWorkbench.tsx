@@ -70,25 +70,27 @@ export function TeacherWorkbench() {
         )}
       </header>
 
-      <nav className="teacher-tabs" role="tablist">
-        {TABS.map((t) => {
-          const Icon = t.icon
-          const disabled = t.requiresUnit && !hasUnit
-          return (
-            <button
-              key={t.id}
-              type="button"
-              role="tab"
-              aria-selected={tab === t.id}
-              className={tab === t.id ? 'tab active' : 'tab'}
-              disabled={disabled}
-              onClick={() => setTab(t.id)}
-            >
-              <Icon size={16} /> {t.label}
-            </button>
-          )
-        })}
-      </nav>
+      <div className="teacher-tabs-container">
+        <nav className="teacher-tabs" role="tablist" aria-label="教师工作台功能标签">
+          {TABS.map((t) => {
+            const Icon = t.icon
+            const disabled = t.requiresUnit && !hasUnit
+            return (
+              <button
+                key={t.id}
+                type="button"
+                role="tab"
+                aria-selected={tab === t.id}
+                className={tab === t.id ? 'tab active' : 'tab'}
+                disabled={disabled}
+                onClick={() => setTab(t.id)}
+              >
+                <Icon size={16} /> {t.label}
+              </button>
+            )
+          })}
+        </nav>
+      </div>
 
       <section className="teacher-tab-body">
         {tab === 'class' ? (

@@ -8,7 +8,7 @@
  * 服务端在导出时记一条审计与台账，前端不参与。
  */
 import { useCallback, useEffect, useState } from 'react'
-import { AlertTriangle, Printer, RefreshCw } from 'lucide-react'
+import { Printer, RefreshCw } from 'lucide-react'
 import {
   getTeacherWeeklyReport,
   openWeeklyReportPrintView,

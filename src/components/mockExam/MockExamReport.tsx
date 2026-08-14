@@ -10,7 +10,7 @@
  *   * 待教师终裁的主观建议只显示条数，明示「不计入分数」。
  */
 import { useEffect, useState } from 'react'
-import { AlertTriangle, ShieldCheck, TriangleAlert } from 'lucide-react'
+import { ShieldCheck, TriangleAlert } from 'lucide-react'
 import type { MockExamPaperReport } from '../../../shared/mockExam'
 import { subjectLabel } from '../../lib/labels'
 import { getMockExamReport } from './mockExamApi'

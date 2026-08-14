@@ -10,7 +10,7 @@
  * 的输入，不是评比材料。
  */
 import { useEffect, useState } from 'react'
-import { AlertTriangle, ShieldCheck, Users } from 'lucide-react'
+import { ShieldCheck, Users } from 'lucide-react'
 import {
   getAchievementSummary,
   type AchievementSummaryResponse

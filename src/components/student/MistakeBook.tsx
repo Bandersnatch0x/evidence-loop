@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { AlertTriangle, BookOpen, CheckCircle2, RotateCcw } from 'lucide-react'
+import { BookOpen, CheckCircle2, RotateCcw } from 'lucide-react'
 import type { MistakeBookView } from '../../../shared/contracts'
 import { getMistakeBook } from '../../lib/api'
 import { ErrorBanner } from '../../components/Banner'

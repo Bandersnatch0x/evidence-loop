@@ -1,5 +1,5 @@
 import { lazy, Suspense, useMemo, useState } from 'react'
-import { AlertTriangle, CheckCircle2, Link2, Save, Sparkles } from 'lucide-react'
+import { CheckCircle2, Link2, Save, Sparkles } from 'lucide-react'
 import type {
   Question,
   QuestionType,

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { AlertTriangle, Download, Upload } from 'lucide-react'
+import { Download, Upload } from 'lucide-react'
 import type { ImportRosterResult } from '../../../shared/contracts'
 import { importRoster } from '../../lib/api'
 import { downloadCsv } from '../../lib/downloadCsv'

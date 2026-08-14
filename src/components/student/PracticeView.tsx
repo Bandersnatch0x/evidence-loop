@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { AlertTriangle, GraduationCap, PenLine } from 'lucide-react'
+import { GraduationCap, PenLine } from 'lucide-react'
 import type { SessionMode } from '../../../shared/contracts'
 import { startPractice } from '../../lib/api'
 import { ErrorBanner } from '../../components/Banner'

@@ -1,5 +1,5 @@
-﻿import { useEffect, useState } from 'react'
-import { AlertTriangle, GraduationCap, ListChecks } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { GraduationCap, ListChecks } from 'lucide-react'
 import type { PracticeSession, SessionMode } from '../../../shared/contracts'
 import { listPracticeSessions } from '../../lib/api'
 import { MistakeBook } from './MistakeBook'

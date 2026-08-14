@@ -1,5 +1,5 @@
-﻿import { useEffect, useMemo, useState } from 'react'
-import { AlertTriangle, MessageSquareText, Send } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import { MessageSquareText, Send } from 'lucide-react'
 import type {
   CreateTeacherTipResult,
   TeacherTipSummary

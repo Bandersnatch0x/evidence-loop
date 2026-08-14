@@ -4,7 +4,7 @@
  * without touching teacher authority or the score path.
  */
 import { Suspense, lazy, useState, type ReactNode } from 'react'
-import { AlertTriangle, Sparkles } from 'lucide-react'
+import { Sparkles } from 'lucide-react'
 import type { Visualization } from '../../../shared/contracts'
 import { studentPreviewVisualization } from '../../lib/api'
 import { ErrorBanner } from '../../components/Banner'

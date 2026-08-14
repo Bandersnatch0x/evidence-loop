@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { AlertTriangle, CalendarCheck } from 'lucide-react'
+import { CalendarCheck } from 'lucide-react'
 import type {
   EvaluationHistoryItem,
   NextPracticePlan

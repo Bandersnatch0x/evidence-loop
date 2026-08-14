@@ -1,5 +1,5 @@
-﻿import { useCallback, useEffect, useState } from 'react'
-import { AlertTriangle, Bell, Check } from 'lucide-react'
+import { useCallback, useEffect, useState } from 'react'
+import { Bell, Check } from 'lucide-react'
 import type { StudentTipItem } from '../../../shared/contracts'
 import { listStudentTips, markStudentTipRead } from '../../lib/api'
 import { ErrorBanner } from '../../components/Banner'

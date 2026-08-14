@@ -7,7 +7,7 @@
  * 学生端没有打印按钮：MVP-0 的对外导出是教师动作（要留审计与台账）。
  */
 import { useEffect, useState } from 'react'
-import { AlertTriangle, RefreshCw } from 'lucide-react'
+import { RefreshCw } from 'lucide-react'
 import {
   getStudentWeeklyReport,
   type WeeklyReportResponse

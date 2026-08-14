@@ -7,7 +7,7 @@
  * 计划外、未教或无证据的知识点。
  */
 import { useCallback, useEffect, useState } from 'react'
-import { AlertTriangle, ClipboardList, ShieldCheck } from 'lucide-react'
+import { ClipboardList, ShieldCheck } from 'lucide-react'
 import {
   assignStudyPlan,
   getStudentStudyPlanForTeacher,
