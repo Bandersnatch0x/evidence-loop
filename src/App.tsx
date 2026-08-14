@@ -619,10 +619,7 @@ export function App() {
         allow={['parent']}
         deniedMessage="家长视图仅对家长演示角色开放。"
       >
-        <ParentOverviewView
-          childStudentId="learner-demo"
-          teachingUnitId="tu-demo"
-        />
+        <ParentOverviewView teachingUnitId="tu-demo" />
       </RoleGate>
     )
   } else {

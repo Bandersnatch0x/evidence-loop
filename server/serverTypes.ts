@@ -24,6 +24,7 @@ import type { MaterialImportService } from './materialImport'
 import type { MockExamService } from './mockExam'
 import type { StudyPlanService } from './studyPlan'
 import type { WeeklyReportService, WeeklyReportExportStore } from './reports'
+import type { ParentChildBindingStore } from './parent'
 import type { AchievementService } from './achievements'
 import type { PersonaDialogueService } from './dialogue'
 import type { FlashcardDraftService } from './flashcardDraft'
@@ -67,6 +68,7 @@ export interface ApiContext {
   studyPlan: StudyPlanService
   weeklyReport: WeeklyReportService
   weeklyReportExports: WeeklyReportExportStore
+  parentChildBindings: ParentChildBindingStore
   achievements: AchievementService
   dialogue: PersonaDialogueService
   flashcardDraft: FlashcardDraftService

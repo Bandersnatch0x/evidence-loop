@@ -112,7 +112,7 @@ T11–T13 评审扫尾 + **T14 教师批量发提示（站内消息）** 已落�
    - **Excel 兼容导出** `7c1171b`：CSV 加 UTF-8 BOM（中文不乱码）+ RFC 4180 转义，测试覆盖
    - **家长端** `cf6f218`：parent 角色 + `GET /api/parent/reports/weekly`（demo 绑定 parent-demo→learner-demo，只读）+ 家长视图；三处 403/404 鉴权测试
 
-剩余真实 fog：短信/推送、真实家长-子女绑定与真实多租户（Demo 假会话诚实标注）、成套"第二套计分"（故意不做，Attempt 才是聚合根）。
+剩余真实 fog：短信/推送、真实多租户与真实家长身份（Demo 假会话诚实标注）、成套"第二套计分"（故意不做，Attempt 才是聚合根）。家长-子女绑定已落库（`parent_children` 迁移 0021，种子 parent-demo → learner-demo），路由改为 DB 校验（fail-closed），并新增 `GET /api/parent/children`。
 
 ## Key docs
 

@@ -5919,3 +5919,9 @@ tbody tr {
   gap: 6px;
   font-size: 0.75rem;
 }
+
+.parent-child-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}

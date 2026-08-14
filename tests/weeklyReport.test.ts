@@ -47,6 +47,11 @@ import {
   handleWeeklyReportApi
 } from '../server/reports'
 import type { SessionUser } from '../server/auth/SessionProvider'
+import {
+  ParentChildBindingStore,
+  type ParentChildBindingReader
+} from '../server/parent'
+import { applyProductMigrations } from '../server/db/migrate'
 
 const TEACHER = 'teacher-weekly-alpha'
 const STUDENT = 'student-weekly-1'
@@ -218,6 +223,7 @@ function startServer(
   options: {
     narrator?: WeeklyReportNarrator
     enrolledStudentIds?: string[]
+    bindings?: ParentChildBindingReader
   } = {}
 ): Promise<{ url: string; close: () => Promise<void> }> {
   const db = new Database(':memory:')
@@ -237,7 +243,8 @@ function startServer(
       },
       user,
       now: () => new Date(NOW_ISO),
-      ...(options.narrator ? { narrator: options.narrator } : {})
+      ...(options.narrator ? { narrator: options.narrator } : {}),
+      ...(options.bindings ? { parentBindings: options.bindings } : {})
     }
     void handleWeeklyReportApi(request, response, requestUrl, context).then(
       (handled) => {
@@ -583,8 +590,13 @@ describe('周报 HTTP 端点 (T19)', () => {
     expect(response.status).toBe(403)
   })
 
-  it('家长拉绑定子女周报 → 200；非绑定子女 → 403', async () => {
+  it('家长拉绑定子女周报 → 200；非绑定子女 → 403（DB 绑定）', async () => {
     const { service } = makeService({ attempts: [attempt('a1')] })
+    // DB 绑定（迁移 0021）：parent-demo → learner-demo。
+    const db = new Database(':memory:')
+    applyProductMigrations(db)
+    const bindings = new ParentChildBindingStore({ database: db })
+    bindings.bind('parent-demo', 'learner-demo')
     const server = await startServer(
       service,
       {
@@ -592,7 +604,7 @@ describe('周报 HTTP 端点 (T19)', () => {
         role: 'parent',
         displayName: '演示家长'
       },
-      { enrolledStudentIds: ['learner-demo'] }
+      { enrolledStudentIds: ['learner-demo'], bindings }
     )
     // 绑定子女 learner-demo（unitId 别名兼容）
     const ok = await fetch(
@@ -606,6 +618,19 @@ describe('周报 HTTP 端点 (T19)', () => {
       `${server.url}/api/parent/reports/weekly?studentId=someone-else&unitId=${UNIT}`
     )
     expect(forbidden.status).toBe(403)
+  })
+
+  it('家长无绑定端口（fail-closed）→ 403', async () => {
+    const { service } = makeService()
+    const server = await startServer(service, {
+      userId: 'parent-demo',
+      role: 'parent',
+      displayName: '演示家长'
+    })
+    const response = await fetch(
+      `${server.url}/api/parent/reports/weekly?studentId=learner-demo&unitId=${UNIT}`
+    )
+    expect(response.status).toBe(403)
   })
 
   it('非家长角色访问家长端点 → 403', async () => {

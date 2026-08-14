@@ -74,13 +74,21 @@ export function getStudentWeeklyReport(
   )
 }
 
-/** 家长拉绑定子女的只读周报（演示绑定 parent-demo → learner-demo）。 */
+/** 家长拉绑定子女的只读周报（DB 绑定，迁移 0021）。 */
 export function getParentWeeklyReport(
   query: WeeklyReportQuery
 ): Promise<WeeklyReportResponse> {
   return requestJson(
     `/api/parent/reports/weekly?${buildParams(query).toString()}`
   )
+}
+
+/** 当前家长绑定的子女 id 列表（只读，/api/parent/children）。 */
+export async function getParentChildren(): Promise<string[]> {
+  const payload = await requestJson<{ children: string[] }>(
+    '/api/parent/children'
+  )
+  return payload.children
 }
 
 /** 取打印友好 HTML 文本（不直接跳转，见文件头说明）。 */

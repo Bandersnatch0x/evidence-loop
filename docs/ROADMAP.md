@@ -57,6 +57,7 @@
 - [x] 将本地领先的 90 个提交同步到 `origin/master`，复核远端 HEAD（`fc502d0..dd7c6cc`，HEAD == origin/master）
 - [x] 完成一轮决赛演练：`scripts/e2e-demo-loops.mjs` **21/21**（铁律①②③⑤路径 + T14 闭环）；演练中服务器挂掉，按 D1 用 18473 备用端口重启；脚本 `setRole` 随角色选择器改 listbox 同步更新
 - [x] 决赛加码（用户要求）：成套服务端交卷 `95765ea`（submit 端点，无第二套计分）+ Excel 兼容 CSV `7c1171b`（UTF-8 BOM）+ 家长端 `cf6f218`（parent 角色/只读周报/demo 绑定）——三者均已真机冒烟（家长端点 200/403/403，交卷 200 + 统计）
+- [x] 家长-子女绑定落库：`parent_children` 表（迁移 `0021`）+ `ParentChildBindingStore`（幂等增删查）+ 种子 + 路由改 DB 校验（fail-closed）+ `GET /api/parent/children`；真机冒烟（children 200 / 未绑定 403 / 教师 403）
 
 ## 后续产品化
 

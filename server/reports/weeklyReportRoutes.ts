@@ -33,6 +33,7 @@ import {
 import { attachReportNarrative } from './WeeklyReportService'
 import type { WeeklyReportService } from './WeeklyReportService'
 import { renderWeeklyReportHtml } from './renderWeeklyReportHtml'
+import type { ParentChildBindingReader } from '../parent/ParentChildBindingStore'
 import {
   WeeklyReportUnitMissingError,
   WeeklyReportWindowError,
@@ -64,6 +65,11 @@ export interface WeeklyReportRouteContext {
   audit?: WeeklyReportAuditSink
   /** 可选：AI 叙述文案。缺席时报告纯硬事实。 */
   narrator?: WeeklyReportNarrator
+  /**
+   * 家长-子女绑定（迁移 0021）。缺省时家长端点 fail-closed（403）——
+   * 绝不回退到任何硬编码绑定。
+   */
+  parentBindings?: ParentChildBindingReader
   now?: () => Date
 }
 
@@ -80,14 +86,6 @@ const TEACHER_JSON_PATH = '/api/teacher/reports/weekly'
 const TEACHER_HTML_PATH = '/api/teacher/reports/weekly.html'
 const STUDENT_JSON_PATH = '/api/student/reports/weekly'
 const PARENT_JSON_PATH = '/api/parent/reports/weekly'
-
-/**
- * 演示家长 → 子女的只读绑定（假多租户的诚实边界：
- * 无真实家长-子女关系表，绑定常量写死在 demo 身份里）。
- */
-const PARENT_CHILD_BINDING: Record<string, string> = {
-  'parent-demo': 'learner-demo'
-}
 
 /** 返回 true 表示请求已被消费。路径为精确匹配，挂载顺序无关紧要。 */
 export async function handleWeeklyReportApi(
@@ -285,10 +283,15 @@ async function handleParentReport(
   }
   const requested =
     requestUrl.searchParams.get('studentId')?.trim() ?? ''
-  const boundChild = PARENT_CHILD_BINDING[context.user.userId]
-  if (boundChild === undefined || requested !== boundChild) {
+  // DB 绑定（迁移 0021）：读不到绑定端口或未绑定时一律 403（fail-closed）。
+  const bindings = context.parentBindings
+  if (
+    bindings === undefined ||
+    requested === '' ||
+    !bindings.isBound(context.user.userId, requested)
+  ) {
     respondJson(response, 403, {
-      error: 'Forbidden: parent is not bound to this student (demo binding)'
+      error: 'Forbidden: parent is not bound to this student'
     })
     return
   }

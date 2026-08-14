@@ -40,6 +40,7 @@ import { handleMockExamApi } from './mockExam'
 import { handleTransparencyApi } from './transparency/transparencyRoutes'
 import { handleStudyPlanApi } from './studyPlan/studyPlanRoutes'
 import { handleWeeklyReportApi } from './reports'
+import { handleParentApi } from './parent'
 import { handleAchievementApi } from './achievements'
 import { handleTaskTemplateApi } from './taskTemplate'
 import { handleDialogueApi } from './dialogue/dialogueRoutes'
@@ -362,7 +363,16 @@ async function handleApi(
       org: context.org,
       user,
       exports: context.weeklyReportExports,
-      audit
+      audit,
+      parentBindings: context.parentChildBindings
+    })
+  ) {
+    return
+  }
+  if (
+    handleParentApi(request, response, requestUrl, {
+      user,
+      bindings: context.parentChildBindings
     })
   ) {
     return

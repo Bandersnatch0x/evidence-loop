@@ -36,6 +36,10 @@ import { QuestionStore } from './questionbank/QuestionStore'
 import { createQuestionBackedRegistry } from './questionbank/projectQuestionAssignment'
 import { seedDemoProduct } from './questionbank/seedDemoProduct'
 import {
+  ParentChildBindingStore,
+  seedDemoParentBinding
+} from './parent'
+import {
   AssignmentService,
   StudentImportService,
   SubjectiveGradingService,
@@ -261,6 +265,10 @@ export async function createServerContext(
   } catch (error) {
     console.error('Seed preset demonstrations failed:', error)
   }
+  const parentChildBindings = new ParentChildBindingStore({
+    database: productDb
+  })
+  seedDemoParentBinding(parentChildBindings)
 
   const assignments = createQuestionBackedRegistry(demoAssignments, (id) =>
     questionBank.peek(id)
@@ -432,6 +440,7 @@ export async function createServerContext(
     studyPlan,
     weeklyReport,
     weeklyReportExports,
+    parentChildBindings,
     achievements,
     dialogue,
     flashcardDraft,

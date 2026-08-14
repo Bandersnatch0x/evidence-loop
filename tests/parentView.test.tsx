@@ -1,6 +1,6 @@
 /**
  * ParentOverviewView — 家长端只读视图（决赛加码）。
- * 只拉 /api/parent/reports/weekly；渲染与教师/学生同源的章节组件。
+ * 先拉 /api/parent/children 绑定，再拉选中子女的 /api/parent/reports/weekly。
  */
 import { describe, expect, it, vi, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
@@ -14,10 +14,14 @@ import type {
 } from '../shared/weeklyReport'
 
 vi.mock('../src/components/reports/weeklyReportApi', () => ({
+  getParentChildren: vi.fn(),
   getParentWeeklyReport: vi.fn()
 }))
 
-import { getParentWeeklyReport } from '../src/components/reports/weeklyReportApi'
+import {
+  getParentChildren,
+  getParentWeeklyReport
+} from '../src/components/reports/weeklyReportApi'
 
 const evidenceRef: WeeklyReportEvidenceRef = {
   kind: 'attempt',
@@ -48,56 +52,75 @@ const section: WeeklyReportSection = {
 
 const status: WeeklyReportStatus = 'ok'
 
-const mockResponse: WeeklyReportResponse = {
-  report: {
-    id: 'wr-1',
-    studentId: 'learner-demo',
-    displayName: 'learner-demo',
-    teachingUnitId: 'tu-demo',
-    termId: 'term-demo',
-    algorithm: 'weekly.v1',
-    generatedAt: '2026-08-14T00:00:00.000Z',
-    status,
-    window: { from: '2026-08-07T00:00:00.000Z', to: '2026-08-14T00:00:00.000Z' },
-    evidenceRefs: [evidenceRef],
-    sections: [section]
-  },
-  sectionOrder: ['completion'],
-  evidenceCount: 1
+function makeResponse(studentId: string): WeeklyReportResponse {
+  return {
+    report: {
+      id: `wr-${studentId}`,
+      studentId,
+      displayName: studentId,
+      teachingUnitId: 'tu-demo',
+      termId: 'term-demo',
+      algorithm: 'weekly.v1',
+      generatedAt: '2026-08-14T00:00:00.000Z',
+      status,
+      window: {
+        from: '2026-08-07T00:00:00.000Z',
+        to: '2026-08-14T00:00:00.000Z'
+      },
+      evidenceRefs: [evidenceRef],
+      sections: [section]
+    },
+    sectionOrder: ['completion'],
+    evidenceCount: 1
+  }
 }
 
 describe('ParentOverviewView', () => {
   beforeEach(() => {
-    vi.mocked(getParentWeeklyReport).mockResolvedValue(mockResponse)
+    vi.mocked(getParentChildren).mockResolvedValue(['learner-demo'])
+    vi.mocked(getParentWeeklyReport).mockResolvedValue(
+      makeResponse('learner-demo')
+    )
   })
 
-  it('只读视图加载并渲染绑定子女周报', async () => {
-    render(
-      <ParentOverviewView childStudentId="learner-demo" teachingUnitId="tu-demo" />
-    )
+  it('按绑定列表渲染子女周报（DB 绑定驱动）', async () => {
+    render(<ParentOverviewView teachingUnitId="tu-demo" />)
     expect(
       await screen.findByRole('heading', { name: /家长视图/ })
     ).toBeInTheDocument()
-    expect((await screen.findAllByText(/learner-demo/)).length).toBeGreaterThan(0)
+    // 先等周报渲染完成（子女绑定 → 周报两个异步阶段）。
+    expect(await screen.findByText('答题数')).toBeInTheDocument()
+    expect(getParentChildren).toHaveBeenCalledTimes(1)
     expect(getParentWeeklyReport).toHaveBeenCalledWith({
       studentId: 'learner-demo',
       teachingUnitId: 'tu-demo'
     })
     expect((await screen.findAllByText(/1 条证据锚点/)).length).toBeGreaterThanOrEqual(1)
-    // 复用与教师/学生同源的章节渲染：数字章节出现。
-    expect(await screen.findByText('答题数')).toBeInTheDocument()
-    expect(screen.queryByRole('button')).toBeNull() // 家长端无任何按钮
+    // 家长端无任何按钮（多子女 tab 只在该情形出现）。
+    expect(screen.queryByRole('button')).toBeNull()
+  })
+
+  it('多子女时渲染切换 tab', async () => {
+    vi.mocked(getParentChildren).mockResolvedValue(['learner-a', 'learner-b'])
+    vi.mocked(getParentWeeklyReport).mockResolvedValue(makeResponse('learner-a'))
+    render(<ParentOverviewView teachingUnitId="tu-demo" />)
+    expect(await screen.findByRole('button', { name: 'learner-a' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'learner-b' })).toBeInTheDocument()
+  })
+
+  it('无绑定子女显示空态', async () => {
+    vi.mocked(getParentChildren).mockResolvedValue([])
+    render(<ParentOverviewView teachingUnitId="tu-demo" />)
+    expect(await screen.findByText(/尚未绑定子女/)).toBeInTheDocument()
   })
 
   it('加载失败显示错误横幅', async () => {
-    vi.mocked(getParentWeeklyReport).mockRejectedValue(
-      new Error('Forbidden: parent is not bound to this student')
+    vi.mocked(getParentChildren).mockRejectedValue(
+      new Error('Forbidden: only parent sessions may list bound children')
     )
-    render(
-      <ParentOverviewView childStudentId="learner-demo" teachingUnitId="tu-demo" />
-    )
+    render(<ParentOverviewView teachingUnitId="tu-demo" />)
     expect(await screen.findByRole('alert')).toHaveTextContent(
-      /Forbidden: parent is not bound/
+      /Forbidden: only parent sessions/
     )
   })
 })
