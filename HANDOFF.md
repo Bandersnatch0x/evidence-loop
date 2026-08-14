@@ -107,9 +107,12 @@ T11–T13 评审扫尾 + **T14 教师批量发提示（站内消息）** 已落�
 3. ~~现场演练第一轮~~ ✅（21/21；D1 服务器重启分支已实走；脚本随 listbox 同步）→ 后续按 `docs/DEMO-final-preflight.md` 加练计时版与口播偏差
 4. **专家问答脱口**：`docs/DEMO-expert-qa.md` 5 维度 37 问 + 铁律快答卡（评分边界 / 安全 / 开源复用）
 5. **演讲打磨**：口播稿 / 卡点 / 10min 逐字稿按决赛 SOP 对齐（开场句 / 收束三句 / 多 Agent 插播 30s）
-6. **决赛加码（YAGNI，除非评分明确要求）**：Excel/PDF 教务导出、成套 Attempt 批量提交 API、家长端
+6. ~~决赛加码~~ ✅（用户明确要求后已完成）：
+   - **成套服务端交卷** `95765ea`：`POST /api/student/papers/:paperId/submit`（校验+统计+审计+只读报告投影；练习态不入卷；无第二套计分）
+   - **Excel 兼容导出** `7c1171b`：CSV 加 UTF-8 BOM（中文不乱码）+ RFC 4180 转义，测试覆盖
+   - **家长端** `cf6f218`：parent 角色 + `GET /api/parent/reports/weekly`（demo 绑定 parent-demo→learner-demo，只读）+ 家长视图；三处 403/404 鉴权测试
 
-不要在没拿到评分细则前开建 #6。
+剩余真实 fog：短信/推送、真实家长-子女绑定与真实多租户（Demo 假会话诚实标注）、成套"第二套计分"（故意不做，Attempt 才是聚合根）。
 
 ## Key docs
 

@@ -56,6 +56,7 @@
 - [x] 分范围提交当前并行 UI WIP，并跑全量 `npm run check`（`dd7c6cc`；lint + 1408 tests + `tsc` + Vite build + 体积预算 + E2E 18/18 三浏览器）
 - [x] 将本地领先的 90 个提交同步到 `origin/master`，复核远端 HEAD（`fc502d0..dd7c6cc`，HEAD == origin/master）
 - [x] 完成一轮决赛演练：`scripts/e2e-demo-loops.mjs` **21/21**（铁律①②③⑤路径 + T14 闭环）；演练中服务器挂掉，按 D1 用 18473 备用端口重启；脚本 `setRole` 随角色选择器改 listbox 同步更新
+- [x] 决赛加码（用户要求）：成套服务端交卷 `95765ea`（submit 端点，无第二套计分）+ Excel 兼容 CSV `7c1171b`（UTF-8 BOM）+ 家长端 `cf6f218`（parent 角色/只读周报/demo 绑定）——三者均已真机冒烟（家长端点 200/403/403，交卷 200 + 统计）
 
 ## 后续产品化
 

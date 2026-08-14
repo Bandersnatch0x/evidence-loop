@@ -154,7 +154,7 @@
 
 ### Q3.4：成套测评的倒计时和统一交卷是真功能吗？是不是第二套计分？
 
-**A：** 倒计时和统一交卷是真 UI 仪式，但我们主动说明：这是"考场仪式壳"，并没有第二套计分 API。`PracticeSession.shape='paper'` 由 Attempt 的 `paperId` 等元数据派生，计时 + 统一交卷只是学生侧的状态壳。每一题的分数仍然落在各自的 Attempt 评价闭环里。成套是组织方式，Attempt 才是成绩聚合根。我们宁可把边界说清楚，也不用"成套测评"四个字暗示有另一套计分。
+**A：** 倒计时是 UI 仪式；交卷从 localStorage 仪式升级为**服务端确认**（`POST /api/student/papers/:paperId/submit`，`95765ea`）：校验卷面已布置 + 子女在读，统计已答/未答，写审计事件，返回只读报告投影。但**没有第二套计分 API** —— 每题的分数仍落在各自 Attempt 的评价闭环里（D1 双保险：练习态 Attempt 结构性不入卷）。成套是组织方式，Attempt 才是成绩聚合根。我们宁可把边界说清楚，也不用"成套测评"四个字暗示有另一套计分。
 
 **支撑：** [DEMO-oral-10min.md](./DEMO-oral-10min.md) 4:20–5:10 成套段；[CONTEXT.md](../CONTEXT.md)「PracticeSession」；migration 0020 `paper_id/due_at`。
 
