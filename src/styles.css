@@ -3185,11 +3185,119 @@ td > b {
 
 .assignment-picker {
   display: flex;
-  flex-wrap: wrap;
-  gap: 18px;
+  flex-direction: column;
+  gap: 14px;
   padding: 16px 22px;
   background: var(--surface);
   border-bottom: 1px solid var(--line);
+}
+
+.assignment-picker-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.assignment-search-box {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-width: 240px;
+  max-width: 320px;
+  flex: 1;
+}
+
+.assignment-search-icon {
+  position: absolute;
+  left: 10px;
+  color: var(--ink-faint);
+  pointer-events: none;
+}
+
+.assignment-search-input {
+  width: 100%;
+  padding: 6px 30px 6px 32px;
+  font-size: 0.8125rem;
+  color: var(--ink);
+  background: var(--surface-sunken);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-md);
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.assignment-search-input:focus {
+  border-color: var(--indigo);
+  box-shadow: 0 0 0 3px oklch(52% 0.13 252 / 0.15);
+}
+
+.assignment-search-clear {
+  position: absolute;
+  right: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  color: var(--ink-faint);
+  background: transparent;
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.assignment-search-clear:hover {
+  color: var(--ink);
+  background: var(--line);
+}
+
+.assignment-filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.assignment-filter-chip {
+  padding: 4px 10px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--ink-muted);
+  background: var(--surface-sunken);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.assignment-filter-chip:hover {
+  color: var(--ink);
+  border-color: var(--line-strong);
+}
+
+.assignment-filter-chip.is-active {
+  color: var(--indigo-deep);
+  background: var(--indigo-wash);
+  border-color: oklch(52% 0.13 252 / 0.3);
+  font-weight: 600;
+}
+
+.assignment-groups-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+}
+
+.assignment-picker-empty {
+  padding: 24px 12px;
+  text-align: center;
+  color: var(--ink-muted);
+  font-size: 0.8125rem;
+  background: var(--surface-sunken);
+  border-radius: var(--radius-md);
+  border: 1px dashed var(--line-strong);
 }
 
 .assignment-group {
