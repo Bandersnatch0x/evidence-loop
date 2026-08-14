@@ -111,9 +111,10 @@ Apache-2.0
 1. 分数只来自可复现 Evidence；LLM 路径与打分物理隔离
 2. D1 双模：练习喂 FSRS 不进正式掌握；测评才进 MasteryProfile
 3. 教师终裁写入 teacherAnnotation，不折叠进客观 score；无批量灌分
-4. 站内提示是消息不是分
+4. 站内提示是消息不是分；成套交卷为服务端确认，仍无第二套计分
 5. 7 题型 Runner + 9 学科知识点 DAG；多模态语音只读不改分（可关闭）
 6. 容器隔离、HMAC 审计链、PII 扫描、学生 PII 不出境；Demo 假多租户诚实披露
+7. 家长端只读视图 + 子女绑定落库（parent_children）；Excel 兼容 CSV 导出
 ```
 
 ### 技术栈
@@ -136,8 +137,9 @@ Apache-2.0。可复用 Runner/量规模板、知识点 seed、ADR、演示脚本
 
 ### 后续迭代（诚实）
 ```
-教务 Excel/PDF 全套（CSV 已有）；真多租户与生产身份；成套 Attempt 批量提交 API；
-多模态 Phase 2；LMS/SIS 对接。不以 Demo 冒充大规模生产。
+已做：Excel 兼容 CSV 导出（UTF-8 BOM）、成套服务端交卷确认、家长端只读视图 + 子女绑定落库（parent_children 表）；
+待做：短信/推送、真实多租户与生产身份、真实家长身份、多模态 Phase 2、LMS/SIS 对接。
+不以 Demo 冒充大规模生产。
 ```
 
 ---
