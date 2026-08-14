@@ -126,6 +126,28 @@ ol {
   border: 0;
 }
 
+.skip-link {
+  position: absolute;
+  top: -999px;
+  left: 16px;
+  z-index: 1000;
+  padding: 10px 18px;
+  font-size: 0.8125rem;
+  font-weight: 650;
+  color: var(--surface);
+  background: var(--indigo-deep);
+  border-radius: var(--radius-md);
+  text-decoration: none;
+  box-shadow: var(--float-shadow);
+  transition: top 0.15s ease-in-out;
+}
+
+.skip-link:focus {
+  top: 16px;
+  outline: 3px solid oklch(52% 0.13 252 / 0.4);
+  outline-offset: 2px;
+}
+
 /* —— Shell —— */
 
 .app-shell {
@@ -5538,4 +5560,210 @@ tbody tr {
   text-align: center;
   padding: 48px 24px;
   color: var(--ink-muted);
+}
+
+/* ── Reviewer Queue View ── */
+
+.reviewer-view {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.reviewer-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.reviewer-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.reviewer-tabs-row {
+  display: flex;
+  gap: 8px;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 8px;
+}
+
+.reviewer-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--ink-muted);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.reviewer-tab:hover {
+  border-color: var(--line-strong);
+  color: var(--ink);
+}
+
+.reviewer-tab.is-active {
+  color: var(--indigo-deep);
+  background: var(--indigo-wash);
+  border-color: oklch(52% 0.13 252 / 0.3);
+  font-weight: 600;
+}
+
+.tab-count-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  background: var(--surface-sunken);
+  color: var(--ink);
+  border-radius: 999px;
+}
+
+.reviewer-tab.is-active .tab-count-badge {
+  background: var(--indigo);
+  color: var(--surface);
+}
+
+.reviewer-card-list {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.reviewer-card-item {
+  padding: 16px 20px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.reviewer-card-item.is-report {
+  border-left: 3px solid var(--warn);
+}
+
+.reviewer-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.reviewer-card-title-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.reviewer-card-icon {
+  color: var(--indigo);
+}
+
+.reviewer-card-icon.report-icon {
+  color: var(--warn-deep);
+}
+
+.reviewer-pill {
+  display: inline-block;
+  padding: 2px 8px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  border-radius: 999px;
+  background: var(--surface-sunken);
+  color: var(--ink-muted);
+}
+
+.version-pill {
+  background: var(--indigo-wash);
+  color: var(--indigo-deep);
+}
+
+.category-pill {
+  background: var(--warn-wash);
+  color: var(--warn-deep);
+}
+
+.reviewer-target {
+  font-size: 0.75rem;
+  color: var(--ink-faint);
+}
+
+.reviewer-card-time {
+  font-size: 0.75rem;
+  color: var(--ink-muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.reviewer-report-reason {
+  margin: 0;
+  padding: 8px 12px;
+  background: var(--surface-sunken);
+  border-radius: var(--radius-md);
+  font-size: 0.8125rem;
+  color: var(--ink);
+  line-height: 1.5;
+}
+
+.reviewer-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 0.75rem;
+  color: var(--ink-faint);
+}
+
+.status-label {
+  font-weight: 600;
+  color: var(--ink-muted);
+}
+
+.status-label.report-status {
+  color: var(--warn-deep);
+}
+
+.reviewer-empty-card {
+  padding: 48px 24px;
+  text-align: center;
+  background: var(--surface);
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius-lg);
+  color: var(--ink-muted);
+}
+
+.reviewer-empty-icon {
+  color: var(--pass);
+  margin-bottom: 8px;
+}
+
+.reviewer-empty-card h3 {
+  margin: 0 0 6px;
+  font-size: 1rem;
+  color: var(--ink);
+}
+
+.reviewer-empty-card p {
+  margin: 0;
+  font-size: 0.8125rem;
 }

@@ -460,3 +460,33 @@ export function markStudentTipRead(tipId: string): Promise<StudentTipItem> {
     method: 'POST'
   })
 }
+
+// ---------------------------------------------------------------------------
+// Reviewer Queue API
+// ---------------------------------------------------------------------------
+
+export interface ReviewerQueueVersion {
+  id: string
+  demonstrationId: string
+  frozenAt: string
+  classification: string
+}
+
+export interface ReviewerQueueReport {
+  id: string
+  demonstrationId: string
+  reporterId: string
+  category: string
+  reason: string
+  status: string
+  createdAt?: string
+}
+
+export interface ReviewerQueueResponse {
+  versions: ReviewerQueueVersion[]
+  reports: ReviewerQueueReport[]
+}
+
+export function getReviewerQueue(): Promise<ReviewerQueueResponse> {
+  return requestJson('/api/reviewer/queue')
+}

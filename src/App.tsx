@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
-import { AlertTriangle, RefreshCw, ShieldCheck } from 'lucide-react'
+import { AlertTriangle, RefreshCw } from 'lucide-react'
 import type {
   Assignment,
   AssignmentSummary,
@@ -23,6 +23,7 @@ import { isStudentRole, isTeacherRole } from './components/rolePredicates'
 import { MobileHeader, Sidebar, type AppView } from './components/Sidebar'
 import { StudentWorkbench } from './components/student'
 import { StudentPlanHub, TeacherToolsHub } from './components/effort2'
+import { ReviewerQueueView } from './components/reviewer/ReviewerQueueView'
 import { TeacherWorkbench } from './components/teacher'
 import { TransparencyView } from './components/TransparencyView'
 import { VoiceCompanion } from './components/VoiceCompanion'
@@ -589,17 +590,13 @@ export function App() {
       </RoleGate>
     )
   } else if (activeView === 'reviewer') {
-    // P2: public-library reviewer entry (read-only queue placeholder).
     mainBody = (
       <RoleGate
         role={demoRole}
         allow={['teacher', 'admin']}
         deniedMessage="公共库审核仅对教师/管理员开放。"
       >
-        <div className="view-loading" role="status">
-          <ShieldCheck size={18} />
-          公共库审核队列。访问 <code>/api/reviewer/queue</code> 查看待审版本。
-        </div>
+        <ReviewerQueueView />
       </RoleGate>
     )
   } else {
@@ -608,6 +605,9 @@ export function App() {
 
   return (
     <div className={shellClass}>
+      <a href="#main-content" className="skip-link">
+        跳至主要内容
+      </a>
       <MobileHeader onOpen={() => setIsSidebarOpen(true)} />
       <Sidebar
         activeView={activeView}
@@ -618,7 +618,9 @@ export function App() {
         onClose={() => setIsSidebarOpen(false)}
       />
 
-      <main className="main-content">{mainBody}</main>
+      <main id="main-content" tabIndex={-1} className="main-content">
+        {mainBody}
+      </main>
 
       {multimodalEnabled && (
         <>
