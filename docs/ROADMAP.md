@@ -53,9 +53,9 @@
 
 - [x] 决赛现场 SOP、专家问答库、弱网演练清单提交（`035e34a`）
 - [x] UI WIP 第一轮审查与定向回归（20 tests + TypeScript + 触及文件 ESLint）
-- [ ] 分范围提交当前并行 UI WIP，并跑全量 `npm run check`
-- [ ] 将本地领先的 90 个提交同步到 `origin/master`，复核远端 HEAD
-- [ ] 完成一轮决赛计时演练，记录实际耗时与降级分支
+- [x] 分范围提交当前并行 UI WIP，并跑全量 `npm run check`（`dd7c6cc`；lint + 1408 tests + `tsc` + Vite build + 体积预算 + E2E 18/18 三浏览器）
+- [x] 将本地领先的 90 个提交同步到 `origin/master`，复核远端 HEAD（`fc502d0..dd7c6cc`，HEAD == origin/master）
+- [x] 完成一轮决赛演练：`scripts/e2e-demo-loops.mjs` **21/21**（铁律①②③⑤路径 + T14 闭环）；演练中服务器挂掉，按 D1 用 18473 备用端口重启；脚本 `setRole` 随角色选择器改 listbox 同步更新
 
 ## 后续产品化
 

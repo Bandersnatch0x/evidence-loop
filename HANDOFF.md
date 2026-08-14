@@ -39,7 +39,9 @@ T11–T13 评审扫尾 + **T14 教师批量发提示（站内消息）** 已落�
 - 最近一次已提交基线 `npm run check` **PASS**：lint + 全量 vitest **481 passed + 1 skipped** + `tsc --noEmit` + Vite build
 - 2026-08-14 UI WIP 定向验收：`App` 角色选择器 **2/2**，Pipeline / 掌握度 / 参考资料 / 今日复习 **18/18**；`tsc --noEmit` PASS；触及文件 ESLint PASS
 - 2026-08-14 Playwright 桌面（1440×1000）与移动端（390×844）复验：角色菜单、Pipeline 工具名换行、侧栏遮罩与键盘选择均通过
-- 当前工作区仍有未提交并行改动，以上定向结果不能替代同步前的全量 `npm run check`
+- 2026-08-14 全量验收 `dd7c6cc`：lint + **1408 passed / 6 skipped** + `tsc --noEmit` + Vite build + 体积预算 ok + Playwright E2E **18/18**（chromium/firefox/webkit）
+- 2026-08-14 决赛演练第一轮：`scripts/e2e-demo-loops.mjs` **21/21**（铁律①②③⑤ + T14 闭环）；演练中服务器挂掉，按 D1 走 18473 备用端口重启；脚本 `setRole` 随角色选择器改 listbox 同步更新
+- 当前工作区仍有未提交并行改动（user 的 reviewer/AssignmentPicker 等），以上结果只覆盖已提交内容
 - `tests/productDataModel.test.ts` **9/9**（legacy bare EvaluationResult + 混合坏行读兼容）
 - 本地 `.data/evaluations.json` 实读 **22/22** 条保留
 - E2E 真机复验（2026-07-26）：`PORT=5280` → `node scripts/e2e-demo-loops.mjs http://127.0.0.1:5280` → **16 passed, 0 failed**
@@ -100,9 +102,9 @@ T11–T13 评审扫尾 + **T14 教师批量发提示（站内消息）** 已落�
 
 复赛 5/5 已落地，代码与 E2E 闭环齐。剩余全是**交付准备**（非功能缺口），按以下顺序推进：
 
-1. **UI WIP 收口**：完成分范围提交，确认没有把并行改动混入同一提交；跑全量 `npm run check`
-2. **远端同步**：当前 `master` 比 `origin/master` 领先 90 个提交；全量验收通过后推送并复核远端 HEAD
-3. **现场演练**：按 `docs/DEMO-final-preflight.md` + `docs/DEMO-weaknetwork-drill.md` 走一遍，记录实际耗时、故障分支和口播偏差
+1. ~~UI WIP 收口~~ ✅（`dd7c6cc` 分范围提交，未混入并行改动；全量 check 通过）
+2. ~~远端同步~~ ✅（`fc502d0..dd7c6cc` 已推送，HEAD == origin/master）
+3. ~~现场演练第一轮~~ ✅（21/21；D1 服务器重启分支已实走；脚本随 listbox 同步）→ 后续按 `docs/DEMO-final-preflight.md` 加练计时版与口播偏差
 4. **专家问答脱口**：`docs/DEMO-expert-qa.md` 5 维度 37 问 + 铁律快答卡（评分边界 / 安全 / 开源复用）
 5. **演讲打磨**：口播稿 / 卡点 / 10min 逐字稿按决赛 SOP 对齐（开场句 / 收束三句 / 多 Agent 插播 30s）
 6. **决赛加码（YAGNI，除非评分明确要求）**：Excel/PDF 教务导出、成套 Attempt 批量提交 API、家长端

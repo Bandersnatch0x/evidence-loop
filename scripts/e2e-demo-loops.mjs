@@ -41,10 +41,19 @@ async function shot(page, name) {
   return path
 }
 
+const ROLE_LABELS = {
+  student: '学生',
+  teacher: '教师',
+  admin: '管理员'
+}
+
 async function setRole(page, role) {
-  const select = page.getByLabel('演示角色切换')
-  await select.waitFor({ state: 'visible', timeout: 15_000 })
-  await select.selectOption(role)
+  // Sidebar role switcher is an accessible custom listbox (button + popup),
+  // not a native <select> — see src/components/Sidebar.tsx.
+  const trigger = page.getByLabel('演示角色切换')
+  await trigger.waitFor({ state: 'visible', timeout: 15_000 })
+  await trigger.click()
+  await page.getByRole('option', { name: ROLE_LABELS[role], exact: true }).click()
   await sleep(600)
 }
 
