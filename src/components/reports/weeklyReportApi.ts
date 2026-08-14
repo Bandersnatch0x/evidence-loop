@@ -74,6 +74,15 @@ export function getStudentWeeklyReport(
   )
 }
 
+/** 家长拉绑定子女的只读周报（演示绑定 parent-demo → learner-demo）。 */
+export function getParentWeeklyReport(
+  query: WeeklyReportQuery
+): Promise<WeeklyReportResponse> {
+  return requestJson(
+    `/api/parent/reports/weekly?${buildParams(query).toString()}`
+  )
+}
+
 /** 取打印友好 HTML 文本（不直接跳转，见文件头说明）。 */
 export async function fetchWeeklyReportHtml(
   query: WeeklyReportQuery

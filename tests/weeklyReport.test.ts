@@ -217,6 +217,7 @@ function startServer(
   user: SessionUser,
   options: {
     narrator?: WeeklyReportNarrator
+    enrolledStudentIds?: string[]
   } = {}
 ): Promise<{ url: string; close: () => Promise<void> }> {
   const db = new Database(':memory:')
@@ -224,6 +225,7 @@ function startServer(
     id TEXT PRIMARY KEY,
     public_library_reviewer INTEGER NOT NULL DEFAULT 0
   );`)
+  const enrolled = options.enrolledStudentIds ?? [STUDENT]
   const server = createServer((request, response) => {
     const requestUrl = new URL(request.url ?? '/', 'http://127.0.0.1')
     const context: WeeklyReportRouteContext = {
@@ -231,7 +233,7 @@ function startServer(
       weeklyReport: service,
       org: {
         getTeachingUnit: (id: string) => (id === UNIT ? sampleUnit() : undefined),
-        listEnrolledStudentIds: () => [STUDENT]
+        listEnrolledStudentIds: () => enrolled
       },
       user,
       now: () => new Date(NOW_ISO),
@@ -577,6 +579,44 @@ describe('周报 HTTP 端点 (T19)', () => {
     })
     const response = await fetch(
       `${server.url}/api/student/reports/weekly?studentId=someone-else&unitId=${UNIT}`
+    )
+    expect(response.status).toBe(403)
+  })
+
+  it('家长拉绑定子女周报 → 200；非绑定子女 → 403', async () => {
+    const { service } = makeService({ attempts: [attempt('a1')] })
+    const server = await startServer(
+      service,
+      {
+        userId: 'parent-demo',
+        role: 'parent',
+        displayName: '演示家长'
+      },
+      { enrolledStudentIds: ['learner-demo'] }
+    )
+    // 绑定子女 learner-demo（unitId 别名兼容）
+    const ok = await fetch(
+      `${server.url}/api/parent/reports/weekly?studentId=learner-demo&unitId=${UNIT}`
+    )
+    expect(ok.status).toBe(200)
+    const body = (await ok.json()) as { report: { studentId: string } }
+    expect(body.report.studentId).toBe('learner-demo')
+    // 未绑定子女 → 403
+    const forbidden = await fetch(
+      `${server.url}/api/parent/reports/weekly?studentId=someone-else&unitId=${UNIT}`
+    )
+    expect(forbidden.status).toBe(403)
+  })
+
+  it('非家长角色访问家长端点 → 403', async () => {
+    const { service } = makeService()
+    const server = await startServer(service, {
+      userId: TEACHER,
+      role: 'teacher',
+      displayName: 'T'
+    })
+    const response = await fetch(
+      `${server.url}/api/parent/reports/weekly?studentId=learner-demo&unitId=${UNIT}`
     )
     expect(response.status).toBe(403)
   })

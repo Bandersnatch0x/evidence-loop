@@ -79,6 +79,15 @@ export interface WeeklyReportResponse {
 const TEACHER_JSON_PATH = '/api/teacher/reports/weekly'
 const TEACHER_HTML_PATH = '/api/teacher/reports/weekly.html'
 const STUDENT_JSON_PATH = '/api/student/reports/weekly'
+const PARENT_JSON_PATH = '/api/parent/reports/weekly'
+
+/**
+ * 演示家长 → 子女的只读绑定（假多租户的诚实边界：
+ * 无真实家长-子女关系表，绑定常量写死在 demo 身份里）。
+ */
+const PARENT_CHILD_BINDING: Record<string, string> = {
+  'parent-demo': 'learner-demo'
+}
 
 /** 返回 true 表示请求已被消费。路径为精确匹配，挂载顺序无关紧要。 */
 export async function handleWeeklyReportApi(
@@ -91,7 +100,8 @@ export async function handleWeeklyReportApi(
   const isReportPath =
     pathname === TEACHER_JSON_PATH ||
     pathname === TEACHER_HTML_PATH ||
-    pathname === STUDENT_JSON_PATH
+    pathname === STUDENT_JSON_PATH ||
+    pathname === PARENT_JSON_PATH
   if (!isReportPath) return false
 
   if (request.method !== 'GET') {
@@ -102,6 +112,10 @@ export async function handleWeeklyReportApi(
   try {
     if (pathname === STUDENT_JSON_PATH) {
       await handleStudentReport(requestUrl, response, context)
+      return true
+    }
+    if (pathname === PARENT_JSON_PATH) {
+      await handleParentReport(requestUrl, response, context)
       return true
     }
     await handleTeacherReport(
@@ -240,6 +254,60 @@ async function handleStudentReport(
   if (!isEnrolled(context, unit.classId, unit.termId, studentId)) {
     respondJson(response, 403, {
       error: 'Forbidden: student is not enrolled in this teaching unit'
+    })
+    return
+  }
+
+  const report = await produceReport(context, studentId, unitId, requestUrl)
+  auditView(context, report)
+  respondJson(response, 200, toResponse(report))
+}
+
+/**
+ * 家长只读周报（决赛加码 · 家长端）。
+ * 权限面刻意最小：
+ *   1. 会话必须是 parent 角色（家长不能走学生/教师端点）；
+ *   2. studentId 必须命中演示绑定（parent-demo → learner-demo），
+ *      否则 403 —— 无真实绑定表，诚实标注为 demo 常量；
+ *   3. 子女生源所在单元必须存在且已在读（与教师路径同套 enrollment）。
+ * 输出只读 JSON（无 HTML 导出、无写端点），并记审计 view 事件。
+ */
+async function handleParentReport(
+  requestUrl: URL,
+  response: ServerResponse,
+  context: WeeklyReportRouteContext
+): Promise<void> {
+  if (context.user.role !== 'parent') {
+    respondJson(response, 403, {
+      error: 'Forbidden: only parent sessions may read the parent report'
+    })
+    return
+  }
+  const requested =
+    requestUrl.searchParams.get('studentId')?.trim() ?? ''
+  const boundChild = PARENT_CHILD_BINDING[context.user.userId]
+  if (boundChild === undefined || requested !== boundChild) {
+    respondJson(response, 403, {
+      error: 'Forbidden: parent is not bound to this student (demo binding)'
+    })
+    return
+  }
+  const studentId = requested
+  const unitId = readUnitId(requestUrl)
+  if (unitId === '') {
+    respondJson(response, 400, {
+      error: 'teachingUnitId query parameter is required'
+    })
+    return
+  }
+  const unit = context.org.getTeachingUnit(unitId)
+  if (!unit) {
+    respondJson(response, 404, { error: `Teaching unit not found: ${unitId}` })
+    return
+  }
+  if (!isEnrolled(context, unit.classId, unit.termId, studentId)) {
+    respondJson(response, 403, {
+      error: 'Forbidden: child is not enrolled in this teaching unit'
     })
     return
   }

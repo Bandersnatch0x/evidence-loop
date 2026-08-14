@@ -1,7 +1,8 @@
 import type { IncomingMessage } from 'node:http'
+import type { DemoRole } from '../../shared/contracts'
 
 /** Demo / production role set for access control. */
-export type DemoRole = 'student' | 'teacher' | 'admin'
+export type { DemoRole }
 
 export interface SessionUser {
   userId: string
@@ -28,7 +29,7 @@ export interface SessionProvider {
   resolve(request: IncomingMessage): SessionUser
 }
 
-export const DEMO_ROLES = ['student', 'teacher', 'admin'] as const satisfies readonly DemoRole[]
+export const DEMO_ROLES = ['student', 'teacher', 'admin', 'parent'] as const satisfies readonly DemoRole[]
 
 export function isDemoRole(value: string): value is DemoRole {
   return (DEMO_ROLES as readonly string[]).includes(value)

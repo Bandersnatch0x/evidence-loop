@@ -30,6 +30,16 @@ export const DEMO_USERS: Record<DemoRole, SessionUser> = {
     role: 'admin',
     displayName: '演示管理员',
     actorSource: 'demo'
+  },
+  /**
+   * 演示家长：只读绑定演示学员 learner-demo（假多租户的诚实演示边界，
+   * 无真实家长-子女绑定表）。权限面 = 仅 /api/parent/* 只读端点。
+   */
+  parent: {
+    userId: 'parent-demo',
+    role: 'parent',
+    displayName: '演示家长',
+    actorSource: 'demo'
   }
 }
 

@@ -3,7 +3,7 @@
 import type { SubjectLanguage } from './evaluation'
 
 /** Demo role used by the mock multi-tenant access control layer. */
-export type DemoRole = 'student' | 'teacher' | 'admin'
+export type DemoRole = 'student' | 'teacher' | 'admin' | 'parent'
 
 export interface AuditLogItem {
   id: string

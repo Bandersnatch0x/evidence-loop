@@ -19,10 +19,11 @@ import { OverlayLayer } from './components/OverlayLayer'
 import { PipelineBar } from './components/PipelineBar'
 import { ReviewView } from './components/ReviewView'
 import { RoleGate } from './components/RoleGate'
-import { isStudentRole, isTeacherRole } from './components/rolePredicates'
+import { isStudentRole, isTeacherRole, isParentRole } from './components/rolePredicates'
 import { MobileHeader, Sidebar, type AppView } from './components/Sidebar'
 import { StudentWorkbench } from './components/student'
 import { StudentPlanHub, TeacherToolsHub } from './components/effort2'
+import { ParentOverviewView } from './components/parent/ParentOverviewView'
 import { ReviewerQueueView } from './components/reviewer/ReviewerQueueView'
 import { TeacherWorkbench } from './components/teacher'
 import { TransparencyView } from './components/TransparencyView'
@@ -121,12 +122,18 @@ const STUDENT_ONLY_VIEWS: readonly AppView[] = [
   'student-plan'
 ]
 
+const PARENT_ONLY_VIEWS: readonly AppView[] = ['parent']
+
 function isTeacherOnlyView(view: AppView): boolean {
   return TEACHER_ONLY_VIEWS.includes(view)
 }
 
 function isStudentOnlyView(view: AppView): boolean {
   return STUDENT_ONLY_VIEWS.includes(view)
+}
+
+function isParentOnlyView(view: AppView): boolean {
+  return PARENT_ONLY_VIEWS.includes(view)
 }
 
 export function App() {
@@ -248,6 +255,12 @@ export function App() {
       setActiveView('workspace')
     }
     if (isTeacherRole(role) && isStudentOnlyView(activeView)) {
+      setActiveView('workspace')
+    }
+    if (isParentRole(role) && !isParentOnlyView(activeView)) {
+      setActiveView('parent')
+    }
+    if (role !== 'parent' && isParentOnlyView(activeView)) {
       setActiveView('workspace')
     }
     setDemoRole(role)
@@ -597,6 +610,19 @@ export function App() {
         deniedMessage="公共库审核仅对教师/管理员开放。"
       >
         <ReviewerQueueView />
+      </RoleGate>
+    )
+  } else if (activeView === 'parent') {
+    mainBody = (
+      <RoleGate
+        role={demoRole}
+        allow={['parent']}
+        deniedMessage="家长视图仅对家长演示角色开放。"
+      >
+        <ParentOverviewView
+          childStudentId="learner-demo"
+          teachingUnitId="tu-demo"
+        />
       </RoleGate>
     )
   } else {

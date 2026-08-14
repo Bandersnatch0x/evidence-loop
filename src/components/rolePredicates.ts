@@ -11,3 +11,7 @@ export function isTeacherRole(role: DemoRole): boolean {
 export function isStudentRole(role: DemoRole): boolean {
   return role === 'student'
 }
+
+export function isParentRole(role: DemoRole): boolean {
+  return role === 'parent'
+}

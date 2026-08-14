@@ -13,11 +13,17 @@ export const DEMO_STUDENT_ID = 'learner-demo'
 export const DEMO_ROLE_OPTIONS: Array<{ value: DemoRole; label: string }> = [
   { value: 'student', label: '学生' },
   { value: 'teacher', label: '教师' },
-  { value: 'admin', label: '管理员' }
+  { value: 'admin', label: '管理员' },
+  { value: 'parent', label: '家长' }
 ]
 
 export function isDemoRole(value: string): value is DemoRole {
-  return value === 'student' || value === 'teacher' || value === 'admin'
+  return (
+    value === 'student' ||
+    value === 'teacher' ||
+    value === 'admin' ||
+    value === 'parent'
+  )
 }
 
 export function readStoredDemoRole(): DemoRole {

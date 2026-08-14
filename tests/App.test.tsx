@@ -363,6 +363,20 @@ describe('App', () => {
     expect(roleTrigger).toHaveFocus()
   })
 
+  it('switching to the parent role opens the read-only parent view', async () => {
+    vi.mocked(api.getActiveDemoRole).mockReturnValue('parent')
+    const user = userEvent.setup()
+    render(<App />)
+
+    await user.click(await screen.findByLabelText('演示角色切换'))
+    await user.click(screen.getByRole('option', { name: '家长' }))
+
+    expect(
+      await screen.findByRole('heading', { name: /家长视图/ })
+    ).toBeInTheDocument()
+    expect(api.setActiveDemoRole).toHaveBeenCalledWith('parent')
+  })
+
   it('hides the voice companion while the multimodal flag is off', async () => {
     vi.mocked(isMultimodalEnabled).mockReturnValue(false)
     render(<App />)

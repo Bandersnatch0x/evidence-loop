@@ -29,6 +29,7 @@ export type AppView =
   | 'student-plan'
   | 'teacher-tools'
   | 'reviewer'
+  | 'parent'
 
 interface SidebarProps {
   activeView: AppView
@@ -77,7 +78,8 @@ const navigation = [
     label: '循证工具',
     icon: Layers,
     roles: ['teacher', 'admin']
-  }
+  },
+  { id: 'parent', label: '家长视图', icon: UsersRound, roles: ['parent'] }
 ] satisfies NavItem[]
 
 export function MobileHeader({ onOpen }: { onOpen: () => void }) {

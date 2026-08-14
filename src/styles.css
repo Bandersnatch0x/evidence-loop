@@ -5895,3 +5895,27 @@ tbody tr {
   margin: 0;
   font-size: 0.8125rem;
 }
+
+/* ── Parent view (决赛加码 · 只读子女周报) ── */
+
+.parent-view {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 20px 24px 48px;
+}
+
+.parent-view-heading h2 {
+  margin: 0 0 6px;
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.parent-view-readonly-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+}
